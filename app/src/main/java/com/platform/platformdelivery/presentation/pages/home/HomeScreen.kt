@@ -1,5 +1,7 @@
 package com.platform.platformdelivery.presentation.pages.home
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,11 +27,22 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.unit.dp
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.core.theme.SuccessGreen
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier) {
 
     var isOnline by remember { mutableStateOf(false) }
+
+    // ✅ Format current date
+    val currentDate = remember {
+        val today = LocalDate.now()
+        val formatter = DateTimeFormatter.ofPattern("EEEE, MM/dd", Locale.getDefault())
+        today.format(formatter)
+    }
 
 
     Column(
@@ -74,7 +87,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             ) {
 
                 Text(
-                    "Sunday, 08/31",
+                    currentDate,
                     style = AppTypography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground
                 )
