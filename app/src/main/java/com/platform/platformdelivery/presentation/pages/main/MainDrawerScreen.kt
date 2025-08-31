@@ -95,7 +95,7 @@ fun MainDrawerScreen(modifier: Modifier = Modifier) {
                     title = {
                         Text(
                             getTitleForRoute(currentRoute),
-                            style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onBackground
                         )
                     },

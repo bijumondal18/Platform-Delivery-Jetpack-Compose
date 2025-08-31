@@ -63,7 +63,13 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.width(16.dp))
             Switch(
                 checked = isOnline,
-                onCheckedChange = { isOnline = it }
+                onCheckedChange = { isOnline = it },
+                colors = androidx.compose.material3.SwitchDefaults.colors(
+                    checkedThumbColor = SuccessGreen,
+                    checkedTrackColor = SuccessGreen.copy(alpha = 0.5f),
+                    uncheckedThumbColor = MaterialTheme.colorScheme.error,
+                    uncheckedTrackColor = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                )
             )
             Spacer(modifier = Modifier.width(16.dp))
             Text(
@@ -80,17 +86,28 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        color = MaterialTheme.colorScheme.onSecondary,
+                        color = MaterialTheme.colorScheme.onBackground,
                         shape = MaterialTheme.shapes.medium
                     )
                     .padding(16.dp)
             ) {
 
-                Text(
-                    currentDate,
-                    style = AppTypography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        currentDate,
+                        style = AppTypography.bodyLarge,
+                        color = MaterialTheme.colorScheme.background
+                    )
+                    Text(
+                        "0 Offers",
+                        style = AppTypography.bodyMedium,
+                        color = MaterialTheme.colorScheme.background
+                    )
+                }
 
             }
         }
