@@ -1,5 +1,7 @@
 package com.platform.platformdelivery.presentation.pages.main
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -29,8 +31,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.presentation.pages.available_routes.AvailableRoutesScreen
+import com.platform.platformdelivery.presentation.pages.contact_admin.ContactAdminScreen
 import com.platform.platformdelivery.presentation.pages.home.HomeScreen
+import com.platform.platformdelivery.presentation.pages.my_accepted_routes.MyAcceptedRoutesScreen
 import com.platform.platformdelivery.presentation.pages.my_earnings.MyEarningsScreen
+import com.platform.platformdelivery.presentation.pages.my_route_history.MyRouteHistory
 import com.platform.platformdelivery.presentation.pages.profile.ProfileScreen
 import kotlinx.coroutines.launch
 
@@ -59,6 +64,7 @@ fun getTitleForRoute(route: String?): String {
 }
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainDrawerScreen(modifier: Modifier = Modifier) {
@@ -115,7 +121,10 @@ fun MainDrawerScreen(modifier: Modifier = Modifier) {
                 composable(DrawerDestinations.Home) { HomeScreen() }
                 composable(DrawerDestinations.Profile) { ProfileScreen() }
                 composable(DrawerDestinations.AvailableRoutes) { AvailableRoutesScreen() }
+                composable(DrawerDestinations.RouteHistory) { MyRouteHistory() }
+                composable(DrawerDestinations.MyAcceptedRoutes) { MyAcceptedRoutesScreen() }
                 composable(DrawerDestinations.MyEarnings) { MyEarningsScreen() }
+                composable(DrawerDestinations.ContactAdmin) { ContactAdminScreen() }
             }
 
         }

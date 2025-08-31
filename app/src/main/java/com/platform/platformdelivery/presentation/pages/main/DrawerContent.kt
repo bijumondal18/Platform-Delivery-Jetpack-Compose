@@ -53,7 +53,7 @@ fun DrawerContent(
                 label = "Home",
                 icon = Icons.Default.Home,
                 selected = selectedItem == DrawerDestinations.Home,
-                onClick = { onItemClick("Home") },
+                onClick = { onItemClick(DrawerDestinations.Home) },
                 modifier = Modifier
             )
 
@@ -61,7 +61,7 @@ fun DrawerContent(
                 label = "Profile",
                 icon = Icons.Default.Person,
                 selected = selectedItem == DrawerDestinations.Profile,
-                onClick = { onItemClick("Profile") },
+                onClick = { onItemClick(DrawerDestinations.Profile) },
                 modifier = Modifier
             )
 
@@ -69,7 +69,7 @@ fun DrawerContent(
                 label = "Available Routes",
                 icon = Icons.Filled.Place,
                 selected = selectedItem == DrawerDestinations.AvailableRoutes,
-                onClick = { onItemClick("Available Routes") },
+                onClick = { onItemClick(DrawerDestinations.AvailableRoutes) },
                 modifier = Modifier
             )
 
@@ -77,7 +77,7 @@ fun DrawerContent(
                 label = "Route History",
                 icon = Icons.Filled.List,
                 selected = selectedItem == DrawerDestinations.RouteHistory,
-                onClick = { onItemClick("Route History") },
+                onClick = { onItemClick(DrawerDestinations.RouteHistory) },
                 modifier = Modifier
             )
 
@@ -85,7 +85,7 @@ fun DrawerContent(
                 label = "My Accepted Routes",
                 icon = Icons.Default.Home,
                 selected = selectedItem == DrawerDestinations.MyAcceptedRoutes,
-                onClick = { onItemClick("My Accepted Routes") },
+                onClick = { onItemClick(DrawerDestinations.MyAcceptedRoutes) },
                 modifier = Modifier
             )
 
@@ -93,7 +93,7 @@ fun DrawerContent(
                 label = "My Earnings",
                 icon = Icons.Filled.ThumbUp,
                 selected = selectedItem == DrawerDestinations.MyEarnings,
-                onClick = { onItemClick("My Earnings") },
+                onClick = { onItemClick(DrawerDestinations.MyEarnings,) },
                 modifier = Modifier
             )
 
@@ -101,7 +101,7 @@ fun DrawerContent(
                 label = "Contact Admin",
                 icon = Icons.Default.Call,
                 selected = selectedItem == DrawerDestinations.ContactAdmin,
-                onClick = { onItemClick("Contact Admin") },
+                onClick = { onItemClick(DrawerDestinations.ContactAdmin) },
                 modifier = Modifier
             )
         }
