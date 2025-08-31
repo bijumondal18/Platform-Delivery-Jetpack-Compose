@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -48,6 +50,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
 
@@ -86,8 +89,8 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        color = MaterialTheme.colorScheme.onBackground,
-                        shape = MaterialTheme.shapes.medium
+                        color = MaterialTheme.colorScheme.secondary,
+                        shape = MaterialTheme.shapes.large
                     )
                     .padding(16.dp)
             ) {
@@ -100,12 +103,12 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                     Text(
                         currentDate,
                         style = AppTypography.bodyLarge,
-                        color = MaterialTheme.colorScheme.background
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         "0 Offers",
                         style = AppTypography.bodyMedium,
-                        color = MaterialTheme.colorScheme.background
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
 
