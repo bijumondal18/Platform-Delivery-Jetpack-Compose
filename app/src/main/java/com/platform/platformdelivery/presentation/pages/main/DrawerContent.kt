@@ -17,7 +17,9 @@ import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.platform.platformdelivery.R
 
 @Composable
 fun DrawerContent(
@@ -51,7 +53,7 @@ fun DrawerContent(
         ) {
             DrawerItem(
                 label = "Home",
-                icon = Icons.Default.Home,
+                icon = painterResource(id = R.drawable.ic_home),
                 selected = selectedItem == DrawerDestinations.Home,
                 onClick = { onItemClick(DrawerDestinations.Home) },
                 modifier = Modifier
@@ -59,7 +61,7 @@ fun DrawerContent(
 
             DrawerItem(
                 label = "Profile",
-                icon = Icons.Default.Person,
+                icon = painterResource(id = R.drawable.ic_profile),
                 selected = selectedItem == DrawerDestinations.Profile,
                 onClick = { onItemClick(DrawerDestinations.Profile) },
                 modifier = Modifier
@@ -67,7 +69,7 @@ fun DrawerContent(
 
             DrawerItem(
                 label = "Available Routes",
-                icon = Icons.Filled.Place,
+                icon = painterResource(id = R.drawable.ic_available_routes),
                 selected = selectedItem == DrawerDestinations.AvailableRoutes,
                 onClick = { onItemClick(DrawerDestinations.AvailableRoutes) },
                 modifier = Modifier
@@ -75,7 +77,7 @@ fun DrawerContent(
 
             DrawerItem(
                 label = "Route History",
-                icon = Icons.Filled.List,
+                icon = painterResource(id = R.drawable.ic_route_history),
                 selected = selectedItem == DrawerDestinations.RouteHistory,
                 onClick = { onItemClick(DrawerDestinations.RouteHistory) },
                 modifier = Modifier
@@ -83,7 +85,7 @@ fun DrawerContent(
 
             DrawerItem(
                 label = "My Accepted Routes",
-                icon = Icons.Default.Home,
+                icon = painterResource(id = R.drawable.ic_accepted_route),
                 selected = selectedItem == DrawerDestinations.MyAcceptedRoutes,
                 onClick = { onItemClick(DrawerDestinations.MyAcceptedRoutes) },
                 modifier = Modifier
@@ -91,7 +93,7 @@ fun DrawerContent(
 
             DrawerItem(
                 label = "My Earnings",
-                icon = Icons.Filled.ThumbUp,
+                icon = painterResource(id = R.drawable.ic_my_earnings),
                 selected = selectedItem == DrawerDestinations.MyEarnings,
                 onClick = { onItemClick(DrawerDestinations.MyEarnings,) },
                 modifier = Modifier
@@ -99,7 +101,7 @@ fun DrawerContent(
 
             DrawerItem(
                 label = "Contact Admin",
-                icon = Icons.Default.Call,
+                icon = painterResource(id = R.drawable.ic_contact_admin),
                 selected = selectedItem == DrawerDestinations.ContactAdmin,
                 onClick = { onItemClick(DrawerDestinations.ContactAdmin) },
                 modifier = Modifier
