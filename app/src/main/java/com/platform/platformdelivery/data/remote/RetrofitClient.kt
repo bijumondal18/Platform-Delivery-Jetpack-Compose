@@ -10,7 +10,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-object ApiClient {
+object RetrofitClient {
 
     // Token provider interface (you’ll implement it with SharedPreferences or DataStore)
     interface TokenProvider {
