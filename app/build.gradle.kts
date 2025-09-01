@@ -59,4 +59,15 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.navigation.compose)
+    // Retrofit
+    implementation(libs.retrofit)
+
+    // Gson Converter for JSON
+    implementation(libs.converter.gson)
+
+    // OkHttp
+    implementation(libs.okhttp)
+
+    // OkHttp Logging Interceptor (for debugging API calls)
+    implementation(libs.logging.interceptor)
 }
