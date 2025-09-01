@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -160,8 +161,8 @@ fun MyEarningsScreen(modifier: Modifier = Modifier) {
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_lifetime_earning),
-                            contentDescription = "lifetime_earnings",
+                            painter = painterResource(id = R.drawable.ic_available_routes),
+                            contentDescription = "total_routes",
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onBackground
                         )
@@ -202,8 +203,8 @@ fun MyEarningsScreen(modifier: Modifier = Modifier) {
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_lifetime_earning),
-                            contentDescription = "lifetime_earnings",
+                            painter = painterResource(id = R.drawable.ic_clock),
+                            contentDescription = "total_time",
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onBackground
                         )
@@ -223,6 +224,86 @@ fun MyEarningsScreen(modifier: Modifier = Modifier) {
                 }
             }
         }
+
+        Spacer(Modifier.height(16.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    color = MaterialTheme.colorScheme.secondary,
+                    shape = MaterialTheme.shapes.large
+                )
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_wallet),
+                        contentDescription = "current_due",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Current Due",
+                        style = AppTypography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "$0.00",
+                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_wallet),
+                        contentDescription = "current_due",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Next Payout Date",
+                        style = AppTypography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "12-31-2026",
+                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Button(
+            modifier = Modifier.fillMaxWidth().align(alignment = Alignment.CenterHorizontally),
+            content = {
+                Text(
+                    "Enable Instant Payout",
+                    style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.background
+                )
+            },
+            onClick = {}
+        )
 
     }
 
