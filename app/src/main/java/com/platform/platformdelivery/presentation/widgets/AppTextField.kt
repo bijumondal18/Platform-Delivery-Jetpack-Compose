@@ -9,12 +9,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -30,6 +32,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.platform.platformdelivery.core.theme.SuccessGreen
 
 @Composable
 fun AppTextField(
@@ -47,28 +50,52 @@ fun AppTextField(
     var passwordVisible by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
-        BasicTextField(
+        OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            textStyle = TextStyle(fontSize = 14.sp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(46.dp) // Custom height
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceDim,
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .padding(horizontal = 8.dp, vertical = 6.dp)
-        )
-
-
-        if (isError && errorMessage != null) {
-            Text(
-                text = errorMessage,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            label = { Text(label) },
+            singleLine = singleLine,
+            maxLines = maxLines,
+            isError = isError,
+            shape = MaterialTheme.shapes.medium,
+            visualTransformation = if (isPassword && !passwordVisible) {
+                PasswordVisualTransformation()
+            } else {
+                VisualTransformation.None
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = keyboardType,
+                imeAction = ImeAction.Done
+            ),
+            trailingIcon = {
+                if (isPassword) {
+                    val image = if (passwordVisible) {
+                        Icons.Default.Check
+                    } else {
+                        Icons.Default.Check
+                    }
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = null)
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),   // When active
+                unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f), // When inactive
+                disabledBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                errorBorderColor = MaterialTheme.colorScheme.error
             )
-        }
+        )
+    }
+
+    if (isError && errorMessage != null) {
+        Text(
+            text = errorMessage,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+        )
     }
 }
+

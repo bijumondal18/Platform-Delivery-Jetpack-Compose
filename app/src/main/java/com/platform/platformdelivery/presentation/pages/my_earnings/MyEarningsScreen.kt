@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import com.platform.platformdelivery.core.theme.AppTypography
+import com.platform.platformdelivery.presentation.widgets.PrimaryButton
 import org.intellij.lang.annotations.JdkConstants
 
 @Composable
@@ -47,7 +48,7 @@ fun MyEarningsScreen(modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .background(
                     color = MaterialTheme.colorScheme.secondary,
-                    shape = MaterialTheme.shapes.large
+                    shape = MaterialTheme.shapes.medium
                 )
                 .padding(16.dp),
             contentAlignment = Alignment.Center
@@ -89,7 +90,7 @@ fun MyEarningsScreen(modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .background(
                     color = MaterialTheme.colorScheme.secondary,
-                    shape = MaterialTheme.shapes.large
+                    shape = MaterialTheme.shapes.medium
                 )
                 .padding(16.dp),
             contentAlignment = Alignment.Center
@@ -126,7 +127,7 @@ fun MyEarningsScreen(modifier: Modifier = Modifier) {
                 TextButton(
                     content = {
                         Text(
-                            "Payout History",
+                            "View Payout History",
                             style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -147,7 +148,7 @@ fun MyEarningsScreen(modifier: Modifier = Modifier) {
                     .weight(1f)
                     .background(
                         color = MaterialTheme.colorScheme.secondary,
-                        shape = MaterialTheme.shapes.large
+                        shape = MaterialTheme.shapes.medium
                     )
                     .padding(16.dp),
                 contentAlignment = Alignment.Center
@@ -189,7 +190,7 @@ fun MyEarningsScreen(modifier: Modifier = Modifier) {
                     .weight(1f)
                     .background(
                         color = MaterialTheme.colorScheme.secondary,
-                        shape = MaterialTheme.shapes.large
+                        shape = MaterialTheme.shapes.medium
                     )
                     .padding(16.dp),
                 contentAlignment = Alignment.Center
@@ -232,7 +233,7 @@ fun MyEarningsScreen(modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .background(
                     color = MaterialTheme.colorScheme.secondary,
-                    shape = MaterialTheme.shapes.large
+                    shape = MaterialTheme.shapes.medium
                 )
                 .padding(16.dp),
             contentAlignment = Alignment.Center
@@ -293,15 +294,9 @@ fun MyEarningsScreen(modifier: Modifier = Modifier) {
 
         Spacer(Modifier.height(16.dp))
 
-        Button(
-            modifier = Modifier.fillMaxWidth().align(alignment = Alignment.CenterHorizontally),
-            content = {
-                Text(
-                    "Enable Instant Payout",
-                    style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.background
-                )
-            },
+        PrimaryButton(
+            modifier = Modifier.fillMaxWidth(),
+            text = "Enable Instant Payout",
             onClick = {}
         )
 

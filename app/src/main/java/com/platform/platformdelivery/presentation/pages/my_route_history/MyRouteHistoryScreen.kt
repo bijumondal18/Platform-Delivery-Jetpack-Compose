@@ -46,7 +46,7 @@ fun MyRouteHistory(modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .background(
                     color = MaterialTheme.colorScheme.secondary,
-                    shape = MaterialTheme.shapes.large
+                    shape = MaterialTheme.shapes.medium
                 )
                 .padding(16.dp)
         ) {
