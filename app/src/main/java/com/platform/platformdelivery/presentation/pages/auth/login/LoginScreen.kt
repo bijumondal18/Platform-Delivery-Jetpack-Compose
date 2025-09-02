@@ -125,7 +125,11 @@ fun LoginScreen(navController: NavController, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.primary
                 )
             },
-            onClick = {},
+            onClick = {
+                navController.navigate("forgot_password") {
+                    popUpTo("login") { inclusive = false }
+                }
+            },
             modifier = Modifier.align(alignment = Alignment.End)
         )
 
@@ -178,7 +182,11 @@ fun LoginScreen(navController: NavController, modifier: Modifier = Modifier) {
                         color = MaterialTheme.colorScheme.primary
                     )
                 },
-                onClick = {},
+                onClick = {
+                    navController.navigate("signup") {
+                        popUpTo("login") { inclusive = false }
+                    }
+                },
             )
         }
 
