@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Home
@@ -31,17 +32,9 @@ fun DrawerContent(
             .fillMaxHeight()
             .fillMaxWidth(fraction = 0.65f)
             .background(color = MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
 
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(fraction = 0.17f)
-                .background(color = MaterialTheme.colorScheme.primaryContainer)
-                .padding(vertical = 16.dp)
-        ) {
-            //TODO: Add Drawer Header Content Here (If Any)
-        }
 
         Spacer(modifier = Modifier.padding(vertical = 16.dp))
 

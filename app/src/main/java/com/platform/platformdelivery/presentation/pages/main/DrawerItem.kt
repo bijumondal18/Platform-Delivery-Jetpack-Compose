@@ -48,6 +48,7 @@ fun DrawerItem(
                 alpha = 0.12f
             ),
             unselectedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface
-        )
+        ),
+        shape = MaterialTheme.shapes.medium
     )
 }
