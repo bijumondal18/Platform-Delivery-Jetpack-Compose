@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -60,12 +61,13 @@ fun LoginScreen(navController: NavController, modifier: Modifier = Modifier) {
     ) {
 
         Image(
-            painter = painterResource(id = R.drawable.app_logo),
+            painter = painterResource(id = R.drawable.ic_delivery_truck),
             contentDescription = "app_logo",
             modifier = Modifier
                 .size(150.dp)
                 .align(alignment = Alignment.CenterHorizontally),
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            colorFilter = ColorFilter.tint(color = MaterialTheme.colorScheme.primary)
         )
 
         Spacer(modifier = Modifier.height(24.dp))

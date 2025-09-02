@@ -35,7 +35,6 @@ fun PrimaryButton(
         Text(
             text = text,
             style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.background
         )
     }
 }
