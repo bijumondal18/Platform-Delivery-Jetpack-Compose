@@ -18,11 +18,8 @@ import com.platform.platformdelivery.presentation.view_models.AuthViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun PlatformDeliveryApp(modifier: Modifier = Modifier) {
+fun PlatformDeliveryApp(startDestination: String) {
     val navController = rememberNavController()
-    val isLoggedIn = remember { mutableStateOf(false) }
-
-    val startDestination = if (isLoggedIn.value) "main" else "login"
 
     // Provide your shared AuthViewModel here
     val authViewModel: AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel()

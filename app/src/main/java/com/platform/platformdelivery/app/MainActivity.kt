@@ -8,8 +8,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import com.platform.platformdelivery.data.local.TokenManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
@@ -18,16 +21,29 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        splashScreen.setKeepOnScreenCondition {
-            lifecycleScope.launch {
-                delay(100)
-                splashScreen.setKeepOnScreenCondition { false }
-            }
-            true
-        }
+        var keepSplash = true
+        splashScreen.setKeepOnScreenCondition { keepSplash }
 
-        setContent {
-            PlatformDeliveryApp()
+
+        lifecycleScope.launch {
+            // Do token check in background
+            val tokenManager = TokenManager(this@MainActivity)
+            val token = withContext(Dispatchers.IO) {
+                tokenManager.getAccessToken()
+            }
+
+            // Decide navigation target based on token
+            val startDestination = if (token.isNullOrEmpty()) {
+                "login"
+            } else {
+                "main"
+            }
+
+            // Now hide splash and set content
+            keepSplash = false
+            setContent {
+                PlatformDeliveryApp(startDestination = startDestination)
+            }
         }
     }
 }
