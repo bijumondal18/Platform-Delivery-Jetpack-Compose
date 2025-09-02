@@ -66,7 +66,7 @@ fun AvailableRoutesScreen(modifier: Modifier = Modifier) {
             AppTextField(
                 value = zipCode,
                 onValueChange = { zipCode = it },
-                label = "Enter Zip Code",
+                label = "Zip Code",
                 keyboardType = KeyboardType.Number,
                 modifier = Modifier.weight(1f)
             )

@@ -92,7 +92,7 @@ fun ForgotPasswordScreen(navController: NavController, modifier: Modifier = Modi
                     email = it
                     emailError = null
                 },
-                label = "Enter your registered email",
+                label = "Registered Email",
                 keyboardType = KeyboardType.Email,
                 isError = emailError != null,
                 errorMessage = emailError
@@ -108,6 +108,11 @@ fun ForgotPasswordScreen(navController: NavController, modifier: Modifier = Modi
                     if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                         emailError = "Please enter a valid email"
                         valid = false
+                    }
+                    if(valid){
+                        navController.navigate("login"){
+                            popUpTo("login") { inclusive = true }
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth()

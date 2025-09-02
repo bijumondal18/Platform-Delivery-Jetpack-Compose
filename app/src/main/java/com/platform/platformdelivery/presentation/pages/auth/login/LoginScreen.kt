@@ -94,7 +94,7 @@ fun LoginScreen(navController: NavController, modifier: Modifier = Modifier) {
                 email = it
                 emailError = null
             },
-            label = "Enter email address",
+            label = "Email",
             keyboardType = KeyboardType.Email,
             isError = emailError != null,
             errorMessage = emailError
@@ -108,7 +108,7 @@ fun LoginScreen(navController: NavController, modifier: Modifier = Modifier) {
                 password = it
                 passwordError = null
             },
-            label = "Enter your password",
+            label = "Password",
             keyboardType = KeyboardType.Password,
             isPassword = true,
             isError = passwordError != null,
