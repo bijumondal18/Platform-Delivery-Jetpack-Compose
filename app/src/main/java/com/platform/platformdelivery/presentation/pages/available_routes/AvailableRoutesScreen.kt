@@ -28,11 +28,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.platform.platformdelivery.R
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.presentation.widgets.AppTextField
+import com.platform.platformdelivery.presentation.widgets.DatePickerBox
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -112,46 +114,24 @@ fun AvailableRoutesScreen(modifier: Modifier = Modifier) {
         ) {
             Text(
                 "None",
-                style = AppTypography.bodyMedium,
+                style = AppTypography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 "50",
-                style = AppTypography.bodyMedium,
+                style = AppTypography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onBackground
             )
         }
 
         Spacer(Modifier.height(32.dp))
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = MaterialTheme.colorScheme.secondary,
-                    shape = MaterialTheme.shapes.medium
-                )
-                .padding(16.dp)
-        ) {
+        DatePickerBox(
+            initialDate = currentDate,
+            onDateSelected = {
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    currentDate,
-                    style = AppTypography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    "0 Offers",
-                    style = AppTypography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
             }
-
-        }
+        )
     }
 
 }

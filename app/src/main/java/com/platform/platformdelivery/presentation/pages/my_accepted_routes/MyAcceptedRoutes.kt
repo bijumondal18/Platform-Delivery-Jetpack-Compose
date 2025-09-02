@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.platform.platformdelivery.core.theme.AppTypography
+import com.platform.platformdelivery.presentation.widgets.DatePickerBox
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -41,34 +42,12 @@ fun MyAcceptedRoutesScreen(modifier: Modifier = Modifier) {
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = MaterialTheme.colorScheme.secondary,
-                    shape = MaterialTheme.shapes.medium
-                )
-                .padding(16.dp)
-        ) {
+        DatePickerBox(
+            initialDate = currentDate,
+            onDateSelected = {
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    currentDate,
-                    style = AppTypography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    "0 Offers",
-                    style = AppTypography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
             }
-
-        }
+        )
     }
 
 }
