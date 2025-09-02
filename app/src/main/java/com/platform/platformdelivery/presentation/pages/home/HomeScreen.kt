@@ -37,8 +37,9 @@ import java.util.Locale
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier) {
-
-    var isOnline by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val tokenManager = remember { com.platform.platformdelivery.data.local.TokenManager(context) }
+    var isOnline by remember { mutableStateOf(tokenManager.isOnline()) }
 
     // ✅ Format current date
     val currentDate = remember {
@@ -67,7 +68,10 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.width(16.dp))
             Switch(
                 checked = isOnline,
-                onCheckedChange = { isOnline = it },
+                onCheckedChange = { status ->
+                    isOnline = status
+                    tokenManager.saveOnlineStatus(status)
+                },
                 colors = androidx.compose.material3.SwitchDefaults.colors(
                     checkedThumbColor = SuccessGreen,
                     checkedTrackColor = SuccessGreen.copy(alpha = 0.5f),

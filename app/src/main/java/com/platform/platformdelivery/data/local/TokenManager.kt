@@ -10,6 +10,7 @@ class TokenManager(context: Context) : RetrofitClient.TokenProvider {
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_USER_ID = "user_id"
+        private const val KEY_IS_ONLINE = "is_online"
     }
 
     override fun getAccessToken(): String? = prefs.getString(KEY_ACCESS_TOKEN, null)
@@ -32,6 +33,12 @@ class TokenManager(context: Context) : RetrofitClient.TokenProvider {
     }
 
     fun getUserId(): Int? = prefs.getInt(KEY_USER_ID, 0)
+
+    fun saveOnlineStatus(isOnline: Boolean) {
+        prefs.edit().putBoolean(KEY_IS_ONLINE, isOnline).apply()
+    }
+
+    fun isOnline(): Boolean = prefs.getBoolean(KEY_IS_ONLINE, false)
 
     fun clear() {
         prefs.edit().clear().apply()
