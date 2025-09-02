@@ -170,11 +170,15 @@ fun LoginScreen(navController: NavController, modifier: Modifier = Modifier) {
                 style = AppTypography.labelLarge.copy(fontWeight = FontWeight.Normal),
                 color = MaterialTheme.colorScheme.onBackground
             )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                "Sign Up",
-                style = AppTypography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.primary
+            TextButton (
+                content = {
+                    Text(
+                        "Sign Up",
+                        style = AppTypography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                },
+                onClick = {},
             )
         }
 
