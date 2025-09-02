@@ -14,6 +14,7 @@ import com.platform.platformdelivery.core.theme.AppTheme
 import com.platform.platformdelivery.presentation.pages.auth.forgot_password.ForgotPasswordScreen
 import com.platform.platformdelivery.presentation.pages.auth.login.LoginScreen
 import com.platform.platformdelivery.presentation.pages.auth.register.SignupScreen
+import com.platform.platformdelivery.presentation.view_models.AuthViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -23,13 +24,21 @@ fun PlatformDeliveryApp(modifier: Modifier = Modifier) {
 
     val startDestination = if (isLoggedIn.value) "main" else "login"
 
+    // Provide your shared AuthViewModel here
+    val authViewModel: AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+
+
     AppTheme {
         NavHost(
             navController = navController,
             startDestination = startDestination
         ) {
             composable("login") {
-                LoginScreen(navController)
+                LoginScreen(
+                    modifier = Modifier,
+                    navController = navController,
+                    viewModel = authViewModel
+                )
             }
             composable("forgot_password") {
                 ForgotPasswordScreen(navController)

@@ -18,10 +18,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,20 +37,29 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.platform.platformdelivery.R
 import com.platform.platformdelivery.core.theme.AppTypography
+import com.platform.platformdelivery.presentation.view_models.AuthViewModel
 import com.platform.platformdelivery.presentation.widgets.AppTextField
 import com.platform.platformdelivery.presentation.widgets.PrimaryButton
+import com.platform.platformdelivery.core.network.Result
 
 @Composable
-fun LoginScreen(navController: NavController, modifier: Modifier = Modifier) {
+fun LoginScreen(
+    modifier: Modifier = Modifier,
+    navController: NavController,
+    viewModel: AuthViewModel
+) {
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
+
+    val loginState by viewModel.loginState.collectAsState()
 
 
     Column(
@@ -136,6 +148,7 @@ fun LoginScreen(navController: NavController, modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(16.dp))
 
         PrimaryButton(
+            modifier = Modifier.fillMaxWidth(),
             text = "Login",
             enabled = email.isNotEmpty() && password.isNotEmpty() && password.length >= 6,
             onClick = {
@@ -150,15 +163,44 @@ fun LoginScreen(navController: NavController, modifier: Modifier = Modifier) {
                 }
 
                 if (valid) {
-                    // Save login state here (DataStore/SharedPreferences)
-                    navController.navigate("main") {
-                        popUpTo("login") { inclusive = true }
-                    }
+                    viewModel.login(email = email, password = password)
                 }
 
             },
-            modifier = Modifier.fillMaxWidth()
+
         )
+
+        when (loginState) {
+            is Result.Idle -> Unit
+            is Result.Loading -> {
+                Spacer(modifier = Modifier.height(16.dp))
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            }
+            is Result.Success -> {
+                val data = (loginState as Result.Success).data
+                // Navigate to main screen on success
+                if (data.data!= null && data.data.userId!= null){
+                    LaunchedEffect(Unit) {
+                        navController.navigate("main") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    }
+                }
+
+            }
+            is Result.Error -> {
+                val error = (loginState as Result.Error).message
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = AppTypography.bodyMedium,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+        }
+
+
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -174,7 +216,7 @@ fun LoginScreen(navController: NavController, modifier: Modifier = Modifier) {
                 style = AppTypography.labelLarge.copy(fontWeight = FontWeight.Normal),
                 color = MaterialTheme.colorScheme.onBackground
             )
-            TextButton (
+            TextButton(
                 content = {
                     Text(
                         "Sign Up",

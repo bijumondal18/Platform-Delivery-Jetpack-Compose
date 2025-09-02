@@ -6,6 +6,7 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
@@ -50,8 +51,18 @@ object RetrofitClient {
         response
     }
 
+    private val loggingInterceptor = HttpLoggingInterceptor().apply {
+        // Choose level according to your needs
+        level = HttpLoggingInterceptor.Level.BODY
+        // BODY → Logs request + headers + body + response
+        // BASIC → Logs request & response line only
+        // HEADERS → Logs headers only
+        // NONE → No logs
+    }
+
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
+        .addInterceptor(loggingInterceptor)
         .addInterceptor(retryInterceptor)
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
