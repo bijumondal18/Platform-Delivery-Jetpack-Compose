@@ -27,9 +27,20 @@ class AuthViewModel(
                 result.data?.data?.token?.let {
                     (RetrofitClient.tokenProvider as TokenManager).saveAccessToken(it)
                 }
-               result.data?.data?.user?.id?.let {
+                result.data?.data?.user?.id?.let {
                     (RetrofitClient.tokenProvider as TokenManager).saveUserId(it)
                 }
+                result.data?.data?.user?.name?.let {
+                    (RetrofitClient.tokenProvider as TokenManager).saveName(it)
+                }
+                result.data?.data?.user?.email?.let {
+                    (RetrofitClient.tokenProvider as TokenManager).saveEmail(it)
+                }
+                result.data?.data?.user?.profile_pic?.let {
+                    (RetrofitClient.tokenProvider as TokenManager).saveProfilePic(it)
+                }
+
+                (RetrofitClient.tokenProvider as TokenManager).setIsLoggedIn(true)
             }
         }
     }

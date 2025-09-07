@@ -48,6 +48,7 @@ object DrawerDestinations {
     const val MyAcceptedRoutes = "my_accepted_routes"
     const val MyEarnings = "my_earnings"
     const val ContactAdmin = "contact_admin"
+    const val Logout = "logout"
 }
 
 fun getTitleForRoute(route: String?): String {
@@ -88,6 +89,13 @@ fun MainDrawerScreen(modifier: Modifier = Modifier) {
                             launchSingleTop = true
                             restoreState = true
                         }
+                    }
+                },
+                onLogout = {
+//                    scope.launch { drawerState.close() }
+                    navController.navigate("login"){
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )

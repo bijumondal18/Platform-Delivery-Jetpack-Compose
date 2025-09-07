@@ -28,12 +28,12 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             // Do token check in background
             val tokenManager = TokenManager(this@MainActivity)
-            val token = withContext(Dispatchers.IO) {
-                tokenManager.getAccessToken()
+            val isLoggedIn = withContext(Dispatchers.IO) {
+                tokenManager.isLoggedIn()
             }
 
             // Decide navigation target based on token
-            val startDestination = if (token.isNullOrEmpty()) {
+            val startDestination = if (!isLoggedIn) {
                 "login"
             } else {
                 "main"

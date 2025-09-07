@@ -70,4 +70,6 @@ dependencies {
 
     // OkHttp Logging Interceptor (for debugging API calls)
     implementation(libs.logging.interceptor)
+
+    implementation(libs.coil.compose)
 }
