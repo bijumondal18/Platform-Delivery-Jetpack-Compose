@@ -36,7 +36,7 @@ class AuthViewModel(
                 result.data?.data?.user?.email?.let {
                     (RetrofitClient.tokenProvider as TokenManager).saveEmail(it)
                 }
-                result.data?.data?.user?.profile_pic?.let {
+                result.data?.data?.user?.profilePic?.let {
                     (RetrofitClient.tokenProvider as TokenManager).saveProfilePic(it)
                 }
 

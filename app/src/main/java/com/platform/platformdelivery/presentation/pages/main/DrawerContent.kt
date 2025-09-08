@@ -132,7 +132,6 @@ fun DrawerContent(
                 icon = painterResource(id = R.drawable.ic_logout),
                 selected = selectedItem == DrawerDestinations.Logout,
                 onClick = {
-                    appPrefs.clear()
                     onLogout()
                 },
                 modifier = Modifier

@@ -37,6 +37,7 @@ import com.platform.platformdelivery.presentation.pages.my_accepted_routes.MyAcc
 import com.platform.platformdelivery.presentation.pages.my_earnings.MyEarningsScreen
 import com.platform.platformdelivery.presentation.pages.my_route_history.MyRouteHistory
 import com.platform.platformdelivery.presentation.pages.profile.ProfileScreen
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
@@ -68,13 +69,17 @@ fun getTitleForRoute(route: String?): String {
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainDrawerScreen(modifier: Modifier = Modifier) {
+fun MainDrawerScreen(
+    onLogout: () -> Unit
+) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
 
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
         ?: DrawerDestinations.Home
+
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -92,11 +97,11 @@ fun MainDrawerScreen(modifier: Modifier = Modifier) {
                     }
                 },
                 onLogout = {
-//                    scope.launch { drawerState.close() }
-                    navController.navigate("login"){
-                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                        launchSingleTop = true
+                    scope.launch {
+                        drawerState.close()
+                        delay(500)
                     }
+                    showLogoutDialog = true
                 }
             )
         },
@@ -136,6 +141,52 @@ fun MainDrawerScreen(modifier: Modifier = Modifier) {
             }
 
         }
+    }
+
+    if (showLogoutDialog) {
+        androidx.compose.material3.AlertDialog(
+            shape = MaterialTheme.shapes.large,
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(
+                    "Confirm Logout",
+                    style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            },
+            text = {
+                Text(
+                    "Are you sure you want to logout from this device?",
+                    style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Normal),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f)
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        onLogout() // 👈 trigger real logout
+                    }
+                ) {
+                    Text(
+                        "Logout",
+                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { showLogoutDialog = false }
+                ) {
+                    Text(
+                        "Cancel",
+                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        )
     }
 
 }

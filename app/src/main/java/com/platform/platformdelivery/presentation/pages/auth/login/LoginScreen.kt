@@ -55,7 +55,6 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    modifier: Modifier = Modifier,
     navController: NavController,
     viewModel: AuthViewModel
 ) {
@@ -201,7 +200,7 @@ fun LoginScreen(
                             }
                         }
                     } else {
-                        val error = data.data.msg ?: "Invalid Credentials"
+                        val error = data.data?.msg ?: "Invalid Credentials"
                         LaunchedEffect(error) {
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar(

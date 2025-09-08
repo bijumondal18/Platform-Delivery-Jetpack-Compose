@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.platform.platformdelivery.core.theme.AppTypography
 import java.text.SimpleDateFormat
@@ -41,6 +42,7 @@ fun DatePickerBox(
     // --- Date Picker Dialog ---
     if (showDatePicker) {
         DatePickerDialog(
+            shape = MaterialTheme.shapes.large,
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(
@@ -53,11 +55,21 @@ fun DatePickerBox(
                         }
                         showDatePicker = false
                     }
-                ) { Text("OK") }
+                ) {
+                    Text(
+                        "OK",
+                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
+                    Text(
+                        "Cancel",
+                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
+                    )
                 }
             }
         ) {
