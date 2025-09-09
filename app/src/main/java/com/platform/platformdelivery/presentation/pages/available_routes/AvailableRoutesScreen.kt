@@ -139,6 +139,7 @@ fun AvailableRoutesScreen(
             Spacer(Modifier.height(16.dp))
 
             StepSlider(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 initialIndex = 0,
                 stepValues = listOf(0, 10, 20, 30, 40, 50),
             ) {
@@ -148,7 +149,7 @@ fun AvailableRoutesScreen(
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
             ) {
                 Text(
                     "None",
