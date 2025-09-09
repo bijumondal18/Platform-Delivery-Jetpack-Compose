@@ -38,7 +38,7 @@ class RoutesViewModel(
     private var currentPage = 1
     private val perPage = 7
 
-    fun getAvailableRoutes(page: Int = 1) {
+    fun getAvailableRoutes(page: Int = 1, date: String? = null) {
         viewModelScope.launch {
             if (page == 1) {
                 _isLoading.value = true
@@ -49,8 +49,12 @@ class RoutesViewModel(
             }
 
             try {
-                val date = SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(Date())
-                val result = routeRepository.getAvailableRoutes(page, perPage, date)
+                val formattedDate = date ?: SimpleDateFormat(
+                    "yyyy-MM-dd",
+                    java.util.Locale.getDefault()
+                ).format(Date())
+
+                val result = routeRepository.getAvailableRoutes(page, perPage, formattedDate)
 
                 when (result) {
                     is Result.Success -> {

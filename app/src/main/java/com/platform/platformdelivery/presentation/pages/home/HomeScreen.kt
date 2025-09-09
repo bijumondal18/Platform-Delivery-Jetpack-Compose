@@ -18,10 +18,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -38,22 +45,26 @@ import com.platform.platformdelivery.app.MainActivity
 import com.platform.platformdelivery.core.services.LocationService
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.core.theme.SuccessGreen
+import com.platform.platformdelivery.data.local.TokenManager
 import com.platform.platformdelivery.presentation.pages.home.widgets.RouteItem
 import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
 import com.platform.platformdelivery.presentation.widgets.DatePickerBox
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeScreen(
     routesViewModel: RoutesViewModel = viewModel()
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val activity = context as? MainActivity
-    val tokenManager = remember { com.platform.platformdelivery.data.local.TokenManager(context) }
+    val tokenManager = remember { TokenManager(context) }
     var isOnline by remember { mutableStateOf(tokenManager.isOnline()) }
 
     // ✅ collect states from ViewModel
@@ -64,6 +75,11 @@ fun HomeScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
+    val pullRefreshState = rememberPullToRefreshState()
+    var isRefreshing by remember { mutableStateOf(false) }
+
+
+    var pickedDate by remember { mutableStateOf<String?>(null) }
 
     // ✅ Format current date
     val currentDate = remember {
@@ -73,104 +89,158 @@ fun HomeScreen(
     }
 
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-//            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-
-        item {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Offline",
-                    style = AppTypography.bodyLarge,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Switch(
-                    checked = isOnline,
-                    onCheckedChange = { status ->
-                        if (status) {
-                            // User wants Online
-                            activity?.requestOrStartLocationService()
-                            tokenManager.saveOnlineStatus(true)
-                            isOnline = true
-                            coroutineScope.launch { routesViewModel.getAvailableRoutes(1) }
-                        } else {
-                            // User goes Offline
-                            activity?.stopLocationService()
-                            tokenManager.saveOnlineStatus(false)
-                            isOnline = false
-                        }
-
-                    },
-                    colors = androidx.compose.material3.SwitchDefaults.colors(
-                        checkedThumbColor = SuccessGreen,
-                        checkedTrackColor = SuccessGreen.copy(alpha = 0.5f),
-                        uncheckedThumbColor = MaterialTheme.colorScheme.error,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-                    )
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = "Online",
-                    style = AppTypography.bodyLarge,
-                    color = SuccessGreen
-                )
-            }
-            Spacer(Modifier.height(16.dp))
-
-        }
-
-
-
+    LaunchedEffect(isOnline) {
         if (isOnline) {
-            item {
-                DatePickerBox(
-                    initialDate = currentDate,
-                    onDateSelected = {
-                        coroutineScope.launch { routesViewModel.getAvailableRoutes(1) }
-                    }
+            routesViewModel.getAvailableRoutes(1)
+        }
+    }
+
+
+    PullToRefreshBox(
+        state = pullRefreshState,
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            coroutineScope.launch {
+                delay(1000)
+                routesViewModel.getAvailableRoutes(
+                    1,
+                    date = pickedDate ?: LocalDate.now()
+                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                 )
+                isRefreshing = false // ✅ stop indicator when refresh completes
+            }
+        },
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Offline",
+                        style = AppTypography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Switch(
+                        checked = isOnline,
+                        onCheckedChange = { status ->
+                            if (status) {
+                                // User wants Online
+                                activity?.requestOrStartLocationService()
+                                tokenManager.saveOnlineStatus(true)
+                                isOnline = true
+                                coroutineScope.launch { routesViewModel.getAvailableRoutes(1) }
+                            } else {
+                                // User goes Offline
+                                activity?.stopLocationService()
+                                tokenManager.saveOnlineStatus(false)
+                                isOnline = false
+                            }
+
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = SuccessGreen,
+                            checkedTrackColor = SuccessGreen.copy(alpha = 0.5f),
+                            uncheckedThumbColor = MaterialTheme.colorScheme.error,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "Online",
+                        style = AppTypography.bodyLarge,
+                        color = SuccessGreen
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
+
             }
 
-            when {
-                isLoading -> {
-                    item { Text("Loading routes...", style = AppTypography.bodyLarge) }
+
+            if (isOnline) {
+                item {
+                    DatePickerBox(
+                        initialDate = currentDate,
+                        onDateSelected = { selectedDate ->
+                            pickedDate = selectedDate
+                            coroutineScope.launch {
+                                routesViewModel.getAvailableRoutes(
+                                    1,
+                                    date = selectedDate
+                                )
+                            }
+                        }
+                    )
                 }
 
-                isEmpty -> {
-                    item { Text("No routes available", style = AppTypography.bodyLarge) }
-                }
-
-                else -> {
-                    items(routes) { route ->
-                        RouteItem(route)
-                    }
-                    if (noMoreData) {
+                when {
+                    isLoading && !isRefreshing -> {
                         item {
                             Text(
-                                "No more routes available",
-                                style = AppTypography.bodyMedium,
-                                modifier = Modifier.padding(8.dp)
+                                "Loading routes...",
+                                style = AppTypography.bodyLarge,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
                             )
                         }
                     }
+
+                    isEmpty -> {
+                        item {
+                            Text(
+                                "No routes available", style = AppTypography.bodyLarge,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            )
+                        }
+                    }
+
+                    else -> {
+                        items(routes) { route ->
+                            RouteItem(route)
+                        }
+                        if (noMoreData) {
+                            item {
+                                Text(
+                                    "No more routes available",
+                                    style = AppTypography.bodyLarge,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                )
+                            }
+                        }
+                    }
                 }
-            }
-        } else {
-            item {
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    "Go Online to Grab a Route!",
-                    style = AppTypography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.fillMaxWidth()
-                )
+            } else {
+                item {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "Go Online to Grab a Route!",
+                        style = AppTypography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    )
+                }
             }
         }
     }

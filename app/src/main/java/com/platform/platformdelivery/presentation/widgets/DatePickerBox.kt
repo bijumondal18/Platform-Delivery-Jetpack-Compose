@@ -48,10 +48,15 @@ fun DatePickerBox(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
-                            val sdf = SimpleDateFormat("EEEE, MM/dd", Locale.getDefault())
-                            val formattedDate = sdf.format(Date(millis))
-                            currentDate = formattedDate
-                            onDateSelected(formattedDate) // callback for parent
+                            val date = Date(millis)
+
+                            // ✅ UI format (for showing inside the box)
+                            val uiFormat = SimpleDateFormat("EEEE, MM/dd", Locale.getDefault())
+                            currentDate = uiFormat.format(date)
+
+                            // ✅ API format (for backend)
+                            val apiFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                            onDateSelected(apiFormat.format(date))
                         }
                         showDatePicker = false
                     }
