@@ -43,5 +43,4 @@ data class User(
     @SerializedName("email_verified_at") val emailVerifiedAt: Any?,
     @SerializedName("created_at") val createdAt: Any?,
     @SerializedName("updated_at") val updatedAt: Any?,
-    @SerializedName("average_ratting") val averageRatting: Any?,
 )

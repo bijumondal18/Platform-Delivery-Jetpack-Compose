@@ -1,5 +1,6 @@
 package com.platform.platformdelivery.presentation.pages.home
 
+import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
@@ -27,6 +28,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import com.platform.platformdelivery.app.MainActivity
+import com.platform.platformdelivery.core.services.LocationService
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.core.theme.SuccessGreen
 import com.platform.platformdelivery.presentation.widgets.DatePickerBox
@@ -38,6 +42,7 @@ import java.util.Locale
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val activity = context as? MainActivity
     val tokenManager = remember { com.platform.platformdelivery.data.local.TokenManager(context) }
     var isOnline by remember { mutableStateOf(tokenManager.isOnline()) }
 
@@ -69,8 +74,18 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             Switch(
                 checked = isOnline,
                 onCheckedChange = { status ->
-                    isOnline = status
-                    tokenManager.saveOnlineStatus(status)
+                    if (status) {
+                        // User wants Online
+                        activity?.requestOrStartLocationService()
+                        tokenManager.saveOnlineStatus(true)
+                        isOnline = true
+                    } else {
+                        // User goes Offline
+                        activity?.stopLocationService()
+                        tokenManager.saveOnlineStatus(false)
+                        isOnline = false
+                    }
+
                 },
                 colors = androidx.compose.material3.SwitchDefaults.colors(
                     checkedThumbColor = SuccessGreen,

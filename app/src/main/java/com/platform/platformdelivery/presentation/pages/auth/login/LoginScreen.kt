@@ -1,5 +1,6 @@
 package com.platform.platformdelivery.presentation.pages.auth.login
 
+import android.util.Log
 import android.util.Patterns
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -209,6 +210,8 @@ fun LoginScreen(
                                 )
                             }
                         }
+                        Log.e("LoginError", error)
+
                     }
 
                 }
@@ -222,6 +225,7 @@ fun LoginScreen(
                                 withDismissAction = true
                             )
                         }
+                        Log.e("LoginError", error)
                     }
                 }
             }
