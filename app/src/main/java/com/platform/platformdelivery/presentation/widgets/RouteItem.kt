@@ -1,6 +1,5 @@
-package com.platform.platformdelivery.presentation.pages.home.widgets
+package com.platform.platformdelivery.presentation.widgets
 
-import android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

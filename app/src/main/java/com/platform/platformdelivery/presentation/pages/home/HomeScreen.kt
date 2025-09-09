@@ -1,12 +1,8 @@
 package com.platform.platformdelivery.presentation.pages.home
 
-import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,8 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -35,23 +29,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.platform.platformdelivery.app.MainActivity
-import com.platform.platformdelivery.core.services.LocationService
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.core.theme.SuccessGreen
 import com.platform.platformdelivery.data.local.TokenManager
-import com.platform.platformdelivery.presentation.pages.home.widgets.RouteItem
+import com.platform.platformdelivery.presentation.widgets.RouteItem
 import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
 import com.platform.platformdelivery.presentation.widgets.DatePickerBox
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
