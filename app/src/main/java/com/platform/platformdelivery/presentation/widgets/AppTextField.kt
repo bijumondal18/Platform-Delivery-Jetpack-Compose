@@ -47,7 +47,8 @@ fun AppTextField(
     maxLines: Int = 1,
     keyboardType: KeyboardType = KeyboardType.Text,
     isError: Boolean = false,
-    errorMessage: String? = null
+    errorMessage: String? = null,
+    enabled: Boolean = true
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -59,6 +60,7 @@ fun AppTextField(
             singleLine = singleLine,
             maxLines = maxLines,
             isError = isError,
+            enabled = enabled,
             shape = MaterialTheme.shapes.medium,
             visualTransformation = if (isPassword && !passwordVisible) {
                 PasswordVisualTransformation()

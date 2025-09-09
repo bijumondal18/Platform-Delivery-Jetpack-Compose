@@ -1,11 +1,14 @@
 package com.platform.platformdelivery.core.network
 
 import com.platform.platformdelivery.data.models.LoginResponse
+import com.platform.platformdelivery.data.models.Route
+import com.platform.platformdelivery.data.models.RoutePathModel
 import retrofit2.Response
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 
 // Retrofit API Service for all driver-related endpoints
@@ -17,7 +20,8 @@ interface ApiService {
         @Field("email") email: String,
         @Field("password") password: String
     ): Response<LoginResponse>
-//
+
+    //
 //    @FormUrlEncoded
 //    @POST(AuthEndpoints.register)
 //    suspend fun register(
@@ -57,8 +61,12 @@ interface ApiService {
 //
 //
 //
-//    @GET(PlatformUrl.availableRouteUrl)
-//    suspend fun getAvailableRoutes(): Response<AvailableRoutesResponse>
+    @GET(RouteEndpoints.availableRoutes)
+    suspend fun getAvailableRoutes(
+        @Query("page") page: Int,
+        @Query("perpage") perPage: Int,
+        @Query("date") date: String,
+        ): Response<RoutePathModel>
 //
 //    @FormUrlEncoded
 //    @POST(PlatformUrl.acceptRouteUrl)

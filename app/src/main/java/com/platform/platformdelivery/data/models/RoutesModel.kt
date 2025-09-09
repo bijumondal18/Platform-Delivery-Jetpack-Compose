@@ -5,17 +5,17 @@ import com.google.gson.annotations.SerializedName
 data class RoutePathModel(
     @SerializedName("status") val status: String? = null,
     @SerializedName("message") val message: String? = null,
-    @SerializedName("headdata") val headdata: HeadData? = null
+    @SerializedName("data") val headdata: HeadData? = null
 )
 
 data class HeadData(
-    @SerializedName("bodydata") val bodydata: BodyData? = null,
+    @SerializedName("data") val bodydata: BodyData? = null,
     @SerializedName("status") val status: Boolean? = null
 )
 
 data class BodyData(
     @SerializedName("current_page") val currentPage: Int? = null,
-    @SerializedName("RoutesData") val routesData: List<Route>? = null,
+    @SerializedName("data") val routesData: List<Route>? = null,
     @SerializedName("first_page_url") val firstPageUrl: String? = null,
     @SerializedName("from") val from: Int? = null,
     @SerializedName("last_page") val lastPage: Int? = null,
