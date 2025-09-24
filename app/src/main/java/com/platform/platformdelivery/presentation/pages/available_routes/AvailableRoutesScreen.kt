@@ -41,6 +41,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.platform.platformdelivery.R
 import com.platform.platformdelivery.app.MainActivity
 import com.platform.platformdelivery.core.theme.AppTypography
@@ -57,7 +58,8 @@ import java.util.Locale
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AvailableRoutesScreen(
-    routesViewModel: RoutesViewModel = viewModel()
+    routesViewModel: RoutesViewModel = viewModel(),
+    navController: NavController
 ) {
 
     val context = LocalContext.current
@@ -212,7 +214,11 @@ fun AvailableRoutesScreen(
 
             else -> {
                 items(routes) { route ->
-                    RouteItem(route)
+                    RouteItem(route){selectedRoute ->
+                        coroutineScope.launch {
+                            navController.navigate("routeDetails/${selectedRoute.id}")
+                        }
+                    }
                 }
                 if (noMoreData) {
                     item {

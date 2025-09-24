@@ -37,6 +37,7 @@ import com.platform.platformdelivery.presentation.pages.my_accepted_routes.MyAcc
 import com.platform.platformdelivery.presentation.pages.my_earnings.MyEarningsScreen
 import com.platform.platformdelivery.presentation.pages.my_route_history.MyRouteHistory
 import com.platform.platformdelivery.presentation.pages.profile.ProfileScreen
+import com.platform.platformdelivery.presentation.pages.route_details.RouteDetailsScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -131,13 +132,17 @@ fun MainDrawerScreen(
                 startDestination = DrawerDestinations.Home,
                 modifier = Modifier.padding(innerPadding)
             ) {
-                composable(DrawerDestinations.Home) { HomeScreen() }
+                composable(DrawerDestinations.Home) { HomeScreen(navController = navController) }
                 composable(DrawerDestinations.Profile) { ProfileScreen() }
-                composable(DrawerDestinations.AvailableRoutes) { AvailableRoutesScreen() }
+                composable(DrawerDestinations.AvailableRoutes) { AvailableRoutesScreen(navController = navController) }
                 composable(DrawerDestinations.RouteHistory) { MyRouteHistory() }
                 composable(DrawerDestinations.MyAcceptedRoutes) { MyAcceptedRoutesScreen() }
                 composable(DrawerDestinations.MyEarnings) { MyEarningsScreen() }
                 composable(DrawerDestinations.ContactAdmin) { ContactAdminScreen() }
+                composable("routeDetails/{routeId}") { backStackEntry ->
+                    val routeId = backStackEntry.arguments?.getString("routeId")
+                    RouteDetailsScreen(routeId = routeId)
+                }
             }
 
         }

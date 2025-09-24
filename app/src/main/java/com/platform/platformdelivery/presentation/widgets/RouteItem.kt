@@ -1,6 +1,7 @@
 package com.platform.platformdelivery.presentation.widgets
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,59 +22,76 @@ import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.data.models.Route
 
 @Composable
-fun RouteItem(route: Route) {
+fun RouteItem(
+    route: Route,
+    onClick: (Route) -> Unit
+) {
 
-    Column(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 16.dp)
+            .background(color = MaterialTheme.colorScheme.surface)
+            .padding(top = 12.dp)
+            .clickable { onClick(route) }
+
     ) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    "${route.startTime} - ${route.estimatedEndTime}",
-                    style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    "${route.estimatedTotalTime} - ${route.distance}",
-                    style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Normal),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-
-            Box(
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
-                    .background(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.medium)
-                    .padding(12.dp)
+                    .fillMaxWidth()
+                    .padding(16.dp)
             ) {
-                Text(
-                    "$${route.driverPrice}",
-                    style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        "${route.startTime} - ${route.estimatedEndTime}",
+                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        "${route.estimatedTotalTime} - ${route.distance}",
+                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Normal),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                            shape = MaterialTheme.shapes.medium
+                        )
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        "$${route.driverPrice}",
+                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                "${route.originPlace}",
+                style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            )
+
+            Spacer(Modifier.height(12.dp))
 
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            "${route.originPlace}",
-            style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-        )
     }
 }

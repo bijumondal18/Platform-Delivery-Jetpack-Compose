@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.platform.platformdelivery.app.MainActivity
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.core.theme.SuccessGreen
@@ -50,7 +51,8 @@ import java.util.Locale
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeScreen(
-    routesViewModel: RoutesViewModel = viewModel()
+    routesViewModel: RoutesViewModel = viewModel(),
+    navController: NavController
 ) {
     val context = LocalContext.current
     val activity = context as? MainActivity
@@ -201,7 +203,11 @@ fun HomeScreen(
 
                     else -> {
                         items(routes) { route ->
-                            RouteItem(route)
+                            RouteItem(route) { selectedRoute ->
+                                coroutineScope.launch {
+                                    navController.navigate("routeDetails/${selectedRoute.id}")
+                                }
+                            }
                         }
                         if (noMoreData) {
                             item {
