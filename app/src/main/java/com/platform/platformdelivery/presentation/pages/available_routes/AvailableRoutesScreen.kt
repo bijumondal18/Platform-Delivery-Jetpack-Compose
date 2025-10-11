@@ -90,7 +90,7 @@ fun AvailableRoutesScreen(
 
 
     LaunchedEffect("") {
-        routesViewModel.getAvailableRoutes(1)
+        routesViewModel.loadAvailableRoutesOnce()
     }
 
 

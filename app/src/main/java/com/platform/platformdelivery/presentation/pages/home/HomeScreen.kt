@@ -81,9 +81,9 @@ fun HomeScreen(
     }
 
 
-    LaunchedEffect(isOnline) {
+    LaunchedEffect(Unit) {
         if (isOnline) {
-            routesViewModel.getAvailableRoutes(1)
+            routesViewModel.loadAvailableRoutesOnce()
         }
     }
 

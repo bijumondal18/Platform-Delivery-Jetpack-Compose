@@ -34,9 +34,20 @@ class RoutesViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> get() = _error
 
+    private var hasLoaded = false
+
     // Pagination state
     private var currentPage = 1
     private val perPage = 7
+
+
+    fun loadAvailableRoutesOnce(date: String? = null) {
+        if (!hasLoaded) {
+            getAvailableRoutes(1, date)
+            hasLoaded = true
+        }
+    }
+
 
     fun getAvailableRoutes(page: Int = 1, date: String? = null) {
         viewModelScope.launch {
