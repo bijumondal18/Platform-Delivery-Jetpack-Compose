@@ -2,7 +2,13 @@ package com.platform.platformdelivery.presentation.pages.home
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -72,6 +79,7 @@ fun HomeScreen(
 
 
     var pickedDate by remember { mutableStateOf<String?>(null) }
+
 
     // ✅ Format current date
     val currentDate = remember {
@@ -202,10 +210,24 @@ fun HomeScreen(
                     }
 
                     else -> {
-                        items(routes) { route ->
-                            RouteItem(route) { selectedRoute ->
-                                coroutineScope.launch {
-                                    navController.navigate("routeDetails/${selectedRoute.id}")
+                        itemsIndexed(routes) {index, route ->
+
+                            var visible by remember { mutableStateOf(false) }
+
+                            LaunchedEffect(Unit) {
+                                delay(index * 10L) // stagger effect
+                                visible = true
+                            }
+
+                            AnimatedVisibility(
+                                visible = visible,
+                                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                                exit = fadeOut()
+                            ) {
+                                RouteItem(route) { selectedRoute ->
+                                    coroutineScope.launch {
+                                        navController.navigate("routeDetails/${selectedRoute.id}")
+                                    }
                                 }
                             }
                         }

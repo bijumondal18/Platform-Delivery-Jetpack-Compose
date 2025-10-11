@@ -2,6 +2,10 @@ package com.platform.platformdelivery.presentation.pages.available_routes
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +54,7 @@ import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
 import com.platform.platformdelivery.presentation.widgets.AppTextField
 import com.platform.platformdelivery.presentation.widgets.DatePickerBox
 import com.platform.platformdelivery.presentation.widgets.RouteItem
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -213,10 +219,23 @@ fun AvailableRoutesScreen(
             }
 
             else -> {
-                items(routes) { route ->
-                    RouteItem(route){selectedRoute ->
-                        coroutineScope.launch {
-                            navController.navigate("routeDetails/${selectedRoute.id}")
+                itemsIndexed(routes) { index, route ->
+                    var visible by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(Unit) {
+                        delay(index * 10L) // stagger effect
+                        visible = true
+                    }
+
+                    AnimatedVisibility(
+                        visible = visible,
+                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                        exit = fadeOut()
+                    ) {
+                        RouteItem(route) { selectedRoute ->
+                            coroutineScope.launch {
+                                navController.navigate("routeDetails/${selectedRoute.id}")
+                            }
                         }
                     }
                 }
