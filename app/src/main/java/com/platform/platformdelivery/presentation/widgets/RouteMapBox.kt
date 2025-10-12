@@ -1,5 +1,6 @@
 package com.platform.platformdelivery.presentation.widgets
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -7,10 +8,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.*
 import com.google.maps.android.compose.*
+import com.platform.platformdelivery.R
 
 @Composable
 fun RouteMapBox(
@@ -33,6 +36,25 @@ fun RouteMapBox(
         position = CameraPosition.fromLatLngZoom(location, zoomLevel)
     }
 
+    // Detect dark theme
+    val isDarkTheme = isSystemInDarkTheme()
+    val context = LocalContext.current
+
+    // Load dark map style JSON from raw resources
+    val mapStyleOptions = remember(isDarkTheme) {
+        if (isDarkTheme) {
+            try {
+                MapStyleOptions(
+                    context.resources.openRawResource(R.raw.map_style_dark)
+                        .bufferedReader().use { it.readText() }
+                )
+            } catch (e: Exception) {
+                null
+            }
+        } else null
+    }
+
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -45,7 +67,7 @@ fun RouteMapBox(
             modifier = Modifier.matchParentSize(),
             cameraPositionState = cameraPositionState,
             uiSettings = MapUiSettings(zoomControlsEnabled = true),
-            properties = MapProperties(mapType = MapType.NORMAL)
+            properties = MapProperties(mapType = MapType.NORMAL, mapStyleOptions = mapStyleOptions)
         ) {
             // Example marker
             Marker(

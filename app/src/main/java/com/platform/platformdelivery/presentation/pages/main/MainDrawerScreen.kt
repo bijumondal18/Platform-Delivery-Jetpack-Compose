@@ -1,12 +1,14 @@
 package com.platform.platformdelivery.presentation.pages.main
 
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -15,21 +17,26 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.app.ActivityCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.platform.platformdelivery.core.theme.AppTypography
+import com.platform.platformdelivery.data.models.RouteDetails
 import com.platform.platformdelivery.presentation.pages.available_routes.AvailableRoutesScreen
 import com.platform.platformdelivery.presentation.pages.contact_admin.ContactAdminScreen
 import com.platform.platformdelivery.presentation.pages.home.HomeScreen
@@ -62,7 +69,7 @@ fun getTitleForRoute(route: String?): String {
         DrawerDestinations.MyAcceptedRoutes -> "My Accepted Routes"
         DrawerDestinations.MyEarnings -> "My Earnings"
         DrawerDestinations.ContactAdmin -> "Contact Admin"
-        else -> "Platform Delivery"
+        else -> ""
     }
 }
 
@@ -81,6 +88,61 @@ fun MainDrawerScreen(
         ?: DrawerDestinations.Home
 
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    var dynamicTitle by remember { mutableStateOf<String?>(null) }
+
+
+    val context = LocalContext.current
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = currentRoute == DrawerDestinations.Home) {
+        // Only show dialog when user is on Home
+        showExitDialog = true
+    }
+
+
+    if (showExitDialog) {
+        AlertDialog(
+            shape = MaterialTheme.shapes.large,
+            onDismissRequest = { showExitDialog = false },
+            title = {
+                Text(
+                    "Exit App",
+                    style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            },
+            text = {
+                Text(
+                    "Are you sure you want to close the app?",
+                    style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Normal),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f)
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExitDialog = false
+                    ActivityCompat.finishAffinity((context as android.app.Activity))
+                }) {
+                    Text(
+                        "Exit",
+                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) {
+                    Text(
+                        "Cancel",
+                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        )
+    }
+
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -114,7 +176,7 @@ fun MainDrawerScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            getTitleForRoute(currentRoute),
+                            dynamicTitle ?: getTitleForRoute(currentRoute),
                             style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onBackground
                         )
@@ -141,7 +203,17 @@ fun MainDrawerScreen(
                 composable(DrawerDestinations.ContactAdmin) { ContactAdminScreen() }
                 composable("routeDetails/{routeId}") { backStackEntry ->
                     val routeId = backStackEntry.arguments?.getString("routeId")
-                    RouteDetailsScreen(routeId = routeId)
+                    RouteDetailsScreen(
+                        routeId = routeId,
+                        onTitleChange = { title ->
+                            dynamicTitle = title
+                        })
+                }
+            }
+
+            LaunchedEffect(currentRoute) {
+                if (!currentRoute.startsWith("routeDetails")) {
+                    dynamicTitle = null
                 }
             }
 
@@ -149,6 +221,7 @@ fun MainDrawerScreen(
     }
 
     if (showLogoutDialog) {
+
         androidx.compose.material3.AlertDialog(
             shape = MaterialTheme.shapes.large,
             onDismissRequest = { showLogoutDialog = false },

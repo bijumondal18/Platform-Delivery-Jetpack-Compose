@@ -48,7 +48,9 @@ import java.time.format.DateTimeFormatter
 fun RouteDetailsScreen(
     modifier: Modifier = Modifier,
     routesViewModel: RoutesViewModel = viewModel(),
-    routeId: String?
+    routeId: String?,
+    onTitleChange: (String) -> Unit
+
 ) {
 
     val routeDetails by routesViewModel.routeDetails.collectAsState()
@@ -61,6 +63,12 @@ fun RouteDetailsScreen(
     val pullRefreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
 
+
+    LaunchedEffect(routeDetails) {
+        routeDetails?.routeDetailsData?.routeData?.id?.let{ id ->
+            onTitleChange("Route #$id")
+        }
+    }
 
     LaunchedEffect(Unit) {
         routesViewModel.getRouteDetails(RequestRouteDetails(routeId = routeId!!))
