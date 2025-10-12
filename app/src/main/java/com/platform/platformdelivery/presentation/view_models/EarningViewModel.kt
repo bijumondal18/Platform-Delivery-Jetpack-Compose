@@ -22,7 +22,15 @@ class EarningViewModel(
     private val _earningDetailsError = MutableStateFlow<String?>(null)
     val earningDetailsError: StateFlow<String?> get() = _earningDetailsError
 
+    var hasLoadedEarningDetails = false
 
+
+    fun loadEarningDetailsOnce() {
+        if (!hasLoadedEarningDetails) {
+            getEarningDetails()
+            hasLoadedEarningDetails = true
+        }
+    }
 
     fun getEarningDetails() {
         viewModelScope.launch {

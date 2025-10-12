@@ -182,8 +182,11 @@ fun RouteDetailsScreen(
                                         .fillMaxWidth()
                                         .padding(12.dp)
                                 ) {
-                                    Text("Pickup Point: ${routeDetails!!.routeDetailsData?.routeData?.originPlace}")
-                                    Text("Delivery Point: ${routeDetails!!.routeDetailsData?.routeData?.destinationPlace}")
+                                    Text("\uD83D\uDCCD ${routeDetails!!.routeDetailsData?.routeData?.originPlace}")
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Text("\uD83D\uDCCD ${routeDetails!!.routeDetailsData?.routeData?.destinationPlace}")
                                 }
                             }
 

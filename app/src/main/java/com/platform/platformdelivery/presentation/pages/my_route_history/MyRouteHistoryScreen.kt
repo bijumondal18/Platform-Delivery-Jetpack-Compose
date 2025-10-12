@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -130,15 +131,26 @@ fun MyRouteHistory(
                 when {
                     isLoading && !isRefreshing -> {
                         item {
-                            Text(
-                                "Loading routes...",
-                                style = AppTypography.bodyLarge,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp)
-                            )
+                                    .padding(vertical = 16.dp)
+                                    .align(alignment = Alignment.Center),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+//                            Text(
+//                                "Loading routes...",
+//                                style = AppTypography.bodyLarge,
+//                                textAlign = TextAlign.Center,
+//                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+//                                modifier = Modifier
+//                                    .fillMaxWidth()
+//                                    .padding(16.dp)
+//                            )
                         }
                     }
 

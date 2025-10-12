@@ -10,12 +10,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.platform.platformdelivery.presentation.pages.main.MainDrawerScreen
+//import com.platform.platformdelivery.presentation.pages.main.MainDrawerScreen
 import com.platform.platformdelivery.core.theme.AppTheme
 import com.platform.platformdelivery.data.local.TokenManager
 import com.platform.platformdelivery.presentation.pages.auth.forgot_password.ForgotPasswordScreen
 import com.platform.platformdelivery.presentation.pages.auth.login.LoginScreen
 import com.platform.platformdelivery.presentation.pages.auth.register.SignupScreen
+import com.platform.platformdelivery.presentation.pages.main.MainBottomNavScreen
 import com.platform.platformdelivery.presentation.view_models.AuthViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -48,7 +49,7 @@ fun PlatformDeliveryApp(startDestination: String) {
                 SignupScreen(navController)
             }
             composable("main") {
-                MainDrawerScreen(
+                MainBottomNavScreen(
                     onLogout = {
                         appPrefs.clear()
                         navController.navigate("login") {

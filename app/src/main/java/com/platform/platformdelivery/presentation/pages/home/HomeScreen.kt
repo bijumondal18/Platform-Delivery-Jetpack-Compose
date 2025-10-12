@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -184,15 +185,26 @@ fun HomeScreen(
                 when {
                     isLoading && !isRefreshing -> {
                         item {
-                            Text(
-                                "Loading routes...",
-                                style = AppTypography.bodyLarge,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp)
-                            )
+                                    .padding(vertical = 16.dp)
+                                    .align(alignment = Alignment.Center),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+//                            Text(
+//                                "Loading routes...",
+//                                style = AppTypography.bodyLarge,
+//                                textAlign = TextAlign.Center,
+//                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+//                                modifier = Modifier
+//                                    .fillMaxWidth()
+//                                    .padding(16.dp)
+//                            )
                         }
                     }
 
@@ -210,7 +222,7 @@ fun HomeScreen(
                     }
 
                     else -> {
-                        itemsIndexed(routes) {index, route ->
+                        itemsIndexed(routes) { index, route ->
 
                             var visible by remember { mutableStateOf(false) }
 

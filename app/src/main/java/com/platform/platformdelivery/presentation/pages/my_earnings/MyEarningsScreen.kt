@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import com.platform.platformdelivery.R
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,8 +24,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Text
@@ -50,6 +53,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.data.models.RequestRouteDetails
 import com.platform.platformdelivery.presentation.pages.my_earnings.widgets.CurrentDueCard
+import com.platform.platformdelivery.presentation.pages.my_earnings.widgets.EarningsShimmerLoader
 import com.platform.platformdelivery.presentation.pages.my_earnings.widgets.LastPayoutCard
 import com.platform.platformdelivery.presentation.pages.my_earnings.widgets.LifetimeEarningsCard
 import com.platform.platformdelivery.presentation.pages.my_earnings.widgets.RouteAndTimeCard
@@ -78,7 +82,7 @@ fun MyEarningsScreen(
 
 
     LaunchedEffect(Unit) {
-        earningViewModel.getEarningDetails()
+        earningViewModel.loadEarningDetailsOnce()
     }
 
     PullToRefreshBox(
@@ -103,15 +107,26 @@ fun MyEarningsScreen(
             when {
                 isLoading && !isRefreshing -> {
                     item {
-                        Text(
-                            "Loading...",
-                            style = AppTypography.bodyLarge,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        )
+                                .fillMaxWidth().padding(vertical = 16.dp)
+                                .align(alignment = Alignment.Center),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        //                            Text(
+//                                "Loading routes...",
+//                                style = AppTypography.bodyLarge,
+//                                textAlign = TextAlign.Center,
+//                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+//                                modifier = Modifier
+//                                    .fillMaxWidth()
+//                                    .padding(16.dp)
+//                            )
+//                        EarningsShimmerLoader()
                     }
                 }
 
