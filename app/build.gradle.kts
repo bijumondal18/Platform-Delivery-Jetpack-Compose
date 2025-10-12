@@ -76,4 +76,7 @@ dependencies {
     implementation(libs.material3)
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.material.icons.extended.android)
+
+    implementation("com.google.maps.android:maps-compose:4.3.3") // latest as of Oct 2025
+    implementation("com.google.android.gms:play-services-maps:19.0.0")
 }

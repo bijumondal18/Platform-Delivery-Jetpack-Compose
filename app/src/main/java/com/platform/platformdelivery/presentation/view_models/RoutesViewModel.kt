@@ -4,7 +4,9 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.platform.platformdelivery.core.network.Result
+import com.platform.platformdelivery.data.models.RequestRouteDetails
 import com.platform.platformdelivery.data.models.Route
+import com.platform.platformdelivery.data.models.RouteDetailsResponse
 import com.platform.platformdelivery.data.models.RoutePathModel
 import com.platform.platformdelivery.data.repositories.AuthRepository
 import com.platform.platformdelivery.data.repositories.RouteRepository
@@ -40,6 +42,17 @@ class RoutesViewModel(
     // Pagination state
     private var currentPage = 1
     private val perPage = 7
+
+
+    private val _routeDetails = MutableStateFlow<RouteDetailsResponse?>(null)
+    val routeDetails: StateFlow<RouteDetailsResponse?> get() = _routeDetails
+
+    private val _isRouteDetailsLoading = MutableStateFlow(false)
+    val isRouteDetailsLoading: StateFlow<Boolean> get() = _isRouteDetailsLoading
+
+    private val _routeDetailsError = MutableStateFlow<String?>(null)
+    val routeDetailsError: StateFlow<String?> get() = _routeDetailsError
+
 
 
     fun loadAvailableRoutesOnce(date: String? = null) {
@@ -170,6 +183,36 @@ class RoutesViewModel(
             }
         }
     }
+
+    fun getRouteDetails(requestRouteDetails: RequestRouteDetails) {
+        viewModelScope.launch {
+            _isRouteDetailsLoading.value = true
+            _routeDetailsError.value = null
+            _routeDetails.value = null
+
+            try {
+                val result = routeRepository.getRouteDetails(requestRouteDetails)
+
+                when (result) {
+                    is Result.Success -> {
+                        _routeDetails.value = result.data
+                    }
+
+                    is Result.Error -> {
+                        _routeDetailsError.value = result.message
+                    }
+
+                    Result.Idle -> Unit
+                    Result.Loading -> _isRouteDetailsLoading.value = true
+                }
+            } catch (e: Exception) {
+                _routeDetailsError.value = e.message
+            } finally {
+                _isRouteDetailsLoading.value = false
+            }
+        }
+    }
+
 
 
 }

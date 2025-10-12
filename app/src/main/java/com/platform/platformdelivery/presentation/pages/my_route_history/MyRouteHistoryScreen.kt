@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.platform.platformdelivery.app.MainActivity
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.data.local.TokenManager
@@ -57,6 +58,7 @@ import java.util.Locale
 fun MyRouteHistory(
     modifier: Modifier = Modifier,
     routesViewModel: RoutesViewModel = viewModel(),
+    navController: NavController
 ) {
 
     // ✅ collect states from ViewModel
@@ -170,7 +172,7 @@ fun MyRouteHistory(
                             ) {
                                 RouteItem(route) { selectedRoute ->
                                     coroutineScope.launch {
-//                                        navController.navigate("routeDetails/${selectedRoute.id}")
+                                        navController.navigate("routeDetails/${selectedRoute.id}")
                                     }
                                 }
                             }

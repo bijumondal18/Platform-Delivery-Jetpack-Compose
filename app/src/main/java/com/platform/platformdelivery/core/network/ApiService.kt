@@ -1,14 +1,18 @@
 package com.platform.platformdelivery.core.network
 
 import com.platform.platformdelivery.data.models.LoginResponse
+import com.platform.platformdelivery.data.models.RequestRouteDetails
 import com.platform.platformdelivery.data.models.Route
+import com.platform.platformdelivery.data.models.RouteDetailsResponse
 import com.platform.platformdelivery.data.models.RouteHistory
 import com.platform.platformdelivery.data.models.RoutePathModel
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 
@@ -76,10 +80,10 @@ interface ApiService {
 //        @Field("route_id") routeId: String
 //    ): Response<BaseResponse>
 //
-//    @GET("${PlatformUrl.routeDetailsUrl}/{id}")
-//    suspend fun getRouteDetails(
-//        @Path("id") routeId: String
-//    ): Response<RouteDetailsResponse>
+    @POST(RouteEndpoints.routeDetails)
+    suspend fun getRouteDetails(
+        @Body requestRouteDetails: RequestRouteDetails
+    ): Response<RouteDetailsResponse>
 //
 //    @GET(PlatformUrl.myRouteUrl)
 //    suspend fun getMyRoutes(): Response<MyRoutesResponse>

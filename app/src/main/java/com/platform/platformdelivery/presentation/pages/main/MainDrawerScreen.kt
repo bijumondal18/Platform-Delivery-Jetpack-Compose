@@ -135,7 +135,7 @@ fun MainDrawerScreen(
                 composable(DrawerDestinations.Home) { HomeScreen(navController = navController) }
                 composable(DrawerDestinations.Profile) { ProfileScreen() }
                 composable(DrawerDestinations.AvailableRoutes) { AvailableRoutesScreen(navController = navController) }
-                composable(DrawerDestinations.RouteHistory) { MyRouteHistory() }
+                composable(DrawerDestinations.RouteHistory) { MyRouteHistory(navController = navController) }
                 composable(DrawerDestinations.MyAcceptedRoutes) { MyAcceptedRoutesScreen() }
                 composable(DrawerDestinations.MyEarnings) { MyEarningsScreen() }
                 composable(DrawerDestinations.ContactAdmin) { ContactAdminScreen() }
