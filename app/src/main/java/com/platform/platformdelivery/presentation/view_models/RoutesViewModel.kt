@@ -34,7 +34,8 @@ class RoutesViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> get() = _error
 
-    private var hasLoaded = false
+     var hasLoadedAvailableRoutes = false
+     var hasLoadedRouteHistory = false
 
     // Pagination state
     private var currentPage = 1
@@ -42,9 +43,16 @@ class RoutesViewModel(
 
 
     fun loadAvailableRoutesOnce(date: String? = null) {
-        if (!hasLoaded) {
+        if (!hasLoadedAvailableRoutes) {
             getAvailableRoutes(1, date)
-            hasLoaded = true
+            hasLoadedAvailableRoutes = true
+        }
+    }
+
+    fun loadRouteHistory(date: String? = null) {
+        if (!hasLoadedRouteHistory) {
+            getRouteHistory(1, date)
+            hasLoadedRouteHistory = true
         }
     }
 
@@ -107,4 +115,61 @@ class RoutesViewModel(
             getAvailableRoutes(currentPage + 1)
         }
     }
+
+
+
+    fun getRouteHistory(page: Int = 1, date: String? = null) {
+        viewModelScope.launch {
+            if (page == 1) {
+                _isLoading.value = true
+                _routes.value = emptyList()
+                _noMoreDataAvailable.value = false
+                _isEmpty.value = false
+                _error.value = null
+            }
+
+            try {
+                val formattedDate = date ?: SimpleDateFormat(
+                    "yyyy-MM-dd",
+                    java.util.Locale.getDefault()
+                ).format(Date())
+
+                val result = routeRepository.getRouteHistory(page, perPage, formattedDate)
+
+                when (result) {
+                    is Result.Success -> {
+                        val newRoutes =  result.data.headdata?.bodydata?.routesData?: emptyList()
+                        if (newRoutes.isEmpty()) {
+                            if (page == 1) {
+                                _isEmpty.value = true
+                            } else {
+                                _noMoreDataAvailable.value = true
+                            }
+                        } else {
+                            if (page == 1) {
+                                _routes.value = newRoutes
+                            } else {
+                                _routes.value = _routes.value + newRoutes
+                            }
+                            _isEmpty.value = false
+                        }
+                    }
+
+                    is Result.Error -> {
+                        _error.value = result.message
+                    }
+
+                    Result.Idle -> Unit
+                    Result.Loading -> _isLoading.value = true
+                }
+            } catch (e: Exception) {
+                _error.value = e.message
+            } finally {
+                _isLoading.value = false
+                currentPage = page
+            }
+        }
+    }
+
+
 }

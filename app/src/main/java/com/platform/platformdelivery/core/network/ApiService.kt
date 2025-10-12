@@ -2,6 +2,7 @@ package com.platform.platformdelivery.core.network
 
 import com.platform.platformdelivery.data.models.LoginResponse
 import com.platform.platformdelivery.data.models.Route
+import com.platform.platformdelivery.data.models.RouteHistory
 import com.platform.platformdelivery.data.models.RoutePathModel
 import retrofit2.Response
 import retrofit2.http.Field
@@ -66,8 +67,9 @@ interface ApiService {
         @Query("page") page: Int,
         @Query("perpage") perPage: Int,
         @Query("date") date: String,
-        ): Response<RoutePathModel>
-//
+    ): Response<RoutePathModel>
+
+    //
 //    @FormUrlEncoded
 //    @POST(PlatformUrl.acceptRouteUrl)
 //    suspend fun acceptRoute(
@@ -82,8 +84,12 @@ interface ApiService {
 //    @GET(PlatformUrl.myRouteUrl)
 //    suspend fun getMyRoutes(): Response<MyRoutesResponse>
 //
-//    @GET(PlatformUrl.routeHistoryUrl)
-//    suspend fun getRouteHistory(): Response<RouteHistoryResponse>
+    @GET(RouteEndpoints.routeHistory)
+    suspend fun getRouteHistory(
+        @Query("page") page: Int,
+        @Query("perpage") perPage: Int,
+        @Query("date") date: String,
+    ): Response<RouteHistory>
 //
 //    @GET(PlatformUrl.allNotificationUrl)
 //    suspend fun getAllNotifications(): Response<NotificationResponse>

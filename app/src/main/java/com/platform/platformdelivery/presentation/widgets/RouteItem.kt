@@ -17,8 +17,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.unit.dp
 import com.platform.platformdelivery.core.theme.AppTypography
+import com.platform.platformdelivery.core.theme.SuccessGreen
 import com.platform.platformdelivery.data.models.Route
 
 @Composable
@@ -30,7 +32,6 @@ fun RouteItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .background(color = MaterialTheme.colorScheme.surface)
             .padding(top = 12.dp)
             .clickable { onClick(route) }
 
@@ -81,14 +82,35 @@ fun RouteItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                "${route.originPlace}",
-                style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onBackground,
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-            )
+            ) {
+                Text(
+                    "${route.originPlace}",
+                    style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = if(route.status == "completed") SuccessGreen.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceContainer,
+                            shape = MaterialTheme.shapes.small
+                        )
+                        .padding(6.dp)
+                ) {
+                    Text(
+                        "${route.status}",
+                        style = AppTypography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = SuccessGreen
+                    )
+                }
+
+            }
 
             Spacer(Modifier.height(12.dp))
 

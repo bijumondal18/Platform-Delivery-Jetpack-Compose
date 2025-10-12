@@ -28,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -100,149 +101,121 @@ fun AvailableRoutesScreen(
     }
 
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+    PullToRefreshBox(
+        state = pullRefreshState,
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            coroutineScope.launch {
+                delay(1000)
+                routesViewModel.getAvailableRoutes(
+                    1,
+                    date = pickedDate ?: LocalDate.now()
+                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                )
+                isRefreshing = false // ✅ stop indicator when refresh completes
+            }
+        },
     ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
 
-        item {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                AppTextField(
-                    value = zipCode,
-                    onValueChange = { zipCode = it },
-                    label = "Zip Code",
-                    keyboardType = KeyboardType.Number,
-                    modifier = Modifier.weight(1f)
-                )
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    AppTextField(
+                        value = zipCode,
+                        onValueChange = { zipCode = it },
+                        label = "Zip Code",
+                        keyboardType = KeyboardType.Number,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                IconButton(
-                    content = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_gps),
-                            contentDescription = "gps",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .weight(0.6f)
-                                .size(34.dp)
-                        )
-                    },
-                    onClick = {})
-            }
+                    IconButton(
+                        content = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_gps),
+                                contentDescription = "gps",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .weight(0.6f)
+                                    .size(34.dp)
+                            )
+                        },
+                        onClick = {})
+                }
 
-            Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
 
 
-            Text(
-                "Choose Delivery Radius (Mi)",
-                style = AppTypography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            StepSlider(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                initialIndex = 0,
-                stepValues = listOf(0, 10, 20, 30, 40, 50),
-            ) {
-
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
-            ) {
                 Text(
-                    "None",
-                    style = AppTypography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    "Choose Delivery Radius (Mi)",
+                    style = AppTypography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                Text(
-                    "50",
-                    style = AppTypography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
 
-            Spacer(Modifier.height(32.dp))
-        }
+                Spacer(Modifier.height(16.dp))
 
-        item {
+                StepSlider(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    initialIndex = 0,
+                    stepValues = listOf(0, 10, 20, 30, 40, 50),
+                ) {
 
-            DatePickerBox(
-                initialDate = currentDate,
-                onDateSelected = { selectedDate ->
-                    pickedDate = selectedDate
-                    coroutineScope.launch {
-                        routesViewModel.getAvailableRoutes(
-                            1,
-                            date = selectedDate
-                        )
-                    }
                 }
-            )
-        }
 
-        when {
-            isLoading && !isRefreshing -> {
-                item {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp)
+                ) {
                     Text(
-                        "Loading routes...",
-                        style = AppTypography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
+                        "None",
+                        style = AppTypography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        "50",
+                        style = AppTypography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
+
+                Spacer(Modifier.height(32.dp))
             }
 
-            isEmpty -> {
-                item {
-                    Text(
-                        "No routes available", style = AppTypography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    )
-                }
-            }
+            item {
 
-            else -> {
-                itemsIndexed(routes) { index, route ->
-                    var visible by remember { mutableStateOf(false) }
-
-                    LaunchedEffect(Unit) {
-                        delay(index * 10L) // stagger effect
-                        visible = true
-                    }
-
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                        exit = fadeOut()
-                    ) {
-                        RouteItem(route) { selectedRoute ->
-                            coroutineScope.launch {
-                                navController.navigate("routeDetails/${selectedRoute.id}")
-                            }
+                DatePickerBox(
+                    initialDate = currentDate,
+                    onDateSelected = { selectedDate ->
+                        pickedDate = selectedDate
+                        coroutineScope.launch {
+                            routesViewModel.getAvailableRoutes(
+                                1,
+                                date = selectedDate
+                            )
                         }
                     }
-                }
-                if (noMoreData) {
+                )
+            }
+
+            when {
+                isLoading && !isRefreshing -> {
                     item {
                         Text(
-                            "No more routes available",
+                            "Loading routes...",
                             style = AppTypography.bodyLarge,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
@@ -252,9 +225,57 @@ fun AvailableRoutesScreen(
                         )
                     }
                 }
+
+                isEmpty -> {
+                    item {
+                        Text(
+                            "No routes available", style = AppTypography.bodyLarge,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        )
+                    }
+                }
+
+                else -> {
+                    itemsIndexed(routes) { index, route ->
+                        var visible by remember { mutableStateOf(false) }
+
+                        LaunchedEffect(Unit) {
+                            delay(index * 10L) // stagger effect
+                            visible = true
+                        }
+
+                        AnimatedVisibility(
+                            visible = visible,
+                            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                            exit = fadeOut()
+                        ) {
+                            RouteItem(route) { selectedRoute ->
+                                coroutineScope.launch {
+                                    navController.navigate("routeDetails/${selectedRoute.id}")
+                                }
+                            }
+                        }
+                    }
+                    if (noMoreData) {
+                        item {
+                            Text(
+                                "No more routes available",
+                                style = AppTypography.bodyLarge,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            )
+                        }
+                    }
+                }
             }
+
         }
-
     }
-
 }
