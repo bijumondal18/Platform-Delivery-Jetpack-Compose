@@ -60,6 +60,7 @@ import com.platform.platformdelivery.presentation.pages.my_earnings.MyEarningsSc
 import com.platform.platformdelivery.presentation.pages.my_route_history.MyRouteHistory
 import com.platform.platformdelivery.presentation.pages.profile.ProfileScreen
 import com.platform.platformdelivery.presentation.pages.route_details.RouteDetailsScreen
+import com.platform.platformdelivery.presentation.routes.RoutesScreenWithChips
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -75,6 +76,7 @@ object DrawerDestinations {
     const val Profile = "profile"
     const val AvailableRoutes = "available_routes"
     const val RouteHistory = "route_history"
+    const val RouteScreenWithChips= "route_screen_with_chips"
     const val MyAcceptedRoutes = "my_accepted_routes"
     const val MyEarnings = "my_earnings"
     const val ContactAdmin = "contact_admin"
@@ -87,6 +89,7 @@ fun getTitleForRoute(route: String?): String {
         DrawerDestinations.Profile -> "Profile"
         DrawerDestinations.AvailableRoutes -> "Available Routes"
         DrawerDestinations.RouteHistory -> "My Route History"
+        DrawerDestinations.RouteScreenWithChips -> "My Routes"
         DrawerDestinations.MyAcceptedRoutes -> "My Accepted Routes"
         DrawerDestinations.MyEarnings -> "My Earnings"
         DrawerDestinations.ContactAdmin -> "Contact Admin"
@@ -115,8 +118,8 @@ fun MainBottomNavScreen(onLogout: () -> Unit) {
             icon = painterResource(id = R.drawable.ic_home)
         ),
         BottomNavItem(
-            DrawerDestinations.RouteHistory,
-            "Routes",
+            DrawerDestinations.RouteScreenWithChips,
+            "My Routes",
             icon = painterResource(id = R.drawable.ic_available_routes)
         ),
         BottomNavItem(
@@ -254,6 +257,7 @@ fun MainBottomNavScreen(onLogout: () -> Unit) {
             ) {
                 composable(DrawerDestinations.Home) { HomeScreen(navController = navController) }
                 composable(DrawerDestinations.Profile) { ProfileScreen() }
+                composable(DrawerDestinations.RouteScreenWithChips) { RoutesScreenWithChips(navController = navController) }
                 composable(DrawerDestinations.AvailableRoutes) { AvailableRoutesScreen(navController = navController) }
                 composable(DrawerDestinations.RouteHistory) { MyRouteHistory(navController = navController) }
                 composable(DrawerDestinations.MyAcceptedRoutes) { MyAcceptedRoutesScreen() }
