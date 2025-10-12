@@ -1,6 +1,10 @@
 package com.platform.platformdelivery.presentation.pages.my_earnings
 
 import android.widget.Space
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import com.platform.platformdelivery.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -14,292 +18,159 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.platform.platformdelivery.core.theme.AppTypography
+import com.platform.platformdelivery.data.models.RequestRouteDetails
+import com.platform.platformdelivery.presentation.pages.my_earnings.widgets.CurrentDueCard
+import com.platform.platformdelivery.presentation.pages.my_earnings.widgets.LastPayoutCard
+import com.platform.platformdelivery.presentation.pages.my_earnings.widgets.LifetimeEarningsCard
+import com.platform.platformdelivery.presentation.pages.my_earnings.widgets.RouteAndTimeCard
+import com.platform.platformdelivery.presentation.view_models.EarningViewModel
+import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
 import com.platform.platformdelivery.presentation.widgets.PrimaryButton
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.intellij.lang.annotations.JdkConstants
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyEarningsScreen(modifier: Modifier = Modifier) {
+fun MyEarningsScreen(
+    earningViewModel: EarningViewModel = viewModel(),
+) {
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
+    val earningDetails by earningViewModel.earningDetails.collectAsState()
+    val isLoading by earningViewModel.isEarningDetailsLoading.collectAsState()
+    val isError by earningViewModel.earningDetailsError.collectAsState()
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = MaterialTheme.colorScheme.secondary,
-                    shape = MaterialTheme.shapes.medium
-                )
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_lifetime_earning),
-                        contentDescription = "lifetime_earnings",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Lifetime Earnings",
-                        style = AppTypography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "$100,564.64",
-                    style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-        }
+    val coroutineScope = rememberCoroutineScope()
 
-        Spacer(modifier = Modifier.height(16.dp))
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = MaterialTheme.colorScheme.secondary,
-                    shape = MaterialTheme.shapes.medium
-                )
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_wallet),
-                        contentDescription = "lifetime_earnings",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Last Payout",
-                        style = AppTypography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "$10.00 on 06-28-2024",
-                    style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+    val pullRefreshState = rememberPullToRefreshState()
+    var isRefreshing by remember { mutableStateOf(false) }
 
-                TextButton(
-                    content = {
-                        Text(
-                            "View Payout History",
-                            style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    onClick = {}
-                )
-            }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .background(
-                        color = MaterialTheme.colorScheme.secondary,
-                        shape = MaterialTheme.shapes.medium
-                    )
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_available_routes),
-                            contentDescription = "total_routes",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "Total Routes",
-                            style = AppTypography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "0 Mi",
-                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .background(
-                        color = MaterialTheme.colorScheme.secondary,
-                        shape = MaterialTheme.shapes.medium
-                    )
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_clock),
-                            contentDescription = "total_time",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "Total Time",
-                            style = AppTypography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "3087hr:10min",
-                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = MaterialTheme.colorScheme.secondary,
-                    shape = MaterialTheme.shapes.medium
-                )
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_wallet),
-                        contentDescription = "current_due",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Current Due",
-                        style = AppTypography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "$0.00",
-                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_wallet),
-                        contentDescription = "current_due",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Next Payout Date",
-                        style = AppTypography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "12-31-2026",
-                        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        PrimaryButton(
-            modifier = Modifier.fillMaxWidth(),
-            text = "Enable Instant Payout",
-            onClick = {}
-        )
-
+    LaunchedEffect(Unit) {
+        earningViewModel.getEarningDetails()
     }
 
+    PullToRefreshBox(
+        state = pullRefreshState,
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            coroutineScope.launch {
+                delay(1000)
+                earningViewModel.getEarningDetails()
+                isRefreshing = false // ✅ stop indicator when refresh completes
+            }
+        },
+    ) {
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+
+            when {
+                isLoading && !isRefreshing -> {
+                    item {
+                        Text(
+                            "Loading...",
+                            style = AppTypography.bodyLarge,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        )
+                    }
+                }
+
+                else -> {
+                    if (isError != null) {
+                        item {
+                            Text(
+                                "$isError",
+                                style = AppTypography.bodyLarge,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            )
+                        }
+                    } else if (earningDetails != null) {
+
+                        val items = listOf(
+                            "lifetime",
+                            "lastPayout",
+                            "routeStats",
+                            "dueStats",
+                            "instantPayout"
+                        )
+
+                        itemsIndexed(items) { index, type ->
+
+                            var visible by remember { mutableStateOf(false) }
+
+                            LaunchedEffect(Unit) {
+                                delay(index * 10L) // stagger effect between each card
+                                visible = true
+                            }
+
+                            AnimatedVisibility(
+                                visible = visible,
+                                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                                exit = fadeOut()
+                            ) {
+                                when (type) {
+                                    "lifetime" -> LifetimeEarningsCard(earningDetails?.earning)
+                                    "lastPayout" -> LastPayoutCard(earningDetails?.earning)
+                                    "routeStats" -> RouteAndTimeCard(earningDetails?.earning)
+                                    "dueStats" -> CurrentDueCard(earningDetails?.earning)
+                                    "instantPayout" -> PrimaryButton(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        text = "Enable Instant Payout",
+                                        onClick = {}
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+                        }
+                    }
+                }
+            }
+
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package com.platform.platformdelivery.core.network
 
+import com.platform.platformdelivery.data.models.EarningResponse
 import com.platform.platformdelivery.data.models.LoginResponse
 import com.platform.platformdelivery.data.models.RequestRouteDetails
 import com.platform.platformdelivery.data.models.Route
@@ -84,7 +85,8 @@ interface ApiService {
     suspend fun getRouteDetails(
         @Body requestRouteDetails: RequestRouteDetails
     ): Response<RouteDetailsResponse>
-//
+
+    //
 //    @GET(PlatformUrl.myRouteUrl)
 //    suspend fun getMyRoutes(): Response<MyRoutesResponse>
 //
@@ -119,4 +121,7 @@ interface ApiService {
 //
 //    @GET(PlatformUrl.driverDetailsUrl)
 //    suspend fun getDriverDetails(): Response<DriverDetailsResponse>
+
+    @GET(EarningsEndpoints.totalEarnings)
+    suspend fun getEarningDetails(): Response<EarningResponse>
 }

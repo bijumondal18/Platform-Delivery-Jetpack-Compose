@@ -113,7 +113,7 @@ fun RouteDetailsScreen(
                     if (error != null) {
                         item {
                             Text(
-                                "Loading routes...",
+                                "$error",
                                 style = AppTypography.bodyLarge,
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
