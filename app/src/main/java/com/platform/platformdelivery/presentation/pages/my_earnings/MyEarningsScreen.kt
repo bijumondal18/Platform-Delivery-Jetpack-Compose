@@ -304,8 +304,8 @@ data class ChartSlice(val label: String, val value: Float, val color: Color)
  */
 @Composable
 fun DonutChart(
-    data: List<ChartSlice>,
     modifier: Modifier = Modifier.size(220.dp),
+    data: List<ChartSlice>,
     ringWidth: Dp = 16.dp,
     gapDegrees: Float = 3f,           // small gap between slices
     showOuterRim: Boolean = true,
