@@ -11,6 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,7 +31,7 @@ import com.platform.platformdelivery.presentation.pages.my_accepted_routes.MyAcc
 import com.platform.platformdelivery.presentation.pages.my_route_history.MyRouteHistory
 import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun RoutesScreenWithChips(
@@ -51,10 +55,31 @@ fun RoutesScreenWithChips(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             chipOptions.forEach { chip ->
-                androidx.compose.material3.FilterChip(
-                    selected = selectedChip == chip,
+                val selected = chip == selectedChip
+                FilterChip(
+                    selected = selected,
                     onClick = { selectedChip = chip },
-                    label = { Text(chip) }
+                    label = {
+                        Text(
+                            chip,
+                            color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    },
+                    shape = MaterialTheme.shapes.extraExtraLarge,
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = if (selected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(
+                            alpha = 0.1f
+                        ),
+                        selectedContainerColor = if (selected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(
+                            alpha = 0.1f
+                        ),
+                        selectedLabelColor = MaterialTheme.colorScheme.onBackground,
+                        labelColor = MaterialTheme.colorScheme.onBackground.copy(
+                            alpha = 0.5f
+                        )
+                    )
+
                 )
             }
         }
