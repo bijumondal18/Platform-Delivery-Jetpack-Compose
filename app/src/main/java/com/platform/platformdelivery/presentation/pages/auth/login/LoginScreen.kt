@@ -14,13 +14,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -43,15 +46,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.platform.platformdelivery.R
+import com.platform.platformdelivery.core.network.Result
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.presentation.view_models.AuthViewModel
 import com.platform.platformdelivery.presentation.widgets.AppTextField
-import com.platform.platformdelivery.presentation.widgets.PrimaryButton
-import com.platform.platformdelivery.core.network.Result
 import kotlinx.coroutines.launch
 
 @Composable
@@ -67,10 +70,10 @@ fun LoginScreen(
     var passwordError by remember { mutableStateOf<String?>(null) }
 
     val loginState by viewModel.loginState.collectAsState()
+    val isLoading = loginState is Result.Loading
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -78,188 +81,212 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(color = MaterialTheme.colorScheme.background)
+                .background(MaterialTheme.colorScheme.background)
                 .statusBarsPadding()
                 .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 24.dp, vertical = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
+            Spacer(modifier = Modifier.height(40.dp))
 
+            // Logo
             Image(
                 painter = painterResource(id = R.drawable.ic_delivery_truck),
                 contentDescription = "app_logo",
-                modifier = Modifier
-                    .size(150.dp)
-                    .align(alignment = Alignment.CenterHorizontally),
-                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(100.dp),
+                contentScale = ContentScale.Fit,
                 colorFilter = ColorFilter.tint(color = MaterialTheme.colorScheme.primary)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                "Welcome To Platform Delivery",
-                style = AppTypography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                "Please login to continue",
-                style = AppTypography.bodyMedium.copy(fontWeight = FontWeight.Normal),
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            AppTextField(
-                value = email,
-                onValueChange = {
-                    email = it
-                    emailError = null
-                },
-                label = "Email",
-                keyboardType = KeyboardType.Email,
-                isError = emailError != null,
-                errorMessage = emailError
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            AppTextField(
-                value = password,
-                onValueChange = {
-                    password = it
-                    passwordError = null
-                },
-                label = "Password",
-                keyboardType = KeyboardType.Password,
-                isPassword = true,
-                isError = passwordError != null,
-                errorMessage = passwordError
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TextButton(
-                content = {
-                    Text(
-                        "Forget Password?",
-                        style = AppTypography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                },
-                onClick = {
-                    navController.navigate("forgot_password") {
-                        popUpTo("login") { inclusive = false }
-                    }
-                },
-                modifier = Modifier.align(alignment = Alignment.End)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            PrimaryButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = "Login",
-                enabled = email.isNotEmpty() && password.isNotEmpty() && password.length >= 6,
-                onClick = {
-                    var valid = true
-                    if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                        emailError = "Please enter a valid email"
-                        valid = false
-                    }
-                    if (password.length < 6) {
-                        passwordError = "Password must be at least 6 characters"
-                        valid = false
-                    }
-
-                    if (valid) {
-                        viewModel.login(email = email, password = password)
-                    }
-
-                },
-
+            // Welcome Text
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Welcome Back",
+                    style = AppTypography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center
                 )
 
-            when (loginState) {
-                is Result.Idle -> Unit
-                is Result.Loading -> {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-                }
+                Text(
+                    text = "Sign in to continue",
+                    style = AppTypography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
+            }
 
-                is Result.Success -> {
-                    val data = (loginState as Result.Success).data
-                    // Navigate to main screen on success
-                    if (data.data != null && data.data.status == true) {
-                        LaunchedEffect(Unit) {
-                            navController.navigate("main") {
-                                popUpTo("login") { inclusive = true }
-                            }
-                        }
-                    } else {
-                        val error = data.data?.msg ?: "Invalid Credentials"
-                        LaunchedEffect(error) {
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = error,
-                                    withDismissAction = false
-                                )
-                            }
-                        }
-                        Log.e("LoginError", error)
+            Spacer(modifier = Modifier.height(16.dp))
 
+            // Login Form Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    AppTextField(
+                        value = email,
+                        onValueChange = {
+                            email = it
+                            emailError = null
+                        },
+                        label = "Email",
+                        keyboardType = KeyboardType.Email,
+                        isError = emailError != null,
+                        errorMessage = emailError
+                    )
+
+                    AppTextField(
+                        value = password,
+                        onValueChange = {
+                            password = it
+                            passwordError = null
+                        },
+                        label = "Password",
+                        keyboardType = KeyboardType.Password,
+                        isPassword = true,
+                        isError = passwordError != null,
+                        errorMessage = passwordError
+                    )
+
+                    TextButton(
+                        onClick = {
+                            navController.navigate("forgot_password") {
+                                popUpTo("login") { inclusive = false }
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text(
+                            text = "Forgot Password?",
+                            style = AppTypography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
 
-                }
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                is Result.Error -> {
-                    val error = (loginState as Result.Error).message
-                    LaunchedEffect(error) {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = error,
-                                withDismissAction = true
+                    // Login Button with Loader
+                    Button(
+                        onClick = {
+                            var valid = true
+                            if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                                emailError = "Please enter a valid email"
+                                valid = false
+                            }
+                            if (password.length < 6) {
+                                passwordError = "Password must be at least 6 characters"
+                                valid = false
+                            }
+
+                            if (valid) {
+                                viewModel.login(email = email, password = password)
+                            }
+                        },
+                        enabled = !isLoading && email.isNotEmpty() && password.isNotEmpty() && password.length >= 6,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Text(
+                                text = "Login",
+                                style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                             )
                         }
-                        Log.e("LoginError", error)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
+            // Sign Up Section
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.CenterHorizontally)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    "Don't have an account?",
-                    style = AppTypography.labelLarge.copy(fontWeight = FontWeight.Normal),
-                    color = MaterialTheme.colorScheme.onBackground
+                    text = "Don't have an account?",
+                    style = AppTypography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                 )
+                Spacer(modifier = Modifier.width(8.dp))
                 TextButton(
-                    content = {
-                        Text(
-                            "Sign Up",
-                            style = AppTypography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    },
                     onClick = {
                         navController.navigate("signup") {
                             popUpTo("login") { inclusive = false }
                         }
-                    },
-                )
+                    }
+                ) {
+                    Text(
+                        text = "Sign Up",
+                        style = AppTypography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+
+    // Handle login result
+    LaunchedEffect(loginState) {
+        when (loginState) {
+            is Result.Success -> {
+                val data = (loginState as Result.Success).data
+                if (data.data != null && data.data.status == true) {
+                    navController.navigate("main") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                } else {
+                    val error = data.data?.msg ?: "Invalid Credentials"
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = error,
+                            withDismissAction = false
+                        )
+                    }
+                    Log.e("LoginError", error)
+                }
+            }
+            is Result.Error -> {
+                val error = (loginState as Result.Error).message
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = error,
+                        withDismissAction = true
+                    )
+                }
+                Log.e("LoginError", error)
+            }
+            else -> Unit
         }
     }
 }

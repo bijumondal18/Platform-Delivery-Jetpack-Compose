@@ -10,6 +10,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
@@ -17,13 +22,13 @@ import com.platform.platformdelivery.core.services.LocationService
 import com.platform.platformdelivery.core.utils.PermissionUtils
 import com.platform.platformdelivery.data.local.TokenManager
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
+    private var onPermissionStateChanged: ((Boolean, Boolean) -> Unit)? = null
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,29 +39,27 @@ class MainActivity : ComponentActivity() {
         var keepSplash = true
         splashScreen.setKeepOnScreenCondition { keepSplash }
 
-
         permissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
                 val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
                 val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
-                val backgroundGranted =
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        permissions[Manifest.permission.ACCESS_BACKGROUND_LOCATION] ?: false
-                    } else true
+                val locationGranted = fineGranted || coarseGranted
 
                 val notificationGranted =
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         permissions[Manifest.permission.POST_NOTIFICATIONS] ?: false
-                    } else true
+                    } else {
+                        true // Not required for older Android versions
+                    }
 
-                if (fineGranted || coarseGranted || backgroundGranted) {
-                    // ✅ Permissions granted → now safe to start location service
+                // Notify state change
+                onPermissionStateChanged?.invoke(locationGranted, notificationGranted)
+
+                // If both permissions granted, start location service and proceed
+                if (locationGranted && notificationGranted) {
                     startLocationService()
-                } else {
-                    // ❌ User denied → show a message/snackbar
                 }
             }
-
 
         lifecycleScope.launch {
             // Do token check in background
@@ -75,9 +78,47 @@ class MainActivity : ComponentActivity() {
             // Now hide splash and set content
             keepSplash = false
             setContent {
-                PlatformDeliveryApp(startDestination = startDestination)
-            }
+                val hasLocationPermission = remember { mutableStateOf(PermissionUtils.hasLocationPermissions(this@MainActivity)) }
+                val hasNotificationPermission = remember { mutableStateOf(PermissionUtils.hasNotificationPermission(this@MainActivity)) }
 
+                // Set callback to update state when permissions change
+                onPermissionStateChanged = { location, notification ->
+                    hasLocationPermission.value = location
+                    hasNotificationPermission.value = notification
+                }
+
+                PlatformDeliveryApp(
+                    startDestination = startDestination,
+                    hasLocationPermission = hasLocationPermission.value,
+                    hasNotificationPermission = hasNotificationPermission.value,
+                    onRequestPermissions = {
+                        requestPermissions(hasLocationPermission.value, hasNotificationPermission.value)
+                    },
+                    onCheckPermissions = {
+                        hasLocationPermission.value = PermissionUtils.hasLocationPermissions(this@MainActivity)
+                        hasNotificationPermission.value = PermissionUtils.hasNotificationPermission(this@MainActivity)
+                    }
+                )
+            }
+        }
+    }
+
+    private fun requestPermissions(hasLocation: Boolean, hasNotification: Boolean) {
+        val permissionsToRequest = mutableListOf<String>()
+        
+        // Add location permissions
+        if (!hasLocation) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+            permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+        
+        // Add notification permission for Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotification) {
+            permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        if (permissionsToRequest.isNotEmpty()) {
+            permissionLauncher.launch(permissionsToRequest.toTypedArray())
         }
     }
 
@@ -102,8 +143,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startLocationService() {
-        val intent = Intent(applicationContext, LocationService::class.java)
-        ContextCompat.startForegroundService(this, intent)
+        if (PermissionUtils.hasLocationPermissions(this)) {
+            val intent = Intent(applicationContext, LocationService::class.java)
+            ContextCompat.startForegroundService(this, intent)
+        }
     }
 
     fun stopLocationService() {
@@ -111,4 +154,12 @@ class MainActivity : ComponentActivity() {
         stopService(intent)
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Trigger permission check when app resumes
+        onPermissionStateChanged?.invoke(
+            PermissionUtils.hasLocationPermissions(this),
+            PermissionUtils.hasNotificationPermission(this)
+        )
+    }
 }

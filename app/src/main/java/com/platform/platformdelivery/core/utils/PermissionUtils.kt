@@ -16,18 +16,20 @@ object PermissionUtils {
             context, Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
 
-        val background = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ContextCompat.checkSelfPermission(
-                context, Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        } else true
+        return fine || coarse
+    }
 
-        val notifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    fun hasNotificationPermission(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(
                 context, Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
-        } else true
+        } else {
+            true // Not required for older Android versions
+        }
+    }
 
-        return fine || coarse || background || notifications
+    fun hasAllRequiredPermissions(context: Context): Boolean {
+        return hasLocationPermissions(context) && hasNotificationPermission(context)
     }
 }
