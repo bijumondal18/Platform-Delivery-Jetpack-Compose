@@ -71,9 +71,9 @@ class RoutesViewModel(
     private val _acceptedTripsError = MutableStateFlow<String?>(null)
     val acceptedTripsError: StateFlow<String?> get() = _acceptedTripsError
 
-    fun loadAvailableRoutesOnce(date: String? = null) {
+    fun loadAvailableRoutesOnce(date: String? = null, zipCode: String? = null) {
         if (!hasLoadedAvailableRoutes) {
-            getAvailableRoutes(1, date)
+            getAvailableRoutes(1, date, zipCode)
             hasLoadedAvailableRoutes = true
         }
     }
@@ -94,7 +94,7 @@ class RoutesViewModel(
     }
 
 
-    fun getAvailableRoutes(page: Int = 1, date: String? = null) {
+    fun getAvailableRoutes(page: Int = 1, date: String? = null, zipCode: String? = null) {
         viewModelScope.launch {
             if (page == 1) {
                 _isLoading.value = true
@@ -110,7 +110,7 @@ class RoutesViewModel(
                     java.util.Locale.getDefault()
                 ).format(Date())
 
-                val result = routeRepository.getAvailableRoutes(page, perPage, formattedDate)
+                val result = routeRepository.getAvailableRoutes(page, perPage, formattedDate, zipCode?.takeIf { it.isNotBlank() })
 
                 when (result) {
                     is Result.Success -> {
@@ -147,9 +147,9 @@ class RoutesViewModel(
         }
     }
 
-    fun loadNextPage() {
+    fun loadNextPage(zipCode: String? = null) {
         if (!_noMoreDataAvailable.value && !_isLoading.value) {
-            getAvailableRoutes(currentPage + 1)
+            getAvailableRoutes(currentPage + 1, zipCode = zipCode)
         }
     }
 

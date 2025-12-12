@@ -15,9 +15,9 @@ class RouteRepository {
 
     private val apiService = RetrofitClient.apiService
 
-    suspend fun getAvailableRoutes(page: Int, perPage: Int, date: String): com.platform.platformdelivery.core.network.Result<RoutePathModel> {
+    suspend fun getAvailableRoutes(page: Int, perPage: Int, date: String, zipCode: String? = null): com.platform.platformdelivery.core.network.Result<RoutePathModel> {
         return try {
-            val response = apiService.getAvailableRoutes(page, perPage, date)
+            val response = apiService.getAvailableRoutes(page, perPage, date, zipCode)
             if (response.isSuccessful && response.body() != null) {
                 com.platform.platformdelivery.core.network.Result.Success(response.body()!!)
             } else {

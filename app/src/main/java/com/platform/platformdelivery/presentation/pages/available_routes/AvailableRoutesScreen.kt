@@ -114,8 +114,35 @@ fun AvailableRoutesScreen(
 
 
     LaunchedEffect(Unit) {
-        routesViewModel.loadAvailableRoutesOnce(date = pickedDate ?: LocalDate.now()
-            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+        routesViewModel.loadAvailableRoutesOnce(
+            date = pickedDate ?: LocalDate.now()
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+            zipCode = zipCode.takeIf { it.isNotBlank() }
+        )
+    }
+
+    // Track if this is the first zip code change to avoid refreshing on initial empty state
+    var isInitialZipCodeLoad by remember { mutableStateOf(true) }
+    
+    // Refresh routes when zip code changes (only if length > 4 to avoid too many API calls)
+    LaunchedEffect(zipCode) {
+        if (isInitialZipCodeLoad) {
+            isInitialZipCodeLoad = false
+            // Skip refresh on initial empty state
+            if (zipCode.isBlank()) return@LaunchedEffect
+        }
+        
+        // Only call API if zip code length is more than 4 digits
+        if (zipCode.length > 4) {
+            coroutineScope.launch {
+                routesViewModel.getAvailableRoutes(
+                    1,
+                    date = pickedDate ?: LocalDate.now()
+                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                    zipCode = zipCode
+                )
+            }
+        }
     }
 
 
@@ -130,7 +157,8 @@ fun AvailableRoutesScreen(
                     routesViewModel.getAvailableRoutes(
                         1,
                         date = pickedDate ?: LocalDate.now()
-                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                        zipCode = zipCode.takeIf { it.isNotBlank() }
                     )
                     isRefreshing = false // ✅ stop indicator when refresh completes
                 }
@@ -212,6 +240,7 @@ fun AvailableRoutesScreen(
                                         if (zip != null) {
                                             zipCode = zip
                                             snackbarHostState.showSnackbar("Zip code updated: $zip")
+                                            // Routes will automatically refresh via LaunchedEffect(zipCode)
                                         } else {
                                             snackbarHostState.showSnackbar("Could not find zip code for this location")
                                         }
@@ -296,7 +325,8 @@ fun AvailableRoutesScreen(
                         coroutineScope.launch {
                             routesViewModel.getAvailableRoutes(
                                 1,
-                                date = selectedDate
+                                date = selectedDate,
+                                zipCode = zipCode.takeIf { it.isNotBlank() }
                             )
                         }
                     }

@@ -80,6 +80,7 @@ interface ApiService {
         @Query("page") page: Int,
         @Query("perpage") perPage: Int,
         @Query("date") date: String,
+        @Query("zip_code") zipCode: String? = null,
     ): Response<RoutePathModel>
 
     //
