@@ -1,5 +1,6 @@
 package com.platform.platformdelivery.presentation.pages.profile
 
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,14 +26,9 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,13 +37,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.data.local.TokenManager
+import java.io.File
+import java.io.FileOutputStream
 
 @Composable
 fun ProfileScreen(
@@ -70,15 +70,51 @@ fun ProfileScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
+    // Create a temporary file for camera images
+    val tempImageFile = remember {
+        File(context.cacheDir, "temp_profile_image_${System.currentTimeMillis()}.jpg")
+    }
+    
+    val tempImageUri = remember {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                tempImageFile
+            )
+        } else {
+            Uri.fromFile(tempImageFile)
+        }
+    }
+
+    // Helper function to save bitmap to file and return URI
+    fun saveBitmapToUri(bitmap: Bitmap): Uri? {
+        return try {
+            val file = File(context.cacheDir, "profile_image_${System.currentTimeMillis()}.jpg")
+            FileOutputStream(file).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file
+                )
+            } else {
+                Uri.fromFile(file)
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     // Image picker launchers
     val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        bitmap?.let {
-            // Convert bitmap to URI or handle directly
-            // For now, we'll need to save it to a file and get URI
-            // TODO: Save bitmap to file and get URI, then upload to server
-            // selectedImageUri = saveBitmapToFile(it)
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            selectedImageUri = tempImageUri
+            // TODO: Upload image to server
         }
     }
 
@@ -98,14 +134,14 @@ fun ProfileScreen(
             .padding(horizontal = 16.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-            // Profile Image with Camera Icon
+            // Profile Image with Camera Icon - Larger size
             Box(
-                modifier = Modifier.size(120.dp),
+                modifier = Modifier.size(160.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
-                        .size(120.dp)
+                        .size(160.dp)
                         .clip(CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
@@ -114,32 +150,34 @@ fun ProfileScreen(
                             model = selectedImageUri,
                             contentDescription = "Profile picture",
                             modifier = Modifier
-                                .size(120.dp)
-                                .clip(CircleShape)
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
                         )
                     } else if (profilePic.isNotEmpty()) {
                         AsyncImage(
                             model = profilePic,
                             contentDescription = "Profile picture",
                             modifier = Modifier
-                                .size(120.dp)
-                                .clip(CircleShape)
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Default.AccountCircle,
                             contentDescription = "Profile placeholder",
-                            modifier = Modifier.size(120.dp),
+                            modifier = Modifier.size(160.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         )
                     }
                 }
                 
-                // Camera Icon Overlay
+                // Camera Icon Overlay - Adjusted position for larger avatar
                 Box(
                     modifier = Modifier
-                        .offset(x = 40.dp, y = 40.dp)
-                        .size(36.dp)
+                        .offset(x = 55.dp, y = 55.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary)
                         .clickable {
@@ -150,7 +188,7 @@ fun ProfileScreen(
                     Icon(
                         imageVector = Icons.Default.CameraAlt,
                         contentDescription = "Change Profile Picture",
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(22.dp),
                         tint = MaterialTheme.colorScheme.onPrimary
                     )
                 }
@@ -203,7 +241,7 @@ fun ProfileScreen(
         ImagePickerBottomSheet(
             onDismiss = { showImagePickerSheet = false },
             onCameraClick = {
-                cameraLauncher.launch(null)
+                cameraLauncher.launch(tempImageUri)
             },
             onGalleryClick = {
                 galleryLauncher.launch("image/*")
