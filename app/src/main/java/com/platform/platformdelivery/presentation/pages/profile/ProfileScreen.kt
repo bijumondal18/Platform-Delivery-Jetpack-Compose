@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,9 +43,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -64,6 +68,7 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     val appPrefs = remember { TokenManager(context) }
+    val lifecycleOwner = LocalLifecycleOwner.current
     
     // Collect state from ViewModel
     val driverDetails by profileViewModel.driverDetails.collectAsState()
@@ -82,6 +87,20 @@ fun ProfileScreen(
     // Load driver details when screen appears
     LaunchedEffect(Unit) {
         profileViewModel.loadDriverDetailsOnce()
+    }
+
+    // Refresh data when screen becomes visible (e.g., when returning from EditProfileScreen)
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // Refresh driver details when screen resumes
+                profileViewModel.refreshDriverDetails()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     // Helper function to convert Uri to File

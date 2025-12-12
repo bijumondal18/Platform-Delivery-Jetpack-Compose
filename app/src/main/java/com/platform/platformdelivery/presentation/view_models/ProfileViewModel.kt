@@ -69,6 +69,12 @@ class ProfileViewModel(
         }
     }
 
+    fun refreshDriverDetails() {
+        if (!_isLoading.value) {
+            getDriverDetails()
+        }
+    }
+
     fun updateProfile(
         name: String? = null,
         email: String? = null,
