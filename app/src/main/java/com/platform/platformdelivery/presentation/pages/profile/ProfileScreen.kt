@@ -25,10 +25,14 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -64,6 +68,7 @@ import java.io.FileOutputStream
 fun ProfileScreen(
     navController: NavController? = null,
     onDeleteAccount: () -> Unit = {},
+    onLogout: () -> Unit = {},
     profileViewModel: ProfileViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -82,6 +87,7 @@ fun ProfileScreen(
     // State for bottom sheet and dialogs
     var showImagePickerSheet by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     
     // Load driver details when screen appears
@@ -378,6 +384,132 @@ fun ProfileScreen(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Action Buttons
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // First Row: Edit and Refer & Earn
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Edit Profile Button
+                    Button(
+                        onClick = {
+                            navController?.navigate("editProfile")
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Profile",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(
+                            text = "Edit",
+                            style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+
+                    // Refer & Earn Button
+                    Button(
+                        onClick = {
+                            // TODO: Navigate to Refer & Earn screen
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    ) {
+                        Text(
+                            text = "Refer & Earn",
+                            style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+                }
+
+                // Second Row: Tutorials and Contact Admin
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Tutorials Button
+                    Button(
+                        onClick = {
+                            // TODO: Navigate to Tutorials screen
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    ) {
+                        Text(
+                            text = "Tutorials",
+                            style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+
+                    // Contact Admin Button
+                    Button(
+                        onClick = {
+                            navController?.navigate("contact_admin")
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    ) {
+                        Text(
+                            text = "Contact Admin",
+                            style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+                }
+
+                // Logout Button (Full Width)
+                Button(
+                    onClick = {
+                        showLogoutDialog = true
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                ) {
+                    Text(
+                        text = "Logout",
+                        style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
+            }
         }
 
     // Image Picker Bottom Sheet
@@ -399,6 +531,39 @@ fun ProfileScreen(
             onDismiss = { showDeleteDialog = false },
             onConfirm = {
                 onDeleteAccount()
+            }
+        )
+    }
+
+    // Logout Confirmation Dialog
+    if (showLogoutDialog) {
+        AlertDialog(
+            shape = MaterialTheme.shapes.large,
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(
+                    "Confirm Logout",
+                    style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Text(
+                    "Are you sure you want to logout from this device?",
+                    style = AppTypography.bodyLarge
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLogoutDialog = false
+                    onLogout()
+                }) {
+                    Text("Logout", color = MaterialTheme.colorScheme.primary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Cancel", color = MaterialTheme.colorScheme.tertiary)
+                }
             }
         )
     }

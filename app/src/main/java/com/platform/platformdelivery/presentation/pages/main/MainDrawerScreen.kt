@@ -244,17 +244,8 @@ fun MainBottomNavScreen(
                             )
                         }
                     }
-                    // Show edit and delete buttons only on Profile screen
+                    // Show delete button only on Profile screen
                     if (currentRoute == DrawerDestinations.Profile) {
-                        IconButton(onClick = {
-                            navController.navigate("editProfile")
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Profile",
-                                tint = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
                         IconButton(onClick = {
                             showDeleteAccountDialog = true
                         }) {
@@ -302,7 +293,12 @@ fun MainBottomNavScreen(
             ) {
                 composable(DrawerDestinations.Home) { HomeScreen(navController = rootNavController) }
                 composable(DrawerDestinations.Profile) { 
-                    ProfileScreen(navController = navController) 
+                    ProfileScreen(
+                        navController = navController,
+                        onLogout = {
+                            onLogout()
+                        }
+                    ) 
                 }
                 composable("editProfile") {
                     EditProfileScreen(navController = navController)
