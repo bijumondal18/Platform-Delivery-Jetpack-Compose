@@ -56,4 +56,18 @@ class RouteRepository {
         }
     }
 
+    suspend fun getAcceptedTrips(page: Int, perPage: Int, date: String): com.platform.platformdelivery.core.network.Result<RoutePathModel> {
+        return try {
+            val response = apiService.getAcceptedTrips(page, perPage, date)
+            if (response.isSuccessful && response.body() != null) {
+                com.platform.platformdelivery.core.network.Result.Success(response.body()!!)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "Failed to fetch accepted trips"
+                com.platform.platformdelivery.core.network.Result.Error(errorMsg)
+            }
+        } catch (e: Exception) {
+            Result.Error("Exception occurred: ${e.message}", e)
+        }
+    }
+
 }

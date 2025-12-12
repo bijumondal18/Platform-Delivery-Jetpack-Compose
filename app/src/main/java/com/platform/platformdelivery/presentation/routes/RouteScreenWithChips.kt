@@ -90,7 +90,7 @@ fun RoutesScreenWithChips(
         // --- Content Below Chips ---
         when (selectedChip) {
             "Available" -> AvailableRoutesScreen(navController = navController)
-            "Accepted" -> MyAcceptedRoutesScreen()
+            "Accepted" -> MyAcceptedRoutesScreen(navController = navController)
             "Route History" -> MyRouteHistory(navController = navController)
         }
     }

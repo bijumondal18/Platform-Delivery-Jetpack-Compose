@@ -38,9 +38,11 @@ class RoutesViewModel(
 
      var hasLoadedAvailableRoutes = false
      var hasLoadedRouteHistory = false
+     var hasLoadedAcceptedTrips = false
 
     // Pagination state
     private var currentPage = 1
+    private var currentAcceptedTripsPage = 1
     private val perPage = 7
 
 
@@ -53,7 +55,21 @@ class RoutesViewModel(
     private val _routeDetailsError = MutableStateFlow<String?>(null)
     val routeDetailsError: StateFlow<String?> get() = _routeDetailsError
 
+    // Accepted trips state flows
+    private val _acceptedTrips = MutableStateFlow<List<Route>>(emptyList())
+    val acceptedTrips: StateFlow<List<Route>> get() = _acceptedTrips
 
+    private val _isAcceptedTripsLoading = MutableStateFlow(false)
+    val isAcceptedTripsLoading: StateFlow<Boolean> get() = _isAcceptedTripsLoading
+
+    private val _acceptedTripsEmpty = MutableStateFlow(false)
+    val acceptedTripsEmpty: StateFlow<Boolean> get() = _acceptedTripsEmpty
+
+    private val _noMoreAcceptedTripsAvailable = MutableStateFlow(false)
+    val noMoreAcceptedTripsAvailable: StateFlow<Boolean> get() = _noMoreAcceptedTripsAvailable
+
+    private val _acceptedTripsError = MutableStateFlow<String?>(null)
+    val acceptedTripsError: StateFlow<String?> get() = _acceptedTripsError
 
     fun loadAvailableRoutesOnce(date: String? = null) {
         if (!hasLoadedAvailableRoutes) {
@@ -213,6 +229,70 @@ class RoutesViewModel(
         }
     }
 
+    fun loadAcceptedTripsOnce(date: String? = null) {
+        if (!hasLoadedAcceptedTrips) {
+            getAcceptedTrips(1, date)
+            hasLoadedAcceptedTrips = true
+        }
+    }
 
+    fun getAcceptedTrips(page: Int = 1, date: String? = null) {
+        viewModelScope.launch {
+            if (page == 1) {
+                _isAcceptedTripsLoading.value = true
+                _acceptedTrips.value = emptyList()
+                _noMoreAcceptedTripsAvailable.value = false
+                _acceptedTripsEmpty.value = false
+                _acceptedTripsError.value = null
+            }
+
+            try {
+                val formattedDate = date ?: SimpleDateFormat(
+                    "yyyy-MM-dd",
+                    java.util.Locale.getDefault()
+                ).format(Date())
+
+                val result = routeRepository.getAcceptedTrips(page, perPage, formattedDate)
+
+                when (result) {
+                    is Result.Success -> {
+                        val newTrips = result.data.headdata?.bodydata?.routesData ?: emptyList()
+                        if (newTrips.isEmpty()) {
+                            if (page == 1) {
+                                _acceptedTripsEmpty.value = true
+                            } else {
+                                _noMoreAcceptedTripsAvailable.value = true
+                            }
+                        } else {
+                            if (page == 1) {
+                                _acceptedTrips.value = newTrips
+                            } else {
+                                _acceptedTrips.value = _acceptedTrips.value + newTrips
+                            }
+                            _acceptedTripsEmpty.value = false
+                        }
+                    }
+
+                    is Result.Error -> {
+                        _acceptedTripsError.value = result.message
+                    }
+
+                    Result.Idle -> Unit
+                    Result.Loading -> _isAcceptedTripsLoading.value = true
+                }
+            } catch (e: Exception) {
+                _acceptedTripsError.value = e.message
+            } finally {
+                _isAcceptedTripsLoading.value = false
+                currentAcceptedTripsPage = page
+            }
+        }
+    }
+
+    fun loadNextAcceptedTripsPage() {
+        if (!_noMoreAcceptedTripsAvailable.value && !_isAcceptedTripsLoading.value) {
+            getAcceptedTrips(currentAcceptedTripsPage + 1)
+        }
+    }
 
 }

@@ -260,7 +260,7 @@ fun MainBottomNavScreen(onLogout: () -> Unit) {
                 composable(DrawerDestinations.RouteScreenWithChips) { RoutesScreenWithChips(navController = navController) }
                 composable(DrawerDestinations.AvailableRoutes) { AvailableRoutesScreen(navController = navController) }
                 composable(DrawerDestinations.RouteHistory) { MyRouteHistory(navController = navController) }
-                composable(DrawerDestinations.MyAcceptedRoutes) { MyAcceptedRoutesScreen() }
+                composable(DrawerDestinations.MyAcceptedRoutes) { MyAcceptedRoutesScreen(navController = navController) }
                 composable(DrawerDestinations.MyEarnings) { MyEarningsScreen() }
                 composable(DrawerDestinations.ContactAdmin) { ContactAdminScreen() }
                 composable("routeDetails/{routeId}") { backStackEntry ->

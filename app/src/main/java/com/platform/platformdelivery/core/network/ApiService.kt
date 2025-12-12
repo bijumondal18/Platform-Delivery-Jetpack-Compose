@@ -96,6 +96,13 @@ interface ApiService {
         @Query("perpage") perPage: Int,
         @Query("date") date: String,
     ): Response<RouteHistory>
+
+    @GET(RouteEndpoints.myRoutes)
+    suspend fun getAcceptedTrips(
+        @Query("page") page: Int,
+        @Query("perpage") perPage: Int,
+        @Query("date") date: String,
+    ): Response<RoutePathModel>
 //
 //    @GET(PlatformUrl.allNotificationUrl)
 //    suspend fun getAllNotifications(): Response<NotificationResponse>
