@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Settings
@@ -79,6 +80,7 @@ object DrawerDestinations {
     const val MyAcceptedRoutes = "my_accepted_routes"
     const val MyEarnings = "my_earnings"
     const val ContactAdmin = "contact_admin"
+    const val Notifications = "notifications"
     const val Logout = "logout"
 }
 
@@ -222,6 +224,20 @@ fun MainBottomNavScreen(
                         style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onBackground
                     )
+                },
+                actions = {
+                    // Show notification icon only on Home screen
+                    if (currentRoute == DrawerDestinations.Home) {
+                        IconButton(onClick = {
+                            rootNavController.navigate("notifications")
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    }
                 }
             )
         },

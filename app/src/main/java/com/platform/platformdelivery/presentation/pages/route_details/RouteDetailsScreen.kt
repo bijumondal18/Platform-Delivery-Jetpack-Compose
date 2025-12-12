@@ -10,12 +10,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +51,7 @@ import androidx.navigation.NavController
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.core.theme.SuccessGreen
 import com.platform.platformdelivery.data.models.RequestRouteDetails
+import com.platform.platformdelivery.data.models.Waypoint
 import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
 import com.platform.platformdelivery.presentation.widgets.RouteMapBox
 import kotlinx.coroutines.coroutineScope
@@ -215,22 +223,12 @@ fun RouteDetailsScreen(
 
                                 Spacer(modifier = Modifier.height(12.dp))
 
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(12.dp)
-                                    ) {
-                                        Text("\uD83D\uDCCD ${routeDetails!!.routeDetailsData?.routeData?.originPlace}")
-
-                                        Spacer(modifier = Modifier.height(8.dp))
-
-                                        Text("\uD83D\uDCCD ${routeDetails!!.routeDetailsData?.routeData?.destinationPlace}")
-                                    }
-                                }
+                                // Route stops card with origin, waypoints, and destination
+                                RouteStopsCard(
+                                    originPlace = routeDetails!!.routeDetailsData?.routeData?.originPlace ?: "",
+                                    destinationPlace = routeDetails!!.routeDetailsData?.routeData?.destinationPlace ?: "",
+                                    waypoints = routeDetails!!.routeDetailsData?.routeData?.waypoints
+                                )
 
                                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -238,9 +236,14 @@ fun RouteDetailsScreen(
 
                             item(key = "routeMap_$routeId") {
                                 RouteMapBox(
-                                    latitude = routeDetails!!.routeDetailsData?.routeData?.destinationLat!!,
-                                    longitude = routeDetails!!.routeDetailsData?.routeData?.destinationLng!!,
-                                    routeId = routeId
+                                    latitude = routeDetails!!.routeDetailsData?.routeData?.destinationLat ?: 0.0,
+                                    longitude = routeDetails!!.routeDetailsData?.routeData?.destinationLng ?: 0.0,
+                                    routeId = routeId,
+                                    originLat = routeDetails!!.routeDetailsData?.routeData?.originLat,
+                                    originLng = routeDetails!!.routeDetailsData?.routeData?.originLng,
+                                    destinationLat = routeDetails!!.routeDetailsData?.routeData?.destinationLat,
+                                    destinationLng = routeDetails!!.routeDetailsData?.routeData?.destinationLng,
+                                    waypoints = routeDetails!!.routeDetailsData?.routeData?.waypoints
                                 )
                             }
 
@@ -264,5 +267,187 @@ fun RouteDetailsScreen(
 
             }
         }
+    }
+}
+
+@Composable
+fun RouteStopsCard(
+    originPlace: String,
+    destinationPlace: String,
+    waypoints: List<Waypoint>?
+) {
+    // Sort waypoints once and memoize
+    val sortedWaypoints = remember(waypoints) {
+        waypoints?.sortedBy { waypoint ->
+            (waypoint.optimizedOrder as? Number)?.toInt() ?: 0
+        } ?: emptyList()
+    }
+    
+    val hasWaypoints = sortedWaypoints.isNotEmpty()
+    val hasDestination = destinationPlace.isNotEmpty()
+
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Origin
+            RouteStopItem(
+                place = originPlace,
+                isOrigin = true,
+                isLast = !hasWaypoints && !hasDestination
+            )
+
+            // Waypoints - use items() for better performance with many items
+            sortedWaypoints.forEachIndexed { index, waypoint ->
+                RouteStopItem(
+                    place = waypoint.place?.toString() ?: "",
+                    isWaypoint = true,
+                    waypointNumber = index + 1,
+                    isLast = index == sortedWaypoints.size - 1 && !hasDestination
+                )
+            }
+
+            // Destination
+            if (hasDestination) {
+                RouteStopItem(
+                    place = destinationPlace,
+                    isDestination = true,
+                    isLast = true
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RouteStopItem(
+    place: String,
+    isOrigin: Boolean = false,
+    isDestination: Boolean = false,
+    isWaypoint: Boolean = false,
+    waypointNumber: Int = 0,
+    isLast: Boolean = false
+) {
+    // Get theme colors (composable read)
+    val colorScheme = MaterialTheme.colorScheme
+    
+    // Memoize expensive color calculations
+    val iconBackgroundColor = remember(isOrigin, isDestination, colorScheme) {
+        when {
+            isOrigin -> colorScheme.primary.copy(alpha = 0.2f)
+            isDestination -> SuccessGreen.copy(alpha = 0.2f)
+            else -> colorScheme.secondary.copy(alpha = 0.2f)
+        }
+    }
+    
+    val iconTint = remember(isOrigin, isDestination, colorScheme) {
+        when {
+            isOrigin -> colorScheme.primary
+            isDestination -> SuccessGreen
+            else -> colorScheme.secondary
+        }
+    }
+    
+    val iconVector = remember(isOrigin, isDestination) {
+        when {
+            isOrigin -> Icons.Default.Place
+            isDestination -> Icons.Default.LocationOn
+            else -> Icons.Default.Navigation
+        }
+    }
+    
+    val labelText = remember(isWaypoint, waypointNumber, isOrigin, isDestination) {
+        when {
+            isWaypoint && waypointNumber > 0 -> "Stop $waypointNumber"
+            isOrigin -> "Origin"
+            isDestination -> "Destination"
+            else -> ""
+        }
+    }
+    
+    val labelColor = remember(isOrigin, isDestination, colorScheme) {
+        when {
+            isOrigin -> colorScheme.primary
+            isDestination -> SuccessGreen
+            else -> colorScheme.primary
+        }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+    ) {
+        // Icon and connecting line column
+        Column(
+            modifier = Modifier.width(40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Icon
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(
+                        color = iconBackgroundColor,
+                        shape = MaterialTheme.shapes.small
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = iconVector,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            // Connecting line (if not last item)
+            if (!isLast) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(24.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
+                        )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Place text
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            if (labelText.isNotEmpty()) {
+                Text(
+                    text = labelText,
+                    style = AppTypography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = labelColor
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+            }
+
+            Text(
+                text = place,
+                style = AppTypography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+    }
+
+    // Divider between stops (except after last)
+    if (!isLast) {
+        Spacer(modifier = Modifier.height(12.dp))
+        HorizontalDivider(
+            modifier = Modifier.padding(start = 52.dp),
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
+        )
+        Spacer(modifier = Modifier.height(12.dp))
     }
 }

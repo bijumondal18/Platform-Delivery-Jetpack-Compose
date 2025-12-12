@@ -2,6 +2,7 @@ package com.platform.platformdelivery.core.network
 
 import com.platform.platformdelivery.data.models.EarningResponse
 import com.platform.platformdelivery.data.models.LoginResponse
+import com.platform.platformdelivery.data.models.NotificationResponse
 import com.platform.platformdelivery.data.models.RequestRouteDetails
 import com.platform.platformdelivery.data.models.Route
 import com.platform.platformdelivery.data.models.RouteDetailsResponse
@@ -131,4 +132,16 @@ interface ApiService {
 
     @GET(EarningsEndpoints.totalEarnings)
     suspend fun getEarningDetails(): Response<EarningResponse>
+
+    @GET(NotificationEndpoints.allNotifications)
+    suspend fun getAllNotifications(
+        @Query("page") page: Int,
+        @Query("perpage") perPage: Int
+    ): Response<NotificationResponse>
+
+    @GET(NotificationEndpoints.unreadNotifications)
+    suspend fun getUnreadNotifications(
+        @Query("page") page: Int,
+        @Query("perpage") perPage: Int
+    ): Response<NotificationResponse>
 }

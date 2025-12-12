@@ -17,6 +17,7 @@ import com.platform.platformdelivery.presentation.pages.auth.forgot_password.For
 import com.platform.platformdelivery.presentation.pages.auth.login.LoginScreen
 import com.platform.platformdelivery.presentation.pages.auth.register.SignupScreen
 import com.platform.platformdelivery.presentation.pages.main.MainBottomNavScreen
+import com.platform.platformdelivery.presentation.pages.notifications.NotificationScreen
 import com.platform.platformdelivery.presentation.pages.route_details.RouteDetailsScreen
 import com.platform.platformdelivery.presentation.view_models.AuthViewModel
 
@@ -66,6 +67,9 @@ fun PlatformDeliveryApp(startDestination: String) {
                     routeId = routeId,
                     navController = navController
                 )
+            }
+            composable("notifications") {
+                NotificationScreen(navController = navController)
             }
         }
     }
