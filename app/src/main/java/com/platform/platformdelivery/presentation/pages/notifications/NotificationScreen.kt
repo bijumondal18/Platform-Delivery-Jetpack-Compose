@@ -18,15 +18,19 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.HorizontalDivider
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Route
+import androidx.compose.ui.res.painterResource
+import com.platform.platformdelivery.R
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -312,7 +316,7 @@ fun NotificationScreen(
                             state = allNotificationsListState,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 16.dp)
+                                .padding(horizontal = 4.dp)
                         ) {
                             when {
                                 isAllNotificationsLoading && allNotifications.isEmpty() && !isRefreshing -> {
@@ -352,10 +356,19 @@ fun NotificationScreen(
                                     itemsIndexed(allNotifications) { index, notification ->
                                         NotificationItem(
                                             notification = notification,
-                                            onNotificationClick = {}
+                                            onNotificationClick = {
+                                                // Navigate to route details if notifiableId exists
+                                                notification.notifiableId?.let { routeId ->
+                                                    navController.navigate("routeDetails/$routeId")
+                                                }
+                                            }
                                         )
                                         if (index < allNotifications.size - 1) {
-                                            Spacer(modifier = Modifier.height(8.dp))
+                                            HorizontalDivider(
+                                                modifier = Modifier.padding(horizontal = 16.dp),
+                                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                                thickness = 1.dp
+                                            )
                                         }
                                     }
                                     // Loading indicator at bottom when loading more (pagination)
@@ -387,7 +400,7 @@ fun NotificationScreen(
                             state = unreadNotificationsListState,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 16.dp)
+                                .padding(horizontal = 4.dp)
                         ) {
                             when {
                                 isUnreadNotificationsLoading && unreadNotifications.isEmpty() && !isRefreshing -> {
@@ -427,10 +440,19 @@ fun NotificationScreen(
                                     itemsIndexed(unreadNotifications) { index, notification ->
                                         NotificationItem(
                                             notification = notification,
-                                            onNotificationClick = {}
+                                            onNotificationClick = {
+                                                // Navigate to route details if notifiableId exists
+                                                notification.notifiableId?.let { routeId ->
+                                                    navController.navigate("routeDetails/$routeId")
+                                                }
+                                            }
                                         )
                                         if (index < unreadNotifications.size - 1) {
-                                            Spacer(modifier = Modifier.height(8.dp))
+                                            HorizontalDivider(
+                                                modifier = Modifier.padding(horizontal = 16.dp),
+                                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                                thickness = 1.dp
+                                            )
                                         }
                                     }
                                     // Loading indicator at bottom when loading more (pagination)
@@ -479,60 +501,272 @@ fun NotificationItem(
         formatNotificationDate(notification.createdAt)
     }
     
-    Card(
-        modifier = Modifier.fillMaxWidth()
+    // Format time
+    val formattedTime = remember(notification.createdAt) {
+        formatNotificationTime(notification.createdAt)
+    }
+    
+    val hasRouteId = notification.notifiableId != null
+    val isRouteRelated = notification.notifiableType?.contains("Route", ignoreCase = true) == true || 
+                         notification.type?.contains("Route", ignoreCase = true) == true ||
+                         hasRouteId
+    
+    // Extract route addresses from routeData if available
+    val routeData = notification.data?.data?.routeData
+    val originAddress = remember(routeData) {
+        extractRouteAddress(routeData, "origin")
+    }
+    val destinationAddress = remember(routeData) {
+        extractRouteAddress(routeData, "destination")
+    }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = hasRouteId) {
+                if (hasRouteId) {
+                    onNotificationClick()
+                }
+            }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top
         ) {
-            // Top row: Title and Date
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+            // Route icon or unread indicator dot
+            if (isRouteRelated) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_delivery_truck),
+                        contentDescription = "Route",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            } else {
+                // Unread indicator dot for non-route notifications
+                if (!isRead) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = CircleShape
+                            )
+                            .padding(top = 6.dp)
+                    )
+                } else {
+                    Spacer(modifier = Modifier.width(10.dp))
+                }
+            }
+            
+            // Content
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                // Title row
                 Row(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = title,
                         style = AppTypography.titleMedium.copy(
-                            fontWeight = if (isRead) FontWeight.Normal else FontWeight.Bold
+                            fontWeight = if (isRead) FontWeight.SemiBold else FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f)
                     )
-                    if (!isRead) {
-                        Spacer(modifier = Modifier.padding(start = 8.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = CircleShape
-                                )
+                    
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Time
+                        Text(
+                            text = formattedTime,
+                            style = AppTypography.labelSmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                         )
+                        
+                        // Chevron icon if clickable
+                        if (hasRouteId) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = "View Details",
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                            )
+                        }
                     }
                 }
-                // Date on top right
+                
+                // Message
+                Text(
+                    text = message,
+                    style = AppTypography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = if (isRead) 0.6f else 0.8f),
+                    maxLines = 2
+                )
+                
+                // Route addresses if available
+                if (isRouteRelated && (originAddress != null || destinationAddress != null)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (originAddress != null) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "From:",
+                                    style = AppTypography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = originAddress,
+                                    style = AppTypography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                        if (destinationAddress != null) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "To:",
+                                    style = AppTypography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = destinationAddress,
+                                    style = AppTypography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Date below message
                 Text(
                     text = formattedDate,
                     style = AppTypography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                 )
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Message
-            Text(
-                text = message,
-                style = AppTypography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-            )
         }
+    }
+}
+
+/**
+ * Extracts origin or destination address from routeData
+ * Handles Map, JSON string, or Route object structures
+ */
+fun extractRouteAddress(routeData: Any?, type: String): String? {
+    if (routeData == null) return null
+    
+    return try {
+        when (routeData) {
+            is Map<*, *> -> {
+                // Handle Map structure (most common case from Gson)
+                when (type) {
+                    "origin" -> {
+                        (routeData["origin_place"] as? String)
+                            ?: (routeData["originPlace"] as? String)
+                            ?: (routeData["origin"] as? String)
+                            ?: (routeData["origin_place"]?.toString())
+                    }
+                    "destination" -> {
+                        (routeData["destination_place"] as? String)
+                            ?: (routeData["destinationPlace"] as? String)
+                            ?: (routeData["destination"] as? String)
+                            ?: (routeData["destination_place"]?.toString())
+                    }
+                    else -> null
+                }
+            }
+            is String -> {
+                // If it's a JSON string, try to parse it
+                // For now, return null as we'd need Gson instance
+                null
+            }
+            else -> {
+                // Try reflection-based access for Route objects
+                try {
+                    when (type) {
+                        "origin" -> {
+                            routeData.javaClass.getMethod("getOriginPlace")?.invoke(routeData) as? String
+                                ?: routeData.javaClass.getMethod("getOrigin_place")?.invoke(routeData) as? String
+                        }
+                        "destination" -> {
+                            routeData.javaClass.getMethod("getDestinationPlace")?.invoke(routeData) as? String
+                                ?: routeData.javaClass.getMethod("getDestination_place")?.invoke(routeData) as? String
+                        }
+                        else -> null
+                    }
+                } catch (e: Exception) {
+                    null
+                }
+            }
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
+
+/**
+ * Formats a date string from ISO format to "HH:mm" format
+ */
+fun formatNotificationTime(dateString: String?): String {
+    if (dateString.isNullOrEmpty()) return ""
+    
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
+        val date = inputFormat.parse(dateString)
+        
+        if (date != null) {
+            val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+            timeFormat.format(date)
+        } else {
+            // Fallback: try simpler format
+            try {
+                val inputFormat2 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
+                val date2 = inputFormat2.parse(dateString)
+                if (date2 != null) {
+                    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+                    timeFormat.format(date2)
+                } else {
+                    ""
+                }
+            } catch (e2: Exception) {
+                ""
+            }
+        }
+    } catch (e: Exception) {
+        ""
     }
 }
 
