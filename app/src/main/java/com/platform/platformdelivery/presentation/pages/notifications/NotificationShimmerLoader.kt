@@ -27,7 +27,7 @@ fun NotificationShimmerLoader() {
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        repeat(5) { index ->
+        repeat(8) { index ->
             val isRouteRelated = index % 2 == 0 // Alternate between route and non-route
             
             Column(

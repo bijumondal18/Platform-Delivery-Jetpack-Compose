@@ -92,8 +92,10 @@ fun RouteDetailsScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        routesViewModel.getRouteDetails(RequestRouteDetails(routeId = routeId!!))
+    LaunchedEffect(routeId) {
+        if (!routeId.isNullOrEmpty()) {
+            routesViewModel.getRouteDetails(RequestRouteDetails(routeId = routeId))
+        }
     }
 
     Scaffold(
@@ -131,7 +133,9 @@ fun RouteDetailsScreen(
                 isRefreshing = true
                 coroutineScope.launch {
                     delay(1000)
-                    routesViewModel.getRouteDetails(RequestRouteDetails(routeId = routeId!!))
+                    if (!routeId.isNullOrEmpty()) {
+                        routesViewModel.getRouteDetails(RequestRouteDetails(routeId = routeId))
+                    }
                     isRefreshing = false
                 }
             },

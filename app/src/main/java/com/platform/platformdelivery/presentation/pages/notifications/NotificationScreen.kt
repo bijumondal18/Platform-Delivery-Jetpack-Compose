@@ -357,8 +357,9 @@ fun NotificationScreen(
                                         NotificationItem(
                                             notification = notification,
                                             onNotificationClick = {
-                                                // Navigate to route details if notifiableId exists
-                                                notification.notifiableId?.let { routeId ->
+                                                // Navigate to route details using notifiableId as route ID
+                                                val routeId = notification.notifiableId?.toString()
+                                                if (!routeId.isNullOrEmpty()) {
                                                     navController.navigate("routeDetails/$routeId")
                                                 }
                                             }
@@ -441,8 +442,9 @@ fun NotificationScreen(
                                         NotificationItem(
                                             notification = notification,
                                             onNotificationClick = {
-                                                // Navigate to route details if notifiableId exists
-                                                notification.notifiableId?.let { routeId ->
+                                                // Navigate to route details using notifiableId as route ID
+                                                val routeId = notification.notifiableId?.toString()
+                                                if (!routeId.isNullOrEmpty()) {
                                                     navController.navigate("routeDetails/$routeId")
                                                 }
                                             }
@@ -506,10 +508,8 @@ fun NotificationItem(
         formatNotificationTime(notification.createdAt)
     }
     
-    val hasRouteId = notification.notifiableId != null
-    val isRouteRelated = notification.notifiableType?.contains("Route", ignoreCase = true) == true || 
-                         notification.type?.contains("Route", ignoreCase = true) == true ||
-                         hasRouteId
+    // All notifications have route ID, so all are route-related
+    val routeId = notification.notifiableId?.toString()
     
     // Extract route addresses from routeData if available
     val routeData = notification.data?.data?.routeData
@@ -523,8 +523,8 @@ fun NotificationItem(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = hasRouteId) {
-                if (hasRouteId) {
+            .clickable(enabled = !routeId.isNullOrEmpty()) {
+                if (!routeId.isNullOrEmpty()) {
                     onNotificationClick()
                 }
             }
@@ -535,39 +535,22 @@ fun NotificationItem(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.Top
         ) {
-            // Route icon or unread indicator dot
-            if (isRouteRelated) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_delivery_truck),
-                        contentDescription = "Route",
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            } else {
-                // Unread indicator dot for non-route notifications
-                if (!isRead) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = CircleShape
-                            )
-                            .padding(top = 6.dp)
-                    )
-                } else {
-                    Spacer(modifier = Modifier.width(10.dp))
-                }
+            // Route icon - all notifications are route-related
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_delivery_truck),
+                    contentDescription = "Route",
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
             }
             
             // Content
@@ -601,15 +584,13 @@ fun NotificationItem(
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                         )
                         
-                        // Chevron icon if clickable
-                        if (hasRouteId) {
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = "View Details",
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-                            )
-                        }
+                        // Chevron icon - all notifications are clickable
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = "View Details",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                        )
                     }
                 }
                 
@@ -621,8 +602,8 @@ fun NotificationItem(
                     maxLines = 2
                 )
                 
-                // Route addresses if available
-                if (isRouteRelated && (originAddress != null || destinationAddress != null)) {
+                // Route addresses if available (all notifications are route-related)
+                if (originAddress != null || destinationAddress != null) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
