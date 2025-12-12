@@ -248,21 +248,17 @@ fun MainBottomNavScreen(
                 composable(DrawerDestinations.Home) { HomeScreen(navController = rootNavController) }
                 composable(DrawerDestinations.Profile) { 
                     ProfileScreen(
-                        navController = navController,
+                        navController = rootNavController,
                         onLogout = {
                             onLogout()
                         }
                     ) 
-                }
-                composable("editProfile") {
-                    EditProfileScreen(navController = navController)
                 }
                 composable(DrawerDestinations.RouteScreenWithChips) { RoutesScreenWithChips(navController = rootNavController) }
                 composable(DrawerDestinations.AvailableRoutes) { AvailableRoutesScreen(navController = rootNavController) }
                 composable(DrawerDestinations.RouteHistory) { MyRouteHistory(navController = rootNavController) }
                 composable(DrawerDestinations.MyAcceptedRoutes) { MyAcceptedRoutesScreen(navController = rootNavController) }
                 composable(DrawerDestinations.MyEarnings) { MyEarningsScreen() }
-                composable(DrawerDestinations.ContactAdmin) { ContactAdminScreen() }
             }
         }
     }

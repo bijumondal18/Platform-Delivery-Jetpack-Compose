@@ -1,4 +1,4 @@
-package com.platform.platformdelivery.presentation.pages.contact_admin
+package com.platform.platformdelivery.presentation.pages.refer_earn
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,7 +25,7 @@ import com.platform.platformdelivery.core.theme.AppTypography
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ContactAdminScreen(
+fun ReferEarnScreen(
     navController: NavController? = null,
     modifier: Modifier = Modifier
 ) {
@@ -34,7 +34,7 @@ fun ContactAdminScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Contact Admin",
+                        text = "Refer & Earn",
                         style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 },
@@ -62,11 +62,12 @@ fun ContactAdminScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Contact Admin",
+                text = "Refer & Earn",
                 style = AppTypography.titleLarge,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            // TODO: Implement Contact Admin screen content
+            // TODO: Implement Refer & Earn screen content
         }
     }
 }
+

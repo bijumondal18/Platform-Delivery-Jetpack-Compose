@@ -399,7 +399,10 @@ fun ProfileScreen(
                     // Edit Profile Button
                     Button(
                         onClick = {
-                            navController?.navigate("editProfile")
+                            navController?.navigate("editProfile") {
+                                // Pop up to main screen so back button works correctly
+                                popUpTo("main") { inclusive = false }
+                            }
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -425,7 +428,9 @@ fun ProfileScreen(
                     // Refer & Earn Button
                     Button(
                         onClick = {
-                            // TODO: Navigate to Refer & Earn screen
+                            navController?.navigate("refer_earn") {
+                                popUpTo("main") { inclusive = false }
+                            }
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -451,7 +456,9 @@ fun ProfileScreen(
                     // Tutorials Button
                     Button(
                         onClick = {
-                            // TODO: Navigate to Tutorials screen
+                            navController?.navigate("tutorials") {
+                                popUpTo("main") { inclusive = false }
+                            }
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -471,7 +478,9 @@ fun ProfileScreen(
                     // Contact Admin Button
                     Button(
                         onClick = {
-                            navController?.navigate("contact_admin")
+                            navController?.navigate("contact_admin") {
+                                popUpTo("main") { inclusive = false }
+                            }
                         },
                         modifier = Modifier
                             .weight(1f)

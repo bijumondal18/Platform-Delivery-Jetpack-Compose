@@ -16,9 +16,13 @@ import com.platform.platformdelivery.data.local.TokenManager
 import com.platform.platformdelivery.presentation.pages.auth.forgot_password.ForgotPasswordScreen
 import com.platform.platformdelivery.presentation.pages.auth.login.LoginScreen
 import com.platform.platformdelivery.presentation.pages.auth.register.SignupScreen
+import com.platform.platformdelivery.presentation.pages.contact_admin.ContactAdminScreen
 import com.platform.platformdelivery.presentation.pages.main.MainBottomNavScreen
 import com.platform.platformdelivery.presentation.pages.notifications.NotificationScreen
+import com.platform.platformdelivery.presentation.pages.profile.EditProfileScreen
+import com.platform.platformdelivery.presentation.pages.refer_earn.ReferEarnScreen
 import com.platform.platformdelivery.presentation.pages.route_details.RouteDetailsScreen
+import com.platform.platformdelivery.presentation.pages.tutorials.TutorialsScreen
 import com.platform.platformdelivery.presentation.view_models.AuthViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -70,6 +74,18 @@ fun PlatformDeliveryApp(startDestination: String) {
             }
             composable("notifications") {
                 NotificationScreen(navController = navController)
+            }
+            composable("editProfile") {
+                EditProfileScreen(navController = navController)
+            }
+            composable("contact_admin") {
+                ContactAdminScreen(navController = navController)
+            }
+            composable("refer_earn") {
+                ReferEarnScreen(navController = navController)
+            }
+            composable("tutorials") {
+                TutorialsScreen(navController = navController)
             }
         }
     }
