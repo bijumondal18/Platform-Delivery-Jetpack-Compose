@@ -10,12 +10,16 @@ import com.platform.platformdelivery.data.models.Route
 import com.platform.platformdelivery.data.models.RouteDetailsResponse
 import com.platform.platformdelivery.data.models.RouteHistory
 import com.platform.platformdelivery.data.models.RoutePathModel
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -155,4 +159,20 @@ interface ApiService {
 
     @GET(ProfileEndpoints.driverDetails)
     suspend fun getDriverDetails(): Response<DriverDetailsResponse>
+
+    @Multipart
+    @POST(ProfileEndpoints.updateProfile)
+    suspend fun updateProfile(
+        @Part("name") name: RequestBody?,
+        @Part("email") email: RequestBody?,
+        @Part("phone") phone: RequestBody?,
+        @Part("street") street: RequestBody?,
+        @Part("city") city: RequestBody?,
+        @Part("state") state: RequestBody?,
+        @Part("zip") zip: RequestBody?,
+        @Part("base_location") baseLocation: RequestBody?,
+        @Part("base_location_lat") baseLocationLat: RequestBody?,
+        @Part("base_location_lng") baseLocationLng: RequestBody?,
+        @Part profilePic: MultipartBody.Part?
+    ): Response<DriverDetailsResponse>
 }

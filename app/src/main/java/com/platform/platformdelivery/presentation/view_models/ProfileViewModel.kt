@@ -9,6 +9,7 @@ import com.platform.platformdelivery.data.repositories.ProfileRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.io.File
 
 class ProfileViewModel(
     private val profileRepository: ProfileRepository = ProfileRepository(),
@@ -25,6 +26,12 @@ class ProfileViewModel(
 
     private val _driverDetailsState = MutableStateFlow<Result<DriverDetailsResponse>>(Result.Idle)
     val driverDetailsState: StateFlow<Result<DriverDetailsResponse>> get() = _driverDetailsState
+
+    private val _updateProfileState = MutableStateFlow<Result<DriverDetailsResponse>>(Result.Idle)
+    val updateProfileState: StateFlow<Result<DriverDetailsResponse>> get() = _updateProfileState
+
+    private val _isUpdating = MutableStateFlow(false)
+    val isUpdating: StateFlow<Boolean> get() = _isUpdating
 
     fun getDriverDetails() {
         viewModelScope.launch {
@@ -59,6 +66,62 @@ class ProfileViewModel(
     fun loadDriverDetailsOnce() {
         if (_driverDetails.value == null && !_isLoading.value) {
             getDriverDetails()
+        }
+    }
+
+    fun updateProfile(
+        name: String? = null,
+        email: String? = null,
+        phone: String? = null,
+        street: String? = null,
+        city: String? = null,
+        state: String? = null,
+        zip: String? = null,
+        baseLocation: String? = null,
+        baseLocationLat: String? = null,
+        baseLocationLng: String? = null,
+        profilePicFile: File? = null,
+        onSuccess: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _isUpdating.value = true
+            _error.value = null
+            _updateProfileState.value = Result.Loading
+
+            try {
+                val result = profileRepository.updateProfile(
+                    name = name,
+                    email = email,
+                    phone = phone,
+                    street = street,
+                    city = city,
+                    state = state,
+                    zip = zip,
+                    baseLocation = baseLocation,
+                    baseLocationLat = baseLocationLat,
+                    baseLocationLng = baseLocationLng,
+                    profilePicFile = profilePicFile
+                )
+                _updateProfileState.value = result
+
+                when (result) {
+                    is Result.Success -> {
+                        // Update local driver details
+                        _driverDetails.value = result.data.data?.user
+                        _error.value = null
+                        onSuccess()
+                    }
+                    is Result.Error -> {
+                        _error.value = result.message
+                    }
+                    else -> Unit
+                }
+            } catch (e: Exception) {
+                _error.value = e.message
+                _updateProfileState.value = Result.Error(e.message ?: "Unknown error", e)
+            } finally {
+                _isUpdating.value = false
+            }
         }
     }
 }

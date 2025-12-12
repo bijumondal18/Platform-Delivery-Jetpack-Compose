@@ -35,6 +35,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,9 +48,11 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.platform.platformdelivery.core.network.Result
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.data.local.TokenManager
 import com.platform.platformdelivery.presentation.view_models.ProfileViewModel
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 
@@ -65,11 +68,81 @@ fun ProfileScreen(
     // Collect state from ViewModel
     val driverDetails by profileViewModel.driverDetails.collectAsState()
     val isLoading by profileViewModel.isLoading.collectAsState()
+    val isUpdating by profileViewModel.isUpdating.collectAsState()
+    val updateProfileState by profileViewModel.updateProfileState.collectAsState()
     val error by profileViewModel.error.collectAsState()
+    
+    val coroutineScope = rememberCoroutineScope()
+    
+    // State for bottom sheet and dialogs
+    var showImagePickerSheet by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     
     // Load driver details when screen appears
     LaunchedEffect(Unit) {
         profileViewModel.loadDriverDetailsOnce()
+    }
+
+    // Helper function to convert Uri to File
+    fun uriToFile(uri: Uri): File? {
+        return try {
+            when (uri.scheme) {
+                "file" -> File(uri.path ?: return null)
+                "content" -> {
+                    // For content URIs, copy to a temporary file
+                    val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+                    val file = File(context.cacheDir, "profile_image_${System.currentTimeMillis()}.jpg")
+                    FileOutputStream(file).use { output ->
+                        inputStream.copyTo(output)
+                    }
+                    file
+                }
+                else -> null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    // Handle image upload when selected
+    LaunchedEffect(selectedImageUri) {
+        selectedImageUri?.let { uri ->
+            val file = uriToFile(uri)
+            file?.let {
+                // Send all existing data including required fields (email, base_location_lat, base_location_lng)
+                profileViewModel.updateProfile(
+                    name = driverDetails?.name,
+                    email = driverDetails?.email, // Required field
+                    phone = driverDetails?.phone,
+                    street = driverDetails?.street,
+                    city = driverDetails?.city,
+                    state = driverDetails?.state,
+                    zip = driverDetails?.zip,
+                    baseLocation = driverDetails?.baseLocation,
+                    baseLocationLat = driverDetails?.baseLocationLat, // Required field
+                    baseLocationLng = driverDetails?.baseLocationLng, // Required field
+                    profilePicFile = it,
+                    onSuccess = {
+                        // Refresh driver details after successful upload
+                        profileViewModel.getDriverDetails()
+                    }
+                )
+            }
+        }
+    }
+
+    // Handle update result
+    LaunchedEffect(updateProfileState) {
+        when (updateProfileState) {
+            is Result.Success -> {
+                // Image uploaded successfully, details will be refreshed
+            }
+            is Result.Error -> {
+                // Handle error if needed
+            }
+            else -> Unit
+        }
     }
     
     // Get data from API if available, otherwise fallback to local storage
@@ -82,11 +155,6 @@ fun ProfileScreen(
     val city = driverDetails?.city ?: ""
     val state = driverDetails?.state ?: ""
     val zip = driverDetails?.zip ?: ""
-
-    // State for bottom sheet and dialogs
-    var showImagePickerSheet by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     // Create a temporary file for camera images
     val tempImageFile = remember {
@@ -132,7 +200,6 @@ fun ProfileScreen(
     ) { success ->
         if (success) {
             selectedImageUri = tempImageUri
-            // TODO: Upload image to server
         }
     }
 
@@ -141,7 +208,6 @@ fun ProfileScreen(
     ) { uri: Uri? ->
         uri?.let {
             selectedImageUri = it
-            // TODO: Upload image to server
         }
     }
 

@@ -305,18 +305,7 @@ fun MainBottomNavScreen(
                     ProfileScreen(navController = navController) 
                 }
                 composable("editProfile") {
-                    val context = LocalContext.current
-                    val appPrefs = remember { TokenManager(context) }
-                    EditProfileScreen(
-                        navController = navController,
-                        initialName = appPrefs.getName() ?: "",
-                        initialPhone = "", // TODO: Fetch from API
-                        initialAddress = "", // TODO: Fetch from API
-                        onSave = { name, phone, address ->
-                            // TODO: Save to API
-                            appPrefs.saveName(name)
-                        }
-                    )
+                    EditProfileScreen(navController = navController)
                 }
                 composable(DrawerDestinations.RouteScreenWithChips) { RoutesScreenWithChips(navController = rootNavController) }
                 composable(DrawerDestinations.AvailableRoutes) { AvailableRoutesScreen(navController = rootNavController) }
