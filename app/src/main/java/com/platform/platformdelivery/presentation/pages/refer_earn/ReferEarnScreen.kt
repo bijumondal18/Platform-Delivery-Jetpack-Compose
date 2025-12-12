@@ -42,6 +42,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,32 +60,37 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.platform.platformdelivery.R
 import com.platform.platformdelivery.core.theme.AppTypography
-import com.platform.platformdelivery.data.local.TokenManager
+import com.platform.platformdelivery.presentation.view_models.ReferralViewModel
 import kotlinx.coroutines.launch
-import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReferEarnScreen(
     navController: NavController? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    referralViewModel: ReferralViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val tokenManager = remember { TokenManager(context) }
     val clipboardManager = LocalClipboardManager.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     
-    // Generate a 5-digit referral code based on user ID
-    val userId = tokenManager.getUserId() ?: 0
-    val referralCode = remember {
-        // Generate a consistent 5-digit code from user ID
-        val code = (userId * 1000 + Random(userId).nextInt(1000, 9999)) % 100000
-        String.format("%05d", code)
+    // Collect referral code from ViewModel
+    val referralCode by referralViewModel.referralCode.collectAsState()
+    val isLoading by referralViewModel.isLoading.collectAsState()
+    val error by referralViewModel.error.collectAsState()
+    
+    // Load referral details when screen appears
+    LaunchedEffect(Unit) {
+        referralViewModel.loadReferralDetailsOnce()
     }
+    
+    // Display referral code or loading/error state
+    val displayCode = referralCode ?: ""
     
     Scaffold(
         topBar = {
@@ -249,23 +255,46 @@ fun ReferEarnScreen(
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = referralCode,
-                                    style = AppTypography.displaySmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    textAlign = TextAlign.Center
-                                )
+                                if (isLoading) {
+                                    Text(
+                                        text = "Loading...",
+                                        style = AppTypography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                        textAlign = TextAlign.Center
+                                    )
+                                } else if (displayCode.isNotEmpty()) {
+                                    Text(
+                                        text = displayCode,
+                                        style = AppTypography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        textAlign = TextAlign.Center
+                                    )
+                                } else {
+                                    Text(
+                                        text = "No code available",
+                                        style = AppTypography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.error,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
                             
                             Spacer(modifier = Modifier.width(12.dp))
                             
                             IconButton(
                                 onClick = {
-                                    clipboardManager.setText(AnnotatedString(referralCode))
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar("Referral code copied!")
+                                    if (displayCode.isNotEmpty()) {
+                                        clipboardManager.setText(AnnotatedString(displayCode))
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Referral code copied!")
+                                        }
+                                    } else {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar(error ?: "No referral code available")
+                                        }
                                     }
                                 },
+                                enabled = displayCode.isNotEmpty() && !isLoading,
                                 modifier = Modifier
                                     .size(56.dp)
                                     .background(
@@ -313,8 +342,15 @@ fun ReferEarnScreen(
                 // Refer your Friend Button
                 Button(
                     onClick = {
-                        shareReferralCode(context, referralCode)
+                        if (displayCode.isNotEmpty()) {
+                            shareReferralCode(context, displayCode)
+                        } else {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(error ?: "No referral code available")
+                            }
+                        }
                     },
+                    enabled = displayCode.isNotEmpty() && !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),

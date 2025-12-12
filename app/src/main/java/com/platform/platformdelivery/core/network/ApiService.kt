@@ -9,6 +9,7 @@ import com.platform.platformdelivery.data.models.RequestRouteDetails
 import com.platform.platformdelivery.data.models.Route
 import com.platform.platformdelivery.data.models.RouteDetailsResponse
 import com.platform.platformdelivery.data.models.RouteHistory
+import com.platform.platformdelivery.data.models.ReferralDetailsResponse
 import com.platform.platformdelivery.data.models.RoutePathModel
 import com.platform.platformdelivery.data.models.StateListResponse
 import okhttp3.MultipartBody
@@ -187,4 +188,7 @@ interface ApiService {
         @Field("latitude") latitude: String,
         @Field("longitude") longitude: String
     ): Response<BaseResponse>
+
+    @GET(ReferralEndpoints.referralDetails)
+    suspend fun getReferralDetails(): Response<ReferralDetailsResponse>
 }
