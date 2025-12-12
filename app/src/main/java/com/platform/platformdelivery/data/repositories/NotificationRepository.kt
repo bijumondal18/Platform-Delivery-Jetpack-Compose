@@ -37,13 +37,13 @@ class NotificationRepository {
         }
     }
 
-    suspend fun markNotificationAsRead(notificationId: String): com.platform.platformdelivery.core.network.Result<BaseResponse> {
+    suspend fun markAllAsRead(): com.platform.platformdelivery.core.network.Result<BaseResponse> {
         return try {
-            val response = apiService.markNotificationAsRead(notificationId)
+            val response = apiService.markAllAsRead()
             if (response.isSuccessful && response.body() != null) {
                 com.platform.platformdelivery.core.network.Result.Success(response.body()!!)
             } else {
-                val errorMsg = response.errorBody()?.string() ?: "Failed to mark notification as read"
+                val errorMsg = response.errorBody()?.string() ?: "Failed to mark all notifications as read"
                 com.platform.platformdelivery.core.network.Result.Error(errorMsg)
             }
         } catch (e: Exception) {

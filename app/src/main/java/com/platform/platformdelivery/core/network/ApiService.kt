@@ -154,11 +154,8 @@ interface ApiService {
         @Query("perpage") perPage: Int
     ): Response<NotificationResponse>
 
-    @FormUrlEncoded
-    @POST(NotificationEndpoints.markAsRead)
-    suspend fun markNotificationAsRead(
-        @Field("notification_id") notificationId: String
-    ): Response<BaseResponse>
+    @POST(NotificationEndpoints.markAllAsRead)
+    suspend fun markAllAsRead(): Response<BaseResponse>
 
     @GET(ProfileEndpoints.driverDetails)
     suspend fun getDriverDetails(): Response<DriverDetailsResponse>

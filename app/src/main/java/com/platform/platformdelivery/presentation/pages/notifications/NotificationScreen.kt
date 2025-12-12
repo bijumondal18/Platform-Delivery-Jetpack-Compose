@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -22,7 +23,11 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
@@ -31,7 +36,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -67,10 +75,15 @@ fun NotificationScreen(
     val coroutineScope = rememberCoroutineScope()
     val pullRefreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Chip state
     var selectedChip by remember { mutableStateOf("All") }
     val chipOptions = listOf("All", "Unread")
+
+    // Mark all as read state
+    val isMarkingAllAsRead by notificationViewModel.isMarkingAllAsRead.collectAsState()
+    val markAllAsReadError by notificationViewModel.markAllAsReadError.collectAsState()
     
     // LazyListState for scroll detection
     val allNotificationsListState = rememberLazyListState()
@@ -155,6 +168,15 @@ fun NotificationScreen(
         }
     }
 
+    // Handle mark all as read error
+    LaunchedEffect(markAllAsReadError) {
+        markAllAsReadError?.let { error ->
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Failed to mark all as read: $error")
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -176,9 +198,48 @@ fun NotificationScreen(
                             tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
+                },
+                actions = {
+                    // Only show "Mark All as Read" button if there are unread notifications
+                    val hasUnreadNotifications = unreadNotifications.isNotEmpty() || 
+                        (selectedChip == "All" && allNotifications.any { it.readAt.isNullOrEmpty() })
+                    
+                    if (hasUnreadNotifications) {
+                        TextButton(
+                            onClick = {
+                                notificationViewModel.markAllAsRead {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("All notifications marked as read")
+                                    }
+                                }
+                            },
+                            enabled = !isMarkingAllAsRead
+                        ) {
+                            if (isMarkingAllAsRead) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.DoneAll,
+                                    contentDescription = "Mark All as Read",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Mark All Read",
+                                style = AppTypography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -291,11 +352,7 @@ fun NotificationScreen(
                                     itemsIndexed(allNotifications) { index, notification ->
                                         NotificationItem(
                                             notification = notification,
-                                            onNotificationClick = {
-                                                notification.notifiableId?.let { id ->
-                                                    notificationViewModel.markNotificationAsRead(id.toString())
-                                                }
-                                            }
+                                            onNotificationClick = {}
                                         )
                                         if (index < allNotifications.size - 1) {
                                             Spacer(modifier = Modifier.height(8.dp))
@@ -370,11 +427,7 @@ fun NotificationScreen(
                                     itemsIndexed(unreadNotifications) { index, notification ->
                                         NotificationItem(
                                             notification = notification,
-                                            onNotificationClick = {
-                                                notification.notifiableId?.let { id ->
-                                                    notificationViewModel.markNotificationAsRead(id.toString())
-                                                }
-                                            }
+                                            onNotificationClick = {}
                                         )
                                         if (index < unreadNotifications.size - 1) {
                                             Spacer(modifier = Modifier.height(8.dp))
@@ -427,13 +480,7 @@ fun NotificationItem(
     }
     
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = {
-                if (!isRead) {
-                    onNotificationClick()
-                }
-            })
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier

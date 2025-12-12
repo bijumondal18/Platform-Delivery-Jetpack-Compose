@@ -45,6 +45,13 @@ class NotificationViewModel(
     private val _unreadNotificationsError = MutableStateFlow<String?>(null)
     val unreadNotificationsError: StateFlow<String?> get() = _unreadNotificationsError
 
+    // Mark all as read state
+    private val _isMarkingAllAsRead = MutableStateFlow(false)
+    val isMarkingAllAsRead: StateFlow<Boolean> get() = _isMarkingAllAsRead
+
+    private val _markAllAsReadError = MutableStateFlow<String?>(null)
+    val markAllAsReadError: StateFlow<String?> get() = _markAllAsReadError
+
     // Pagination state
     private var currentAllNotificationsPage = 1
     private var currentUnreadNotificationsPage = 1
@@ -183,46 +190,40 @@ class NotificationViewModel(
         hasLoadedUnreadNotifications = false
     }
 
-    fun markNotificationAsRead(notificationId: String, onSuccess: () -> Unit = {}) {
+    fun markAllAsRead(onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
+            _isMarkingAllAsRead.value = true
+            _markAllAsReadError.value = null
             try {
-                val result = notificationRepository.markNotificationAsRead(notificationId)
+                val result = notificationRepository.markAllAsRead()
                 when (result) {
                     is Result.Success -> {
-                        // Update local state - mark notification as read in both lists
+                        // Update local state - mark all notifications as read
                         val currentTime = java.text.SimpleDateFormat(
                             "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'",
                             java.util.Locale.getDefault()
                         ).format(java.util.Date())
                         
-                        // Update in all notifications list (using notifiableId)
+                        // Mark all notifications as read in all notifications list
                         _allNotifications.value = _allNotifications.value.map { notification ->
-                            if (notification.notifiableId?.toString() == notificationId) {
-                                notification.copy(readAt = currentTime)
-                            } else {
-                                notification
-                            }
+                            notification.copy(readAt = currentTime)
                         }
                         
-                        // Remove from unread notifications list if present (using notifiableId)
-                        _unreadNotifications.value = _unreadNotifications.value.filter { 
-                            it.notifiableId?.toString() != notificationId 
-                        }
-                        
-                        // Update empty state for unread if needed
-                        if (_unreadNotifications.value.isEmpty()) {
-                            _unreadNotificationsEmpty.value = true
-                        }
+                        // Clear unread notifications list
+                        _unreadNotifications.value = emptyList()
+                        _unreadNotificationsEmpty.value = true
                         
                         onSuccess()
                     }
                     is Result.Error -> {
-                        // Handle error silently or show toast
+                        _markAllAsReadError.value = result.message
                     }
                     else -> Unit
                 }
             } catch (e: Exception) {
-                // Handle exception silently
+                _markAllAsReadError.value = e.message
+            } finally {
+                _isMarkingAllAsRead.value = false
             }
         }
     }
