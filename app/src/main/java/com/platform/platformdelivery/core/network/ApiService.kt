@@ -179,4 +179,11 @@ interface ApiService {
         @Part("base_location_lng") baseLocationLng: RequestBody?,
         @Part profilePic: MultipartBody.Part?
     ): Response<DriverDetailsResponse>
+
+    @FormUrlEncoded
+    @POST(RouteEndpoints.updateCurrentLocation)
+    suspend fun updateCurrentLocation(
+        @Field("latitude") latitude: String,
+        @Field("longitude") longitude: String
+    ): Response<BaseResponse>
 }

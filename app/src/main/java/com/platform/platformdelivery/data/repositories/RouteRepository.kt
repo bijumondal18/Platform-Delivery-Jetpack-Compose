@@ -1,6 +1,8 @@
 package com.platform.platformdelivery.data.repositories
 
 import com.platform.platformdelivery.core.network.Result
+import com.platform.platformdelivery.core.utils.LocationUtils
+import com.platform.platformdelivery.data.models.BaseResponse
 import com.platform.platformdelivery.data.models.LoginResponse
 import com.platform.platformdelivery.data.models.RequestRouteDetails
 import com.platform.platformdelivery.data.models.Route
@@ -64,6 +66,24 @@ class RouteRepository {
             } else {
                 val errorMsg = response.errorBody()?.string() ?: "Failed to fetch accepted trips"
                 com.platform.platformdelivery.core.network.Result.Error(errorMsg)
+            }
+        } catch (e: Exception) {
+            Result.Error("Exception occurred: ${e.message}", e)
+        }
+    }
+
+    suspend fun updateCurrentLocation(latitude: Double, longitude: Double): Result<BaseResponse> {
+        return try {
+            // Format coordinates to 4 decimal places
+            val formattedLat = LocationUtils.formatCoordinate(latitude) ?: return Result.Error("Invalid latitude")
+            val formattedLng = LocationUtils.formatCoordinate(longitude) ?: return Result.Error("Invalid longitude")
+            
+            val response = apiService.updateCurrentLocation(formattedLat, formattedLng)
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "Failed to update location"
+                Result.Error(errorMsg)
             }
         } catch (e: Exception) {
             Result.Error("Exception occurred: ${e.message}", e)

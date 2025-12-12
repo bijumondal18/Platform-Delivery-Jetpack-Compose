@@ -1,6 +1,7 @@
 package com.platform.platformdelivery.data.repositories
 
 import com.platform.platformdelivery.core.network.Result
+import com.platform.platformdelivery.core.utils.LocationUtils
 import com.platform.platformdelivery.data.models.DriverDetailsResponse
 import com.platform.platformdelivery.data.models.StateListResponse
 import com.platform.platformdelivery.data.remote.RetrofitClient
@@ -51,8 +52,11 @@ class ProfileRepository {
             val stateBody = state?.toRequestBody("text/plain".toMediaTypeOrNull())
             val zipBody = zip?.toRequestBody("text/plain".toMediaTypeOrNull())
             val baseLocationBody = baseLocation?.toRequestBody("text/plain".toMediaTypeOrNull())
-            val baseLocationLatBody = baseLocationLat?.toRequestBody("text/plain".toMediaTypeOrNull())
-            val baseLocationLngBody = baseLocationLng?.toRequestBody("text/plain".toMediaTypeOrNull())
+            // Format lat/lng to 4 decimal places
+            val formattedLat = LocationUtils.formatCoordinate(baseLocationLat)
+            val formattedLng = LocationUtils.formatCoordinate(baseLocationLng)
+            val baseLocationLatBody = formattedLat?.toRequestBody("text/plain".toMediaTypeOrNull())
+            val baseLocationLngBody = formattedLng?.toRequestBody("text/plain".toMediaTypeOrNull())
 
             // Handle profile picture upload
             var profilePicPart: MultipartBody.Part? = null

@@ -16,12 +16,20 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.*
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.platform.platformdelivery.core.utils.LocationUtils
+import com.platform.platformdelivery.data.repositories.RouteRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class LocationService : Service() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationRequest: LocationRequest
     private lateinit var locationCallback: LocationCallback
+    private val routeRepository = RouteRepository()
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     companion object {
         const val CHANNEL_ID = "location_channel"
@@ -46,8 +54,32 @@ class LocationService : Service() {
             override fun onLocationResult(result: LocationResult) {
                 super.onLocationResult(result)
                 for (location: Location in result.locations) {
-                    // ✅ Here you can send location to your server or ViewModel
-                    Log.d(TAG, "📍 Location update: ${location.latitude}, ${location.longitude}")
+                    // Format coordinates to 4 decimal places for logging
+                    val formattedLat = LocationUtils.formatCoordinate(location.latitude)
+                    val formattedLng = LocationUtils.formatCoordinate(location.longitude)
+                    
+                    Log.d(TAG, "📍 Location update: $formattedLat, $formattedLng")
+                    
+                    // Send location update to server (repository will format to 4 decimal places)
+//                    serviceScope.launch {
+//                        try {
+//                            val updateResult = routeRepository.updateCurrentLocation(
+//                                location.latitude,
+//                                location.longitude
+//                            )
+//                            when (updateResult) {
+//                                is com.platform.platformdelivery.core.network.Result.Success -> {
+//                                    Log.d(TAG, "✅ Location updated successfully")
+//                                }
+//                                is com.platform.platformdelivery.core.network.Result.Error -> {
+//                                    Log.e(TAG, "❌ Failed to update location: ${updateResult.message}")
+//                                }
+//                                else -> Unit
+//                            }
+//                        } catch (e: Exception) {
+//                            Log.e(TAG, "Exception updating location: ${e.message}", e)
+//                        }
+//                    }
                 }
             }
         }
