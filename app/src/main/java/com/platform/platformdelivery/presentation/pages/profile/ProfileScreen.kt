@@ -25,14 +25,12 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -60,6 +58,7 @@ import com.platform.platformdelivery.core.network.Result
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.data.local.TokenManager
 import com.platform.platformdelivery.presentation.view_models.ProfileViewModel
+import com.platform.platformdelivery.presentation.widgets.ModernLogoutDialog
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
@@ -537,33 +536,10 @@ fun ProfileScreen(
 
     // Logout Confirmation Dialog
     if (showLogoutDialog) {
-        AlertDialog(
-            shape = MaterialTheme.shapes.large,
-            onDismissRequest = { showLogoutDialog = false },
-            title = {
-                Text(
-                    "Confirm Logout",
-                    style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                )
-            },
-            text = {
-                Text(
-                    "Are you sure you want to logout from this device?",
-                    style = AppTypography.bodyLarge
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showLogoutDialog = false
-                    onLogout()
-                }) {
-                    Text("Logout", color = MaterialTheme.colorScheme.primary)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.tertiary)
-                }
+        ModernLogoutDialog(
+            onDismiss = { showLogoutDialog = false },
+            onConfirm = {
+                onLogout()
             }
         )
     }

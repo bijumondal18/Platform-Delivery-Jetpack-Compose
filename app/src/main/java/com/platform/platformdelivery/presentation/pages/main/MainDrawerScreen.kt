@@ -66,6 +66,8 @@ import com.platform.platformdelivery.presentation.pages.profile.EditProfileScree
 import com.platform.platformdelivery.presentation.pages.profile.ProfileScreen
 import com.platform.platformdelivery.data.local.TokenManager
 import com.platform.platformdelivery.presentation.routes.RoutesScreenWithChips
+import com.platform.platformdelivery.presentation.widgets.ModernExitDialog
+import com.platform.platformdelivery.presentation.widgets.ModernLogoutDialog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -150,67 +152,19 @@ fun MainBottomNavScreen(
     }
 
     if (showExitDialog) {
-        AlertDialog(
-            shape = MaterialTheme.shapes.large,
-            onDismissRequest = { showExitDialog = false },
-            title = {
-                Text(
-                    "Exit App",
-                    style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            },
-            text = {
-                Text(
-                    "Are you sure you want to close the app?",
-                    style = AppTypography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f)
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showExitDialog = false
-                    ActivityCompat.finishAffinity(context as android.app.Activity)
-                }) {
-                    Text("Exit", color = MaterialTheme.colorScheme.primary)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showExitDialog = false }) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.tertiary)
-                }
+        ModernExitDialog(
+            onDismiss = { showExitDialog = false },
+            onConfirm = {
+                ActivityCompat.finishAffinity(context as android.app.Activity)
             }
         )
     }
 
     if (showLogoutDialog) {
-        AlertDialog(
-            shape = MaterialTheme.shapes.large,
-            onDismissRequest = { showLogoutDialog = false },
-            title = {
-                Text(
-                    "Confirm Logout",
-                    style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                )
-            },
-            text = {
-                Text(
-                    "Are you sure you want to logout from this device?",
-                    style = AppTypography.bodyLarge
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showLogoutDialog = false
-                    onLogout()
-                }) {
-                    Text("Logout", color = MaterialTheme.colorScheme.primary)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.tertiary)
-                }
+        ModernLogoutDialog(
+            onDismiss = { showLogoutDialog = false },
+            onConfirm = {
+                onLogout()
             }
         )
     }
