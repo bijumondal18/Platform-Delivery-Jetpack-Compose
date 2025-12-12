@@ -59,7 +59,6 @@ import com.platform.platformdelivery.presentation.pages.my_accepted_routes.MyAcc
 import com.platform.platformdelivery.presentation.pages.my_earnings.MyEarningsScreen
 import com.platform.platformdelivery.presentation.pages.my_route_history.MyRouteHistory
 import com.platform.platformdelivery.presentation.pages.profile.ProfileScreen
-import com.platform.platformdelivery.presentation.pages.route_details.RouteDetailsScreen
 import com.platform.platformdelivery.presentation.routes.RoutesScreenWithChips
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -101,7 +100,10 @@ fun getTitleForRoute(route: String?): String {
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainBottomNavScreen(onLogout: () -> Unit) {
+fun MainBottomNavScreen(
+    rootNavController: androidx.navigation.NavController,
+    onLogout: () -> Unit
+) {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route ?: DrawerDestinations.Home
@@ -255,28 +257,18 @@ fun MainBottomNavScreen(onLogout: () -> Unit) {
                 navController = navController,
                 startDestination = DrawerDestinations.Home
             ) {
-                composable(DrawerDestinations.Home) { HomeScreen(navController = navController) }
+                composable(DrawerDestinations.Home) { HomeScreen(navController = rootNavController) }
                 composable(DrawerDestinations.Profile) { ProfileScreen() }
-                composable(DrawerDestinations.RouteScreenWithChips) { RoutesScreenWithChips(navController = navController) }
-                composable(DrawerDestinations.AvailableRoutes) { AvailableRoutesScreen(navController = navController) }
-                composable(DrawerDestinations.RouteHistory) { MyRouteHistory(navController = navController) }
-                composable(DrawerDestinations.MyAcceptedRoutes) { MyAcceptedRoutesScreen(navController = navController) }
+                composable(DrawerDestinations.RouteScreenWithChips) { RoutesScreenWithChips(navController = rootNavController) }
+                composable(DrawerDestinations.AvailableRoutes) { AvailableRoutesScreen(navController = rootNavController) }
+                composable(DrawerDestinations.RouteHistory) { MyRouteHistory(navController = rootNavController) }
+                composable(DrawerDestinations.MyAcceptedRoutes) { MyAcceptedRoutesScreen(navController = rootNavController) }
                 composable(DrawerDestinations.MyEarnings) { MyEarningsScreen() }
                 composable(DrawerDestinations.ContactAdmin) { ContactAdminScreen() }
-                composable("routeDetails/{routeId}") { backStackEntry ->
-                    val routeId = backStackEntry.arguments?.getString("routeId")
-                    RouteDetailsScreen(
-                        routeId = routeId,
-                        onTitleChange = { title -> dynamicTitle = title }
-                    )
-                }
             }
         }
     }
 
-    LaunchedEffect(currentRoute) {
-        if (!currentRoute.startsWith("routeDetails")) dynamicTitle = null
-    }
 }
 
 

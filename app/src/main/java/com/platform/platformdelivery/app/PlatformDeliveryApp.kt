@@ -17,6 +17,7 @@ import com.platform.platformdelivery.presentation.pages.auth.forgot_password.For
 import com.platform.platformdelivery.presentation.pages.auth.login.LoginScreen
 import com.platform.platformdelivery.presentation.pages.auth.register.SignupScreen
 import com.platform.platformdelivery.presentation.pages.main.MainBottomNavScreen
+import com.platform.platformdelivery.presentation.pages.route_details.RouteDetailsScreen
 import com.platform.platformdelivery.presentation.view_models.AuthViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -50,6 +51,7 @@ fun PlatformDeliveryApp(startDestination: String) {
             }
             composable("main") {
                 MainBottomNavScreen(
+                    rootNavController = navController,
                     onLogout = {
                         appPrefs.clear()
                         navController.navigate("login") {
@@ -57,6 +59,13 @@ fun PlatformDeliveryApp(startDestination: String) {
                         }
                     }
                 ) // Your drawer with Home, Profile, Available Routes, Route History Accepted Routes, Earnings etc.
+            }
+            composable("routeDetails/{routeId}") { backStackEntry ->
+                val routeId = backStackEntry.arguments?.getString("routeId")
+                RouteDetailsScreen(
+                    routeId = routeId,
+                    navController = navController
+                )
             }
         }
     }
