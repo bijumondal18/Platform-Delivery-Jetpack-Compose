@@ -182,5 +182,49 @@ class NotificationViewModel(
     fun resetUnreadNotificationsFlag() {
         hasLoadedUnreadNotifications = false
     }
+
+    fun markNotificationAsRead(notificationId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val result = notificationRepository.markNotificationAsRead(notificationId)
+                when (result) {
+                    is Result.Success -> {
+                        // Update local state - mark notification as read in both lists
+                        val currentTime = java.text.SimpleDateFormat(
+                            "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'",
+                            java.util.Locale.getDefault()
+                        ).format(java.util.Date())
+                        
+                        // Update in all notifications list (using notifiableId)
+                        _allNotifications.value = _allNotifications.value.map { notification ->
+                            if (notification.notifiableId?.toString() == notificationId) {
+                                notification.copy(readAt = currentTime)
+                            } else {
+                                notification
+                            }
+                        }
+                        
+                        // Remove from unread notifications list if present (using notifiableId)
+                        _unreadNotifications.value = _unreadNotifications.value.filter { 
+                            it.notifiableId?.toString() != notificationId 
+                        }
+                        
+                        // Update empty state for unread if needed
+                        if (_unreadNotifications.value.isEmpty()) {
+                            _unreadNotificationsEmpty.value = true
+                        }
+                        
+                        onSuccess()
+                    }
+                    is Result.Error -> {
+                        // Handle error silently or show toast
+                    }
+                    else -> Unit
+                }
+            } catch (e: Exception) {
+                // Handle exception silently
+            }
+        }
+    }
 }
 

@@ -1,6 +1,7 @@
 package com.platform.platformdelivery.data.repositories
 
 import com.platform.platformdelivery.core.network.Result
+import com.platform.platformdelivery.data.models.BaseResponse
 import com.platform.platformdelivery.data.models.NotificationResponse
 import com.platform.platformdelivery.data.remote.RetrofitClient
 
@@ -29,6 +30,20 @@ class NotificationRepository {
                 com.platform.platformdelivery.core.network.Result.Success(response.body()!!)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: "Failed to fetch unread notifications"
+                com.platform.platformdelivery.core.network.Result.Error(errorMsg)
+            }
+        } catch (e: Exception) {
+            Result.Error("Exception occurred: ${e.message}", e)
+        }
+    }
+
+    suspend fun markNotificationAsRead(notificationId: String): com.platform.platformdelivery.core.network.Result<BaseResponse> {
+        return try {
+            val response = apiService.markNotificationAsRead(notificationId)
+            if (response.isSuccessful && response.body() != null) {
+                com.platform.platformdelivery.core.network.Result.Success(response.body()!!)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "Failed to mark notification as read"
                 com.platform.platformdelivery.core.network.Result.Error(errorMsg)
             }
         } catch (e: Exception) {

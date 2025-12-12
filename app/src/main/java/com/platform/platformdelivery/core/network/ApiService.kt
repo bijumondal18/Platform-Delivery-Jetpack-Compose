@@ -1,5 +1,6 @@
 package com.platform.platformdelivery.core.network
 
+import com.platform.platformdelivery.data.models.BaseResponse
 import com.platform.platformdelivery.data.models.EarningResponse
 import com.platform.platformdelivery.data.models.LoginResponse
 import com.platform.platformdelivery.data.models.NotificationResponse
@@ -144,4 +145,10 @@ interface ApiService {
         @Query("page") page: Int,
         @Query("perpage") perPage: Int
     ): Response<NotificationResponse>
+
+    @FormUrlEncoded
+    @POST(NotificationEndpoints.markAsRead)
+    suspend fun markNotificationAsRead(
+        @Field("notification_id") notificationId: String
+    ): Response<BaseResponse>
 }

@@ -50,6 +50,7 @@ object NotificationEndpoints {
     const val allNotifications = "all-notifications"
     const val unreadNotifications = "total-unreadnotifications"
     const val markAllAsRead = "mark-all-as-read"
+    const val markAsRead = "mark-notification-as-read"
 }
 
 object ChatEndpoints {

@@ -1,6 +1,7 @@
 package com.platform.platformdelivery.presentation.pages.notifications
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +23,6 @@ import java.util.Locale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
@@ -90,16 +90,27 @@ fun NotificationScreen(
     val noMoreUnreadNotificationsAvailable by notificationViewModel.noMoreUnreadNotificationsAvailable.collectAsState()
     val unreadNotificationsError by notificationViewModel.unreadNotificationsError.collectAsState()
 
-    // Load data when chip changes
+    // Initial load - load "All" notifications when screen first appears
+    LaunchedEffect(Unit) {
+        notificationViewModel.loadAllNotificationsOnce()
+    }
+
+    // Load data when chip changes - only if not already loaded
     LaunchedEffect(selectedChip) {
         when (selectedChip) {
             "All" -> {
                 notificationViewModel.resetUnreadNotificationsFlag()
-                notificationViewModel.getAllNotifications(1)
+                // Only load if not already loaded
+                if (!notificationViewModel.hasLoadedAllNotifications) {
+                    notificationViewModel.loadAllNotificationsOnce()
+                }
             }
             "Unread" -> {
                 notificationViewModel.resetAllNotificationsFlag()
-                notificationViewModel.getUnreadNotifications(1)
+                // Only load if not already loaded
+                if (!notificationViewModel.hasLoadedUnreadNotifications) {
+                    notificationViewModel.loadUnreadNotificationsOnce()
+                }
             }
         }
     }
@@ -221,8 +232,14 @@ fun NotificationScreen(
                     coroutineScope.launch {
                         delay(1000)
                         when (selectedChip) {
-                            "All" -> notificationViewModel.getAllNotifications(1)
-                            "Unread" -> notificationViewModel.getUnreadNotifications(1)
+                            "All" -> {
+                                notificationViewModel.resetAllNotificationsFlag()
+                                notificationViewModel.getAllNotifications(1)
+                            }
+                            "Unread" -> {
+                                notificationViewModel.resetUnreadNotificationsFlag()
+                                notificationViewModel.getUnreadNotifications(1)
+                            }
                         }
                         isRefreshing = false
                     }
@@ -237,21 +254,13 @@ fun NotificationScreen(
                                 .padding(horizontal = 16.dp)
                         ) {
                             when {
-                                isAllNotificationsLoading && !isRefreshing -> {
+                                isAllNotificationsLoading && allNotifications.isEmpty() && !isRefreshing -> {
+                                    // Show loading only when list is empty (initial load)
                                     item {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 16.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            CircularProgressIndicator(
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
+                                        NotificationShimmerLoader()
                                     }
                                 }
-                                !allNotificationsError.isNullOrEmpty() -> {
+                                !allNotificationsError.isNullOrEmpty() && allNotifications.isEmpty() -> {
                                     item {
                                         Text(
                                             text = "Error: $allNotificationsError",
@@ -264,7 +273,7 @@ fun NotificationScreen(
                                         )
                                     }
                                 }
-                                allNotificationsEmpty -> {
+                                allNotificationsEmpty && !isAllNotificationsLoading -> {
                                     item {
                                         Text(
                                             text = "No notifications yet",
@@ -277,31 +286,29 @@ fun NotificationScreen(
                                         )
                                     }
                                 }
-                                else -> {
+                                allNotifications.isNotEmpty() -> {
+                                    // Only show list when we have data
                                     itemsIndexed(allNotifications) { index, notification ->
-                                        NotificationItem(notification = notification)
+                                        NotificationItem(
+                                            notification = notification,
+                                            onNotificationClick = {
+                                                notification.notifiableId?.let { id ->
+                                                    notificationViewModel.markNotificationAsRead(id.toString())
+                                                }
+                                            }
+                                        )
                                         if (index < allNotifications.size - 1) {
                                             Spacer(modifier = Modifier.height(8.dp))
                                         }
                                     }
-                                    // Loading indicator at bottom when loading more
+                                    // Loading indicator at bottom when loading more (pagination)
                                     if (isAllNotificationsLoading && allNotifications.isNotEmpty()) {
                                         item {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(16.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                CircularProgressIndicator(
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                            }
+                                            NotificationShimmerLoader()
                                         }
                                     }
                                     // No more data indicator
-                                    if (noMoreAllNotificationsAvailable && allNotifications.isNotEmpty()) {
+                                    if (noMoreAllNotificationsAvailable && allNotifications.isNotEmpty() && !isAllNotificationsLoading) {
                                         item {
                                             Text(
                                                 text = "No more notifications",
@@ -326,21 +333,13 @@ fun NotificationScreen(
                                 .padding(horizontal = 16.dp)
                         ) {
                             when {
-                                isUnreadNotificationsLoading && !isRefreshing -> {
+                                isUnreadNotificationsLoading && unreadNotifications.isEmpty() && !isRefreshing -> {
+                                    // Show loading only when list is empty (initial load)
                                     item {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 16.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            CircularProgressIndicator(
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
+                                        NotificationShimmerLoader()
                                     }
                                 }
-                                !unreadNotificationsError.isNullOrEmpty() -> {
+                                !unreadNotificationsError.isNullOrEmpty() && unreadNotifications.isEmpty() -> {
                                     item {
                                         Text(
                                             text = "Error: $unreadNotificationsError",
@@ -353,7 +352,7 @@ fun NotificationScreen(
                                         )
                                     }
                                 }
-                                unreadNotificationsEmpty -> {
+                                unreadNotificationsEmpty && !isUnreadNotificationsLoading -> {
                                     item {
                                         Text(
                                             text = "No unread notifications",
@@ -366,31 +365,29 @@ fun NotificationScreen(
                                         )
                                     }
                                 }
-                                else -> {
+                                unreadNotifications.isNotEmpty() -> {
+                                    // Only show list when we have data
                                     itemsIndexed(unreadNotifications) { index, notification ->
-                                        NotificationItem(notification = notification)
+                                        NotificationItem(
+                                            notification = notification,
+                                            onNotificationClick = {
+                                                notification.notifiableId?.let { id ->
+                                                    notificationViewModel.markNotificationAsRead(id.toString())
+                                                }
+                                            }
+                                        )
                                         if (index < unreadNotifications.size - 1) {
                                             Spacer(modifier = Modifier.height(8.dp))
                                         }
                                     }
-                                    // Loading indicator at bottom when loading more
+                                    // Loading indicator at bottom when loading more (pagination)
                                     if (isUnreadNotificationsLoading && unreadNotifications.isNotEmpty()) {
                                         item {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(16.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                CircularProgressIndicator(
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                            }
+                                            NotificationShimmerLoader()
                                         }
                                     }
                                     // No more data indicator
-                                    if (noMoreUnreadNotificationsAvailable && unreadNotifications.isNotEmpty()) {
+                                    if (noMoreUnreadNotificationsAvailable && unreadNotifications.isNotEmpty() && !isUnreadNotificationsLoading) {
                                         item {
                                             Text(
                                                 text = "No more notifications",
@@ -414,7 +411,10 @@ fun NotificationScreen(
 }
 
 @Composable
-fun NotificationItem(notification: Notification) {
+fun NotificationItem(
+    notification: Notification,
+    onNotificationClick: () -> Unit = {}
+) {
     val isRead = !notification.readAt.isNullOrEmpty()
     
     // Extract title and message from nested data structure
@@ -426,13 +426,14 @@ fun NotificationItem(notification: Notification) {
         formatNotificationDate(notification.createdAt)
     }
     
-    // Format notification ID
-    val notificationId = remember(notification.id) {
-        notification.id?.let { "#$it" } ?: ""
-    }
-
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = {
+                if (!isRead) {
+                    onNotificationClick()
+                }
+            })
     ) {
         Column(
             modifier = Modifier
@@ -483,15 +484,6 @@ fun NotificationItem(notification: Notification) {
                 text = message,
                 style = AppTypography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Notification ID with # tag
-            Text(
-                text = notificationId,
-                style = AppTypography.labelSmall,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
             )
         }
     }

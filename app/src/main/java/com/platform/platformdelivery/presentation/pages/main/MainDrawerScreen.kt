@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
@@ -59,7 +61,10 @@ import com.platform.platformdelivery.presentation.pages.home.HomeScreen
 import com.platform.platformdelivery.presentation.pages.my_accepted_routes.MyAcceptedRoutesScreen
 import com.platform.platformdelivery.presentation.pages.my_earnings.MyEarningsScreen
 import com.platform.platformdelivery.presentation.pages.my_route_history.MyRouteHistory
+import com.platform.platformdelivery.presentation.pages.profile.DeleteAccountDialog
+import com.platform.platformdelivery.presentation.pages.profile.EditProfileScreen
 import com.platform.platformdelivery.presentation.pages.profile.ProfileScreen
+import com.platform.platformdelivery.data.local.TokenManager
 import com.platform.platformdelivery.presentation.routes.RoutesScreenWithChips
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -112,6 +117,7 @@ fun MainBottomNavScreen(
 
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showExitDialog by remember { mutableStateOf(false) }
+    var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var dynamicTitle by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
@@ -238,6 +244,27 @@ fun MainBottomNavScreen(
                             )
                         }
                     }
+                    // Show edit and delete buttons only on Profile screen
+                    if (currentRoute == DrawerDestinations.Profile) {
+                        IconButton(onClick = {
+                            navController.navigate("editProfile")
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Profile",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                        IconButton(onClick = {
+                            showDeleteAccountDialog = true
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Account",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
                 }
             )
         },
@@ -274,7 +301,23 @@ fun MainBottomNavScreen(
                 startDestination = DrawerDestinations.Home
             ) {
                 composable(DrawerDestinations.Home) { HomeScreen(navController = rootNavController) }
-                composable(DrawerDestinations.Profile) { ProfileScreen() }
+                composable(DrawerDestinations.Profile) { 
+                    ProfileScreen(navController = navController) 
+                }
+                composable("editProfile") {
+                    val context = LocalContext.current
+                    val appPrefs = remember { TokenManager(context) }
+                    EditProfileScreen(
+                        navController = navController,
+                        initialName = appPrefs.getName() ?: "",
+                        initialPhone = "", // TODO: Fetch from API
+                        initialAddress = "", // TODO: Fetch from API
+                        onSave = { name, phone, address ->
+                            // TODO: Save to API
+                            appPrefs.saveName(name)
+                        }
+                    )
+                }
                 composable(DrawerDestinations.RouteScreenWithChips) { RoutesScreenWithChips(navController = rootNavController) }
                 composable(DrawerDestinations.AvailableRoutes) { AvailableRoutesScreen(navController = rootNavController) }
                 composable(DrawerDestinations.RouteHistory) { MyRouteHistory(navController = rootNavController) }
@@ -283,6 +326,18 @@ fun MainBottomNavScreen(
                 composable(DrawerDestinations.ContactAdmin) { ContactAdminScreen() }
             }
         }
+    }
+
+    // Delete Account Confirmation Dialog
+    if (showDeleteAccountDialog) {
+        DeleteAccountDialog(
+            onDismiss = { showDeleteAccountDialog = false },
+            onConfirm = {
+                // TODO: Implement delete account API call
+                showDeleteAccountDialog = false
+                onLogout() // For now, logout after deletion
+            }
+        )
     }
 
 }
