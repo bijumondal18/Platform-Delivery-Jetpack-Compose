@@ -1,5 +1,6 @@
 package com.platform.platformdelivery.presentation.pages.profile
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,13 +15,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -44,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.platform.platformdelivery.core.network.Result
 import com.platform.platformdelivery.core.theme.AppTypography
+import com.platform.platformdelivery.data.models.State
 import com.platform.platformdelivery.presentation.view_models.ProfileViewModel
 import com.platform.platformdelivery.presentation.widgets.AppTextField
 import com.platform.platformdelivery.presentation.widgets.PrimaryButton
@@ -60,6 +68,8 @@ fun EditProfileScreen(
     val isUpdating by profileViewModel.isUpdating.collectAsState()
     val updateProfileState by profileViewModel.updateProfileState.collectAsState()
     val error by profileViewModel.error.collectAsState()
+    val stateList by profileViewModel.stateList.collectAsState()
+    val isLoadingStates by profileViewModel.isLoadingStates.collectAsState()
 
     // Initialize form fields with current driver details
     var name by remember { mutableStateOf(driverDetails?.name ?: "") }
@@ -76,6 +86,7 @@ fun EditProfileScreen(
     
     var state by remember { mutableStateOf(driverDetails?.state ?: "") }
     var stateError by remember { mutableStateOf<String?>(null) }
+    var expandedStateDropdown by remember { mutableStateOf(false) }
     
     var zip by remember { mutableStateOf(driverDetails?.zip ?: "") }
     var zipError by remember { mutableStateOf<String?>(null) }
@@ -83,9 +94,10 @@ fun EditProfileScreen(
     var baseLocation by remember { mutableStateOf(driverDetails?.baseLocation ?: "") }
     var baseLocationError by remember { mutableStateOf<String?>(null) }
 
-    // Load driver details when screen appears
+    // Load driver details and state list when screen appears
     LaunchedEffect(Unit) {
         profileViewModel.loadDriverDetailsOnce()
+        profileViewModel.loadStateListOnce()
     }
 
     // Update form fields when driver details change
@@ -217,17 +229,69 @@ fun EditProfileScreen(
                 errorMessage = cityError
             )
 
-            AppTextField(
-                value = state,
-                onValueChange = {
-                    state = it
-                    stateError = null
-                },
-                label = "State",
-                keyboardType = KeyboardType.Text,
-                isError = stateError != null,
-                errorMessage = stateError
-            )
+            // State Dropdown
+            Column {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = state,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("State") },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = if (expandedStateDropdown) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { expandedStateDropdown = true },
+                        shape = MaterialTheme.shapes.medium,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                            errorBorderColor = MaterialTheme.colorScheme.error
+                        ),
+                        isError = stateError != null
+                    )
+                    DropdownMenu(
+                        expanded = expandedStateDropdown,
+                        onDismissRequest = { expandedStateDropdown = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isLoadingStates) {
+                            DropdownMenuItem(
+                                text = { Text("Loading states...") },
+                                onClick = {}
+                            )
+                        } else if (stateList.isEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("No states available") },
+                                onClick = {}
+                            )
+                        } else {
+                            stateList.forEach { stateItem ->
+                                DropdownMenuItem(
+                                    text = { Text(stateItem.name ?: "") },
+                                    onClick = {
+                                        state = stateItem.name ?: ""
+                                        expandedStateDropdown = false
+                                        stateError = null
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                if (stateError != null) {
+                    Text(
+                        text = stateError ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                    )
+                }
+            }
 
             AppTextField(
                 value = zip,

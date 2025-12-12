@@ -2,6 +2,7 @@ package com.platform.platformdelivery.data.repositories
 
 import com.platform.platformdelivery.core.network.Result
 import com.platform.platformdelivery.data.models.DriverDetailsResponse
+import com.platform.platformdelivery.data.models.StateListResponse
 import com.platform.platformdelivery.data.remote.RetrofitClient
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -80,6 +81,20 @@ class ProfileRepository {
                 Result.Success(response.body()!!)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: "Failed to update profile"
+                Result.Error(errorMsg)
+            }
+        } catch (e: Exception) {
+            Result.Error("Exception occurred: ${e.message}", e)
+        }
+    }
+
+    suspend fun getStateList(): Result<StateListResponse> {
+        return try {
+            val response = apiService.getStateList()
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "Failed to fetch state list"
                 Result.Error(errorMsg)
             }
         } catch (e: Exception) {

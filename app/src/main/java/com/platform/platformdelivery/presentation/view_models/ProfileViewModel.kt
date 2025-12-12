@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.platform.platformdelivery.core.network.Result
 import com.platform.platformdelivery.data.models.DriverDetailsResponse
+import com.platform.platformdelivery.data.models.State
+import com.platform.platformdelivery.data.models.StateListResponse
 import com.platform.platformdelivery.data.models.User
 import com.platform.platformdelivery.data.repositories.ProfileRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +34,15 @@ class ProfileViewModel(
 
     private val _isUpdating = MutableStateFlow(false)
     val isUpdating: StateFlow<Boolean> get() = _isUpdating
+
+    private val _stateList = MutableStateFlow<List<State>>(emptyList())
+    val stateList: StateFlow<List<State>> get() = _stateList
+
+    private val _isLoadingStates = MutableStateFlow(false)
+    val isLoadingStates: StateFlow<Boolean> get() = _isLoadingStates
+
+    private val _stateListState = MutableStateFlow<Result<StateListResponse>>(Result.Idle)
+    val stateListState: StateFlow<Result<StateListResponse>> get() = _stateListState
 
     fun getDriverDetails() {
         viewModelScope.launch {
@@ -128,6 +139,42 @@ class ProfileViewModel(
             } finally {
                 _isUpdating.value = false
             }
+        }
+    }
+
+    fun getStateList() {
+        viewModelScope.launch {
+            _isLoadingStates.value = true
+            _error.value = null
+            _stateListState.value = Result.Loading
+
+            try {
+                val result = profileRepository.getStateList()
+                _stateListState.value = result
+
+                when (result) {
+                    is Result.Success -> {
+                        _stateList.value = result.data.data?.states ?: emptyList()
+                        _error.value = null
+                    }
+                    is Result.Error -> {
+                        _error.value = result.message
+                        _stateList.value = emptyList()
+                    }
+                    else -> Unit
+                }
+            } catch (e: Exception) {
+                _error.value = e.message
+                _stateListState.value = Result.Error(e.message ?: "Unknown error", e)
+            } finally {
+                _isLoadingStates.value = false
+            }
+        }
+    }
+
+    fun loadStateListOnce() {
+        if (_stateList.value.isEmpty() && !_isLoadingStates.value) {
+            getStateList()
         }
     }
 }

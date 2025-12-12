@@ -10,6 +10,7 @@ import com.platform.platformdelivery.data.models.Route
 import com.platform.platformdelivery.data.models.RouteDetailsResponse
 import com.platform.platformdelivery.data.models.RouteHistory
 import com.platform.platformdelivery.data.models.RoutePathModel
+import com.platform.platformdelivery.data.models.StateListResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -159,6 +160,9 @@ interface ApiService {
 
     @GET(ProfileEndpoints.driverDetails)
     suspend fun getDriverDetails(): Response<DriverDetailsResponse>
+
+    @GET(ProfileEndpoints.getStateList)
+    suspend fun getStateList(): Response<StateListResponse>
 
     @Multipart
     @POST(ProfileEndpoints.updateProfile)

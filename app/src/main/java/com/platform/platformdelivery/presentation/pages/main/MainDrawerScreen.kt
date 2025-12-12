@@ -135,11 +135,6 @@ fun MainBottomNavScreen(
             icon = painterResource(id = R.drawable.ic_available_routes)
         ),
         BottomNavItem(
-            DrawerDestinations.MyEarnings,
-            "My Earnings",
-            icon = painterResource(id = R.drawable.ic_my_earnings)
-        ),
-        BottomNavItem(
             DrawerDestinations.Profile,
             "Profile",
             icon = painterResource(id = R.drawable.ic_profile)
