@@ -96,8 +96,9 @@ fun AvailableRoutesScreen(
     var zipCode by remember { mutableStateOf("") }
 
 
-    LaunchedEffect("") {
-        routesViewModel.loadAvailableRoutesOnce()
+    LaunchedEffect(Unit) {
+        routesViewModel.loadAvailableRoutesOnce(date = pickedDate ?: LocalDate.now()
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
     }
 
 

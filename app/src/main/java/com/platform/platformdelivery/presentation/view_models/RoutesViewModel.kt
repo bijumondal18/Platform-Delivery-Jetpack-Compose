@@ -85,6 +85,14 @@ class RoutesViewModel(
         }
     }
 
+    fun resetAvailableRoutesFlag() {
+        hasLoadedAvailableRoutes = false
+    }
+
+    fun resetRouteHistoryFlag() {
+        hasLoadedRouteHistory = false
+    }
+
 
     fun getAvailableRoutes(page: Int = 1, date: String? = null) {
         viewModelScope.launch {

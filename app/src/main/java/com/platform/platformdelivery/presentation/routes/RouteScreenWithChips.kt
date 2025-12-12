@@ -17,6 +17,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +31,8 @@ import com.platform.platformdelivery.presentation.pages.available_routes.Availab
 import com.platform.platformdelivery.presentation.pages.my_accepted_routes.MyAcceptedRoutesScreen
 import com.platform.platformdelivery.presentation.pages.my_route_history.MyRouteHistory
 import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @RequiresApi(Build.VERSION_CODES.O)
@@ -44,6 +47,20 @@ fun RoutesScreenWithChips(
     // Chip state
     var selectedChip by remember { mutableStateOf("Available") }
     val chipOptions = listOf("Available", "Accepted", "Route History")
+
+    // Reload data when switching tabs to ensure correct data is shown
+    LaunchedEffect(selectedChip) {
+        when (selectedChip) {
+            "Available" -> {
+                routesViewModel.resetRouteHistoryFlag()
+                routesViewModel.getAvailableRoutes(1)
+            }
+            "Route History" -> {
+                routesViewModel.resetAvailableRoutesFlag()
+                routesViewModel.getRouteHistory(1)
+            }
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
 

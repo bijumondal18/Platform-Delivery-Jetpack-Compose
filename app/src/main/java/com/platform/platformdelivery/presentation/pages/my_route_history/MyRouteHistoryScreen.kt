@@ -85,7 +85,8 @@ fun MyRouteHistory(
 
 
     LaunchedEffect(Unit) {
-        routesViewModel.loadRouteHistory()
+        routesViewModel.loadRouteHistory(date = pickedDate ?: LocalDate.now()
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
     }
 
 
