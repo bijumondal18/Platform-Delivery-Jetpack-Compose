@@ -1,5 +1,7 @@
 package com.platform.platformdelivery.presentation.pages.available_routes
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
@@ -23,10 +25,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -46,17 +51,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.platform.platformdelivery.R
 import com.platform.platformdelivery.app.MainActivity
 import com.platform.platformdelivery.core.theme.AppTypography
+import com.platform.platformdelivery.core.utils.GeocoderUtils
 import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
 import com.platform.platformdelivery.presentation.widgets.AppTextField
 import com.platform.platformdelivery.presentation.widgets.DatePickerBox
 import com.platform.platformdelivery.presentation.widgets.RouteItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CancellationException
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -83,6 +96,7 @@ fun AvailableRoutesScreen(
     val pullRefreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var pickedDate by remember { mutableStateOf<String?>(null) }
 
@@ -94,6 +108,9 @@ fun AvailableRoutesScreen(
     }
 
     var zipCode by remember { mutableStateOf("") }
+    var isFetchingLocation by remember { mutableStateOf(false) }
+    
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
 
     LaunchedEffect(Unit) {
@@ -102,22 +119,23 @@ fun AvailableRoutesScreen(
     }
 
 
-    PullToRefreshBox(
-        state = pullRefreshState,
-        isRefreshing = isRefreshing,
-        onRefresh = {
-            isRefreshing = true
-            coroutineScope.launch {
-                delay(1000)
-                routesViewModel.getAvailableRoutes(
-                    1,
-                    date = pickedDate ?: LocalDate.now()
-                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                )
-                isRefreshing = false // ✅ stop indicator when refresh completes
-            }
-        },
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        PullToRefreshBox(
+            state = pullRefreshState,
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                isRefreshing = true
+                coroutineScope.launch {
+                    delay(1000)
+                    routesViewModel.getAvailableRoutes(
+                        1,
+                        date = pickedDate ?: LocalDate.now()
+                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                    )
+                    isRefreshing = false // ✅ stop indicator when refresh completes
+                }
+            },
+        ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -140,17 +158,90 @@ fun AvailableRoutesScreen(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     IconButton(
-                        content = {
+                        onClick = {
+                            coroutineScope.launch {
+                                isFetchingLocation = true
+                                try {
+                                    // Check location permission
+                                    val hasLocationPermission = ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.ACCESS_FINE_LOCATION
+                                    ) == PackageManager.PERMISSION_GRANTED ||
+                                            ContextCompat.checkSelfPermission(
+                                                context,
+                                                Manifest.permission.ACCESS_COARSE_LOCATION
+                                            ) == PackageManager.PERMISSION_GRANTED
+
+                                    if (!hasLocationPermission) {
+                                        snackbarHostState.showSnackbar("Location permission is required")
+                                        isFetchingLocation = false
+                                        return@launch
+                                    }
+
+                                    // Get current location
+                                    var location = suspendCancellableCoroutine<android.location.Location?> { continuation ->
+                                        fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
+                                            continuation.resume(loc)
+                                        }.addOnFailureListener { e ->
+                                            continuation.resumeWithException(e)
+                                        }
+                                    }
+                                    
+                                    // If lastLocation is null, request a fresh location update
+                                    if (location == null) {
+                                        location = suspendCancellableCoroutine { continuation ->
+                                            fusedLocationClient.getCurrentLocation(
+                                                com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
+                                                null
+                                            ).addOnSuccessListener { loc ->
+                                                continuation.resume(loc)
+                                            }.addOnFailureListener { e ->
+                                                continuation.resume(null) // Return null on failure instead of exception
+                                            }
+                                        }
+                                    }
+                                    
+                                    if (location != null) {
+                                        // Reverse geocode to get zip code
+                                        val zip = GeocoderUtils.getZipCodeFromLocation(
+                                            context,
+                                            location.latitude,
+                                            location.longitude
+                                        )
+                                        
+                                        if (zip != null) {
+                                            zipCode = zip
+                                            snackbarHostState.showSnackbar("Zip code updated: $zip")
+                                        } else {
+                                            snackbarHostState.showSnackbar("Could not find zip code for this location")
+                                        }
+                                    } else {
+                                        snackbarHostState.showSnackbar("Unable to get current location. Please try again.")
+                                    }
+                                } catch (e: Exception) {
+                                    snackbarHostState.showSnackbar("Error: ${e.message}")
+                                } finally {
+                                    isFetchingLocation = false
+                                }
+                            }
+                        }
+                    ) {
+                        if (isFetchingLocation) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_gps),
-                                contentDescription = "gps",
+                                contentDescription = "Get current location",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
                                     .weight(0.6f)
                                     .size(34.dp)
                             )
-                        },
-                        onClick = {})
+                        }
+                    }
                 }
 
                 Spacer(Modifier.height(16.dp))
@@ -278,5 +369,11 @@ fun AvailableRoutesScreen(
             }
 
         }
+        }
+        
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
