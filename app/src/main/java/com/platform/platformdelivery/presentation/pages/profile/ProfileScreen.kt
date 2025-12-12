@@ -30,6 +30,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,28 +44,44 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.data.local.TokenManager
+import com.platform.platformdelivery.presentation.view_models.ProfileViewModel
 import java.io.File
 import java.io.FileOutputStream
 
 @Composable
 fun ProfileScreen(
     navController: NavController? = null,
-    onDeleteAccount: () -> Unit = {}
+    onDeleteAccount: () -> Unit = {},
+    profileViewModel: ProfileViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val appPrefs = remember { TokenManager(context) }
     
-    val name = appPrefs.getName() ?: ""
-    val email = appPrefs.getEmail() ?: ""
-    val profilePic = appPrefs.getProfilePic() ?: ""
+    // Collect state from ViewModel
+    val driverDetails by profileViewModel.driverDetails.collectAsState()
+    val isLoading by profileViewModel.isLoading.collectAsState()
+    val error by profileViewModel.error.collectAsState()
     
-    // TODO: Fetch phone and address from API
-    val phone = "" // Placeholder - to be fetched from API
-    val address = "" // Placeholder - to be fetched from API
+    // Load driver details when screen appears
+    LaunchedEffect(Unit) {
+        profileViewModel.loadDriverDetailsOnce()
+    }
+    
+    // Get data from API if available, otherwise fallback to local storage
+    val name = driverDetails?.name ?: appPrefs.getName() ?: ""
+    val email = driverDetails?.email ?: appPrefs.getEmail() ?: ""
+    val profilePic = driverDetails?.profilePic ?: appPrefs.getProfilePic() ?: ""
+    val phone = driverDetails?.phone ?: ""
+    val baseLocation = driverDetails?.baseLocation ?: ""
+    val street = driverDetails?.street ?: ""
+    val city = driverDetails?.city ?: ""
+    val state = driverDetails?.state ?: ""
+    val zip = driverDetails?.zip ?: ""
 
     // State for bottom sheet and dialogs
     var showImagePickerSheet by remember { mutableStateOf(false) }
@@ -226,11 +244,52 @@ fun ProfileScreen(
                         label = "Phone Number",
                         value = phone.ifEmpty { "Not provided" }
                     )
+                }
+            }
 
-                    // Address
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Location Details Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    // Base Location
                     ProfileDetailItem(
-                        label = "Address",
-                        value = address.ifEmpty { "Not provided" }
+                        label = "Base Location",
+                        value = baseLocation.ifEmpty { "Not provided" }
+                    )
+
+                    // Street
+                    ProfileDetailItem(
+                        label = "Street",
+                        value = street.ifEmpty { "Not provided" }
+                    )
+
+                    // City
+                    ProfileDetailItem(
+                        label = "City",
+                        value = city.ifEmpty { "Not provided" }
+                    )
+
+                    // State
+                    ProfileDetailItem(
+                        label = "State",
+                        value = state.ifEmpty { "Not provided" }
+                    )
+
+                    // Zip Code
+                    ProfileDetailItem(
+                        label = "Zip Code",
+                        value = zip.ifEmpty { "Not provided" }
                     )
                 }
             }
