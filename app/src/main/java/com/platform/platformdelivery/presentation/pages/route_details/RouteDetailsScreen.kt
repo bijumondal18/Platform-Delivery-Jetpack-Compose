@@ -41,16 +41,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -66,10 +61,6 @@ import com.platform.platformdelivery.data.models.RequestRouteDetails
 import com.platform.platformdelivery.data.models.Waypoint
 import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
 import com.platform.platformdelivery.presentation.widgets.RouteMapBox
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,11 +76,6 @@ fun RouteDetailsScreen(
     val routeDetails by routesViewModel.routeDetails.collectAsState()
     val isLoading by routesViewModel.isRouteDetailsLoading.collectAsState()
     val error by routesViewModel.routeDetailsError.collectAsState()
-
-    val coroutineScope = rememberCoroutineScope()
-
-    val pullRefreshState = rememberPullToRefreshState()
-    var isRefreshing by remember { mutableStateOf(false) }
 
     // Get route title for TopAppBar
     val routeTitle = remember(routeDetails) {
@@ -138,30 +124,16 @@ fun RouteDetailsScreen(
             )
         }
     ) { innerPadding -> 
-        PullToRefreshBox(
-            state = pullRefreshState,
-            isRefreshing = isRefreshing,
-            onRefresh = {
-                isRefreshing = true
-                coroutineScope.launch {
-                    delay(1000)
-                    if (!routeId.isNullOrEmpty()) {
-                        routesViewModel.getRouteDetails(RequestRouteDetails(routeId = routeId))
-                    }
-                    isRefreshing = false
-                }
-            },
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp)
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 16.dp)
-            ) {
 
 
                 when {
-                    isLoading && !isRefreshing -> {
+                    isLoading -> {
                         item {
                             Text(
                                 "Loading routes...",
@@ -316,7 +288,6 @@ fun RouteDetailsScreen(
                 }
 
             }
-        }
     }
 }
 
