@@ -21,6 +21,10 @@ import com.google.maps.android.compose.*
 import com.platform.platformdelivery.R
 import com.platform.platformdelivery.data.models.Waypoint
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.URL
+import org.json.JSONObject
 
 @Composable
 fun RouteMapBox(
@@ -123,10 +127,12 @@ fun RouteMapBox(
     var iconsReady by remember { mutableStateOf(false) }
     
     // Cache marker icons - create lazily after map is ready
+    // Origin and destination should show home icon or special marker
     val originIcon = remember(iconsReady) {
         if (iconsReady) {
             try {
-                createNumberedMarkerIcon(context, "O", Color.BLUE)
+                // Use blue circle with home icon or "O" for origin
+                createNumberedMarkerIcon(context, "O", Color.parseColor("#2196F3")) // Blue color
             } catch (e: Exception) {
                 null
             }
@@ -135,7 +141,8 @@ fun RouteMapBox(
     val destinationIcon = remember(iconsReady) {
         if (iconsReady) {
             try {
-                createNumberedMarkerIcon(context, "D", Color.parseColor("#4CAF50"))
+                // Use blue circle with "D" or home icon for destination
+                createNumberedMarkerIcon(context, "D", Color.parseColor("#2196F3")) // Blue color
             } catch (e: Exception) {
                 null
             }
@@ -143,17 +150,49 @@ fun RouteMapBox(
     }
     
     // Cache waypoint icons - create icons for the number of waypoints we have
+    // Markers should show "01", "02", etc. (with leading zeros)
     val waypointIcons = remember(iconsReady, waypointLocations.size) {
         if (iconsReady) {
             try {
                 (0 until waypointLocations.size).map { index ->
-                    createNumberedMarkerIcon(context, "${index + 1}", Color.parseColor("#FF9800"))
+                    createNumberedMarkerIcon(context, String.format("%02d", index + 1), Color.parseColor("#2196F3")) // Blue color like in image
                 }
             } catch (e: Exception) {
                 emptyList()
             }
         } else {
             emptyList()
+        }
+    }
+    
+    // Build route points for polyline: only origin to first waypoint
+    val routePoints = remember(originLocation, waypointLocations) {
+        mutableListOf<LatLng>().apply {
+            originLocation?.let { add(it) }
+            // Only add first waypoint if it exists
+            waypointLocations.firstOrNull()?.let { add(it.location) }
+        }
+    }
+    
+    // State for storing decoded polyline points from Directions API
+    var actualRoutePoints by remember { mutableStateOf<List<LatLng>>(emptyList()) }
+    
+    // Fetch actual road route using Directions API
+    LaunchedEffect(originLocation, waypointLocations.firstOrNull()) {
+        actualRoutePoints = emptyList()
+        
+        val origin = originLocation
+        val firstWaypoint = waypointLocations.firstOrNull()
+        
+        if (origin != null && firstWaypoint != null) {
+            try {
+                // Use Google Directions API to get actual road route
+                val routePath = getDirectionsRoute(origin, firstWaypoint.location, context)
+                actualRoutePoints = routePath
+            } catch (e: Exception) {
+                // Fallback to straight line if Directions API fails
+                actualRoutePoints = listOf(origin, firstWaypoint.location)
+            }
         }
     }
     
@@ -191,6 +230,22 @@ fun RouteMapBox(
                 isTrafficEnabled = false
             )
         ) {
+            // Draw blue polyline from origin to first waypoint on actual roads
+            if (actualRoutePoints.isNotEmpty() && actualRoutePoints.size >= 2) {
+                Polyline(
+                    points = actualRoutePoints,
+                    color = MaterialTheme.colorScheme.primary,
+                    width = 8f
+                )
+            } else if (routePoints.size >= 2) {
+                // Fallback to straight line if Directions API route not available
+                Polyline(
+                    points = routePoints,
+                    color = MaterialTheme.colorScheme.primary,
+                    width = 8f
+                )
+            }
+            
             // Only show markers if icons are ready
             if (iconsReady) {
                 // Origin marker
@@ -204,12 +259,12 @@ fun RouteMapBox(
                     }
                 }
 
-                // Waypoint markers (numbered)
+                // Waypoint markers (numbered as 01, 02, 03, etc.)
                 waypointLocations.forEachIndexed { displayIndex, waypointLocation ->
                     if (displayIndex < waypointIcons.size) {
                         Marker(
                             state = MarkerState(position = waypointLocation.location),
-                            title = "Stop ${displayIndex + 1}",
+                            title = "Stop ${String.format("%02d", displayIndex + 1)}",
                             snippet = waypointLocation.place ?: "",
                             icon = waypointIcons[displayIndex]
                         )
@@ -267,35 +322,42 @@ fun RouteMapBox(
 
 /**
  * Creates a custom marker icon with a number or letter
+ * Matches the numbered badge style from the image (01, 02, etc.)
  */
 fun createNumberedMarkerIcon(context: android.content.Context, text: String, color: Int): BitmapDescriptor {
-    val size = 80 // Reduced size of the marker icon
+    val size = 100 // Size of the marker icon
     val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     
-    // Draw circle background
+    // Draw circle background with blue color
     val paint = Paint().apply {
         isAntiAlias = true
         this.color = color
         style = Paint.Style.FILL
     }
-    canvas.drawCircle(size / 2f, size / 2f, size / 2f - 6f, paint)
+    val radius = size / 2f - 8f
+    canvas.drawCircle(size / 2f, size / 2f, radius, paint)
     
-    // Draw white border
+    // Draw white border (thicker for better visibility)
     val borderPaint = Paint().apply {
         isAntiAlias = true
         this.color = Color.WHITE
         style = Paint.Style.STROKE
-        strokeWidth = 5f
+        strokeWidth = 6f
     }
-    canvas.drawCircle(size / 2f, size / 2f, size / 2f - 6f, borderPaint)
+    canvas.drawCircle(size / 2f, size / 2f, radius, borderPaint)
     
-    // Draw text
+    // Draw text (white, bold, centered)
     val textPaint = Paint().apply {
         isAntiAlias = true
         this.color = Color.WHITE
-        textSize = if (text.length == 1) 32f else 26f
-        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        // Adjust text size based on length (for "01", "02" vs "O", "D")
+        textSize = when {
+            text.length <= 1 -> 36f
+            text.length == 2 -> 28f
+            else -> 24f
+        }
+        typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD)
         textAlign = Paint.Align.CENTER
     }
     
@@ -303,4 +365,87 @@ fun createNumberedMarkerIcon(context: android.content.Context, text: String, col
     canvas.drawText(text, size / 2f, textY, textPaint)
     
     return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
+
+/**
+ * Fetches actual road route from Google Directions API
+ * Returns list of LatLng points following actual roads
+ */
+suspend fun getDirectionsRoute(
+    origin: LatLng,
+    destination: LatLng,
+    context: android.content.Context
+): List<LatLng> = withContext(Dispatchers.IO) {
+    try {
+        // Get API key from resources (you'll need to add this to your strings.xml or buildConfig)
+        val apiKey = context.getString(R.string.google_maps_key)
+            .takeIf { it.isNotEmpty() } 
+            ?: return@withContext listOf(origin, destination) // Fallback if no API key
+        
+        val url = "https://maps.googleapis.com/maps/api/directions/json?" +
+                "origin=${origin.latitude},${origin.longitude}" +
+                "&destination=${destination.latitude},${destination.longitude}" +
+                "&key=$apiKey"
+        
+        val response = URL(url).readText()
+        val json = JSONObject(response)
+        
+        if (json.getString("status") == "OK") {
+            val routes = json.getJSONArray("routes")
+            if (routes.length() > 0) {
+                val route = routes.getJSONObject(0)
+                val legs = route.getJSONArray("legs")
+                val overviewPolyline = route.getJSONObject("overview_polyline")
+                val encodedPolyline = overviewPolyline.getString("points")
+                
+                // Decode the polyline string to list of LatLng
+                decodePolyline(encodedPolyline)
+            } else {
+                listOf(origin, destination)
+            }
+        } else {
+            listOf(origin, destination)
+        }
+    } catch (e: Exception) {
+        // Fallback to straight line on error
+        listOf(origin, destination)
+    }
+}
+
+/**
+ * Decodes Google Maps encoded polyline string to list of LatLng points
+ */
+fun decodePolyline(encoded: String): List<LatLng> {
+    val poly = mutableListOf<LatLng>()
+    var index = 0
+    val len = encoded.length
+    var lat = 0
+    var lng = 0
+    
+    while (index < len) {
+        var b: Int
+        var shift = 0
+        var result = 0
+        do {
+            b = encoded[index++].code - 63
+            result = result or (b and 0x1f shl shift)
+            shift += 5
+        } while (b >= 0x20)
+        val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+        lat += dlat
+        
+        shift = 0
+        result = 0
+        do {
+            b = encoded[index++].code - 63
+            result = result or (b and 0x1f shl shift)
+            shift += 5
+        } while (b >= 0x20)
+        val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+        lng += dlng
+        
+        poly.add(LatLng(lat / 1e5, lng / 1e5))
+    }
+    
+    return poly
 }
