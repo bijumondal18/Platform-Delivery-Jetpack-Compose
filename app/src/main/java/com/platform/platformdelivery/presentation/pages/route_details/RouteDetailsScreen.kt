@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -684,9 +685,12 @@ fun RouteStopItem(
                                 .fillMaxWidth()
                                 .height(48.dp),
                             enabled = !isAcceptingRoute,
+                            shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = SuccessGreen,
-                                disabledContainerColor = SuccessGreen.copy(alpha = 0.6f)
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                             ),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
                         ) {
@@ -717,8 +721,10 @@ fun RouteStopItem(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(36.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             ),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                         ) {
@@ -746,11 +752,12 @@ fun RouteStopItem(
                                     .weight(1f)
                                     .height(36.dp),
                                 enabled = !isCheckedIn && !isStartingTrip && !isOngoingAndNotLoaded, // Disable after check-in, while starting trip, or if ongoing and not loaded
+                                shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.secondary,
-                                    disabledContainerColor = MaterialTheme.colorScheme.secondary.copy(
-                                        alpha = 0.6f
-                                    )
+                                    contentColor = MaterialTheme.colorScheme.onSecondary,
+                                    disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 ),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                             ) {
@@ -786,9 +793,12 @@ fun RouteStopItem(
                                     .weight(1f)
                                     .height(36.dp),
                                 enabled = isCheckedIn || isOngoingAndNotLoaded, // Enabled after check-in or if ongoing and not loaded
+                                shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = SuccessGreen,
-                                    disabledContainerColor = SuccessGreen.copy(alpha = 0.6f)
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 ),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                             ) {
