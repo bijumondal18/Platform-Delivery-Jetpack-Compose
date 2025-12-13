@@ -455,4 +455,42 @@ class RoutesViewModel(
         }
     }
 
+    private val _isLoadingVehicle = MutableStateFlow(false)
+    val isLoadingVehicle: StateFlow<Boolean> get() = _isLoadingVehicle
+
+    private val _loadVehicleResult = MutableStateFlow<Result<Unit>?>(null)
+    val loadVehicleResult: StateFlow<Result<Unit>?> get() = _loadVehicleResult
+
+    fun loadVehicle(routeId: String, waypointIds: List<Int>, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _isLoadingVehicle.value = true
+            _loadVehicleResult.value = null
+            
+            try {
+                // Convert waypoint IDs to comma-separated string
+                val waypointIdsString = waypointIds.joinToString(",")
+                
+                val result = routeRepository.vehicleLoaded(routeId, waypointIdsString)
+                when (result) {
+                    is Result.Success -> {
+                        _loadVehicleResult.value = Result.Success(Unit)
+                        // Refresh route details after loading vehicle
+                        _routeDetails.value?.routeDetailsData?.routeData?.id?.let { id ->
+                            getRouteDetails(RequestRouteDetails(routeId = id.toString()))
+                        }
+                        onSuccess()
+                    }
+                    is Result.Error -> {
+                        _loadVehicleResult.value = Result.Error(result.message)
+                    }
+                    else -> Unit
+                }
+            } catch (e: Exception) {
+                _loadVehicleResult.value = Result.Error(e.message ?: "Failed to load vehicle")
+            } finally {
+                _isLoadingVehicle.value = false
+            }
+        }
+    }
+
 }

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -50,6 +51,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -343,12 +345,15 @@ fun RouteStopsList(
     onRouteAccepted: () -> Unit = {}
 ) {
     var showMapBottomSheet by remember { mutableStateOf(false) }
+    var showLoadVehicleBottomSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val isAcceptingRoute by routesViewModel.isAcceptingRoute.collectAsState()
     val isStartingTrip by routesViewModel.isStartingTrip.collectAsState()
     val tripStartResult by routesViewModel.tripStartResult.collectAsState()
+    val isLoadingVehicle by routesViewModel.isLoadingVehicle.collectAsState()
+    val loadVehicleResult by routesViewModel.loadVehicleResult.collectAsState()
     val routeDetails by routesViewModel.routeDetails.collectAsState()
     val isRouteAvailable = routeStatus.equals("available", ignoreCase = true)
     
@@ -375,6 +380,24 @@ fun RouteStopsList(
             is com.platform.platformdelivery.core.network.Result.Error -> {
                 // Handle error - could show a snackbar
                 android.util.Log.e("RouteDetailsScreen", "Failed to start trip: ${(tripStartResult as Result.Error).message}")
+            }
+            else -> Unit
+        }
+    }
+    
+    // Handle load vehicle result
+    LaunchedEffect(loadVehicleResult) {
+        when (loadVehicleResult) {
+            is com.platform.platformdelivery.core.network.Result.Success -> {
+                // Refresh route details to get updated isloaded status
+                if (routeId.isNotEmpty()) {
+                    routesViewModel.getRouteDetails(RequestRouteDetails(routeId = routeId))
+                }
+                showLoadVehicleBottomSheet = false
+            }
+            is com.platform.platformdelivery.core.network.Result.Error -> {
+                // Handle error - could show a snackbar
+                android.util.Log.e("RouteDetailsScreen", "Failed to load vehicle: ${(loadVehicleResult as Result.Error).message}")
             }
             else -> Unit
         }
@@ -443,7 +466,7 @@ fun RouteStopsList(
                         }
                     }
                 },
-                onLoadVehicleClick = { /* Load vehicle action */ },
+                onLoadVehicleClick = { showLoadVehicleBottomSheet = true },
                 onAcceptRouteClick = {
                     if (routeId.isNotEmpty()) {
                         routesViewModel.acceptRoute(routeId) {
@@ -482,6 +505,17 @@ fun RouteStopsList(
                 }
                 showMapBottomSheet = false
             }
+        )
+    }
+    
+    // Load Vehicle bottom sheet with waypoint checklist
+    if (showLoadVehicleBottomSheet) {
+        LoadVehicleBottomSheet(
+            waypoints = sortedWaypoints,
+            routeId = routeId,
+            isLoadingVehicle = isLoadingVehicle,
+            routesViewModel = routesViewModel,
+            onDismiss = { showLoadVehicleBottomSheet = false }
         )
     }
 }
@@ -995,6 +1029,192 @@ fun openMap(
             context.startActivity(fallbackIntent)
         } catch (e2: Exception) {
             // Handle error
+        }
+    }
+}
+
+/**
+ * Bottom sheet for loading vehicle with waypoint checklist
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LoadVehicleBottomSheet(
+    waypoints: List<Waypoint>,
+    routeId: String,
+    isLoadingVehicle: Boolean,
+    routesViewModel: RoutesViewModel,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    
+    // Track checked waypoints by their IDs
+    val checkedWaypoints = remember { mutableStateMapOf<Int, Boolean>() }
+    
+    // Initialize all waypoints as unchecked
+    LaunchedEffect(waypoints) {
+        waypoints.forEach { waypoint ->
+            val waypointId = (waypoint.id as? Number)?.toInt()
+            if (waypointId != null) {
+                checkedWaypoints[waypointId] = false
+            }
+        }
+    }
+    
+    // Check if all waypoints are checked
+    val allChecked = waypoints.isNotEmpty() && waypoints.all { waypoint ->
+        val waypointId = (waypoint.id as? Number)?.toInt()
+        waypointId != null && checkedWaypoints[waypointId] == true
+    }
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 12.dp)
+                    .width(40.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+            )
+        },
+        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = "Load Vehicle",
+                style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(bottom = 20.dp),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            
+            Text(
+                text = "Please check all waypoints to confirm vehicle loading",
+                style = AppTypography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            
+            if (waypoints.isEmpty()) {
+                Text(
+                    text = "No waypoints available",
+                    style = AppTypography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
+            } else {
+                // Waypoint checklist
+                waypoints.forEachIndexed { index, waypoint ->
+                    val waypointId = (waypoint.id as? Number)?.toInt()
+                    val isChecked = waypointId != null && checkedWaypoints[waypointId] == true
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .clickable {
+                                if (waypointId != null) {
+                                    checkedWaypoints[waypointId] = !isChecked
+                                }
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Checkbox(
+                            checked = isChecked,
+                            onCheckedChange = {
+                                if (waypointId != null) {
+                                    checkedWaypoints[waypointId] = it
+                                }
+                            }
+                        )
+                        
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Waypoint ${index + 1}",
+                                style = AppTypography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text = waypoint.place?.toString() ?: "",
+                                style = AppTypography.bodySmall,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                maxLines = 2
+                            )
+                        }
+                    }
+                    
+                    if (index < waypoints.size - 1) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Submit button
+            Button(
+                onClick = {
+                    val checkedIds = waypoints.mapNotNull { waypoint ->
+                        val waypointId = (waypoint.id as? Number)?.toInt()
+                        if (waypointId != null && checkedWaypoints[waypointId] == true) {
+                            waypointId
+                        } else {
+                            null
+                        }
+                    }
+                    if (routeId.isNotEmpty() && checkedIds.isNotEmpty()) {
+                        routesViewModel.loadVehicle(routeId, checkedIds) {
+                            // Success handled in LaunchedEffect
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                enabled = allChecked && !isLoadingVehicle && waypoints.isNotEmpty(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SuccessGreen,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                ),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                if (isLoadingVehicle) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Icon(
+                    imageVector = Icons.Default.LocalShipping,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (isLoadingVehicle) "Loading Vehicle..." else "Submit",
+                    style = AppTypography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

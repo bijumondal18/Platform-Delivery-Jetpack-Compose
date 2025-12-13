@@ -169,4 +169,18 @@ class RouteRepository {
         }
     }
 
+    suspend fun vehicleLoaded(routeId: String, waypointIds: String): Result<BaseResponse> {
+        return try {
+            val response = apiService.vehicleLoaded(routeId, waypointIds)
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "Failed to load vehicle"
+                Result.Error(errorMsg)
+            }
+        } catch (e: Exception) {
+            Result.Error("Exception occurred: ${e.message}", e)
+        }
+    }
+
 }

@@ -13,6 +13,7 @@ import com.platform.platformdelivery.data.models.ReferralDetailsResponse
 import com.platform.platformdelivery.data.models.RoutePathModel
 import com.platform.platformdelivery.data.models.StateListResponse
 import com.platform.platformdelivery.data.models.ApiVersionResponse
+import com.platform.platformdelivery.core.network.VehicleEndpoints
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -106,6 +107,13 @@ interface ApiService {
     suspend fun tripStartTime(
         @Field("route_id") routeId: String,
         @Field("current_time") currentTime: String
+    ): Response<BaseResponse>
+
+    @FormUrlEncoded
+    @POST(VehicleEndpoints.vehicleLoaded)
+    suspend fun vehicleLoaded(
+        @Field("route_id") routeId: String,
+        @Field("waypoint_ids") waypointIds: String
     ): Response<BaseResponse>
 
     @POST(RouteEndpoints.routeDetails)
