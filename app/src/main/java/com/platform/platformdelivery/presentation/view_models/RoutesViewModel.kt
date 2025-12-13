@@ -132,7 +132,12 @@ class RoutesViewModel(
 
                 when (result) {
                     is Result.Success -> {
-                        val newRoutes = result.data.headdata?.bodydata?.routesData?: emptyList()
+                        // Handle both response structures:
+                        // 1. data.data.data (for accepted routes) - nestedData is serialized as "data"
+                        // 2. data.headdata.bodydata.routesData (for available routes)
+                        val newRoutes = result.data?.data?.nestedData?.routesData
+                            ?: result.data?.data?.headdata?.bodydata?.routesData
+                            ?: emptyList()
                         if (newRoutes.isEmpty()) {
                             if (page == 1) {
                                 _isEmpty.value = true
@@ -291,7 +296,12 @@ class RoutesViewModel(
 
                 when (result) {
                     is Result.Success -> {
-                        val newTrips = result.data.headdata?.bodydata?.routesData ?: emptyList()
+                        // Handle both response structures:
+                        // 1. data.data.data (for accepted routes) - nestedData is serialized as "data"
+                        // 2. data.headdata.bodydata.routesData (for available routes)
+                        val newTrips = result.data?.data?.nestedData?.routesData
+                            ?: result.data?.data?.headdata?.bodydata?.routesData
+                            ?: emptyList()
                         if (newTrips.isEmpty()) {
                             if (page == 1) {
                                 _acceptedTripsEmpty.value = true
@@ -327,6 +337,41 @@ class RoutesViewModel(
     fun loadNextAcceptedTripsPage() {
         if (!_noMoreAcceptedTripsAvailable.value && !_isAcceptedTripsLoading.value) {
             getAcceptedTrips(currentAcceptedTripsPage + 1)
+        }
+    }
+
+    private val _isAcceptingRoute = MutableStateFlow(false)
+    val isAcceptingRoute: StateFlow<Boolean> get() = _isAcceptingRoute
+
+    private val _acceptRouteResult = MutableStateFlow<Result<Unit>?>(null)
+    val acceptRouteResult: StateFlow<Result<Unit>?> get() = _acceptRouteResult
+
+    fun acceptRoute(routeId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _isAcceptingRoute.value = true
+            _acceptRouteResult.value = null
+            
+            try {
+                val result = routeRepository.acceptRoute(routeId)
+                when (result) {
+                    is Result.Success -> {
+                        _acceptRouteResult.value = Result.Success(Unit)
+                        // Refresh route details after accepting
+                        _routeDetails.value?.routeDetailsData?.routeData?.id?.let { id ->
+                            getRouteDetails(RequestRouteDetails(routeId = id.toString()))
+                        }
+                        onSuccess()
+                    }
+                    is Result.Error -> {
+                        _acceptRouteResult.value = Result.Error(result.message)
+                    }
+                    else -> Unit
+                }
+            } catch (e: Exception) {
+                _acceptRouteResult.value = Result.Error(e.message ?: "Failed to accept route")
+            } finally {
+                _isAcceptingRoute.value = false
+            }
         }
     }
 

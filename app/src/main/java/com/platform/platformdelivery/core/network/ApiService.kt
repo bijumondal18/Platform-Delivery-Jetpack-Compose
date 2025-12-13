@@ -88,13 +88,12 @@ interface ApiService {
         @Query(value = "lng", encoded = true) longitude: String? = null,
     ): Response<RoutePathModel>
 
-    //
-//    @FormUrlEncoded
-//    @POST(PlatformUrl.acceptRouteUrl)
-//    suspend fun acceptRoute(
-//        @Field("route_id") routeId: String
-//    ): Response<BaseResponse>
-//
+    @FormUrlEncoded
+    @POST(RouteEndpoints.acceptRoute)
+    suspend fun acceptRoute(
+        @Field("route_id") routeId: String
+    ): Response<BaseResponse>
+
     @POST(RouteEndpoints.routeDetails)
     suspend fun getRouteDetails(
         @Body requestRouteDetails: RequestRouteDetails

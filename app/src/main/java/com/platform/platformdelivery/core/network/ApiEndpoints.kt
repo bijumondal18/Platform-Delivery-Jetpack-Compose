@@ -2,7 +2,8 @@ package com.platform.platformdelivery.core.network
 
 object ApiConfig {
     const val version = "v1.15.0"
-    const val baseUrl = "https://platformdelivery.app/platform/public/api/driver/"
+//    const val baseUrl = "https://platformdelivery.app/platform/public/api/driver/"
+    const val baseUrl = "https://platform.hannastransport.com/platform/public/api/driver/"
     const val apiVersion = "https://platformdelivery.app/platform/public/api/api_version"
 }
 
@@ -20,7 +21,7 @@ object RouteEndpoints {
     const val availableRoutes = "available-routes"
     const val acceptRoute = "accept-route"
     const val routeDetails = "route-details"
-    const val myRoutes = "available-routes"
+    const val myRoutes = "my-routes"
     const val routeHistory = "route-history"
     const val cancelRoute = "cancel-route"
     const val skipRoute = "skip-waypoint"

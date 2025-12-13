@@ -127,4 +127,18 @@ class RouteRepository {
         }
     }
 
+    suspend fun acceptRoute(routeId: String): Result<BaseResponse> {
+        return try {
+            val response = apiService.acceptRoute(routeId)
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "Failed to accept route"
+                Result.Error(errorMsg)
+            }
+        } catch (e: Exception) {
+            Result.Error("Exception occurred: ${e.message}", e)
+        }
+    }
+
 }

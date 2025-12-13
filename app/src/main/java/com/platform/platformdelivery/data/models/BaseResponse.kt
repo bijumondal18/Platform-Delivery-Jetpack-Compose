@@ -7,3 +7,4 @@ data class BaseResponse(
     @SerializedName("message") val message: String? = null
 )
 
+

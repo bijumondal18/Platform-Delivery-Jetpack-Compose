@@ -280,7 +280,16 @@ fun RouteDetailsScreen(
                                     waypoints = route?.waypoints,
                                     routeStartTime = route?.startTime,
                                     originLat = route?.originLat,
-                                    originLng = route?.originLng
+                                    originLng = route?.originLng,
+                                    routeStatus = route?.status ?: "",
+                                    routeId = route?.id?.toString() ?: "",
+                                    routesViewModel = routesViewModel,
+                                    onRouteAccepted = {
+                                        // Refresh route details after accepting
+                                        routeId?.let { id ->
+                                            routesViewModel.getRouteDetails(RequestRouteDetails(routeId = id))
+                                        }
+                                    }
                                 )
                             }
 
@@ -314,13 +323,19 @@ fun RouteStopsList(
     waypoints: List<Waypoint>?,
     routeStartTime: String? = null,
     originLat: String? = null,
-    originLng: String? = null
+    originLng: String? = null,
+    routeStatus: String = "",
+    routeId: String = "",
+    routesViewModel: RoutesViewModel,
+    onRouteAccepted: () -> Unit = {}
 ) {
     var isCheckedIn by remember { mutableStateOf(false) }
     var showMapBottomSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val isAcceptingRoute by routesViewModel.isAcceptingRoute.collectAsState()
+    val isRouteAvailable = routeStatus.equals("available", ignoreCase = true)
     // Sort waypoints once and memoize
     val sortedWaypoints = remember(waypoints) {
         waypoints?.sortedBy { waypoint ->
@@ -365,9 +380,19 @@ fun RouteStopsList(
                 isLast = isLast,
                 isWaypoint = isWaypoint,
                 isCheckedIn = isCheckedIn,
+                isRouteAvailable = isRouteAvailable,
+                routeId = routeId,
+                isAcceptingRoute = isAcceptingRoute,
                 onNavigateClick = { showMapBottomSheet = true },
                 onCheckInClick = { isCheckedIn = true },
-                onLoadVehicleClick = { /* Load vehicle action */ }
+                onLoadVehicleClick = { /* Load vehicle action */ },
+                onAcceptRouteClick = {
+                    if (routeId.isNotEmpty()) {
+                        routesViewModel.acceptRoute(routeId) {
+                            onRouteAccepted()
+                        }
+                    }
+                }
             )
             
             // Add divider after origin and waypoints (not after destination)
@@ -468,9 +493,13 @@ fun RouteStopItem(
     isLast: Boolean = false,
     isWaypoint: Boolean = false,
     isCheckedIn: Boolean = false,
+    isRouteAvailable: Boolean = false,
+    routeId: String = "",
+    isAcceptingRoute: Boolean = false,
     onNavigateClick: () -> Unit = {},
     onCheckInClick: () -> Unit = {},
-    onLoadVehicleClick: () -> Unit = {}
+    onLoadVehicleClick: () -> Unit = {},
+    onAcceptRouteClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -575,88 +604,124 @@ fun RouteStopItem(
                 )
             }
             
-            // Action buttons for origin (Navigate, Check In, Load Vehicle)
+            // Action buttons for origin
             if (isFirst) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Navigate button
-                    Button(
-                        onClick = onNavigateClick,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(36.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Navigation,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Navigate",
-                            style = AppTypography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
-                        )
-                    }
-                    
-                    // Check In and Load Vehicle buttons row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Check In button (always enabled)
+                    // Show Accept button if route status is "available"
+                    if (isRouteAvailable) {
                         Button(
-                            onClick = onCheckInClick,
+                            onClick = onAcceptRouteClick,
                             modifier = Modifier
-                                .weight(1f)
-                                .height(36.dp),
-                            enabled = !isCheckedIn, // Disable after check-in
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondary,
-                                disabledContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = if (isCheckedIn) "Checked In" else "Check In",
-                                style = AppTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
-                            )
-                        }
-                        
-                        // Load Vehicle button (enabled only after check-in)
-                        Button(
-                            onClick = onLoadVehicleClick,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(36.dp),
-                            enabled = isCheckedIn, // Enabled only after check-in
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            enabled = !isAcceptingRoute,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = SuccessGreen,
                                 disabledContainerColor = SuccessGreen.copy(alpha = 0.6f)
                             ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            if (isAcceptingRoute) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (isAcceptingRoute) "Accepting..." else "Accept Route",
+                                style = AppTypography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    } else {
+                        // Show Navigate, Check In, Load Vehicle buttons if route is not available
+                        // Navigate button
+                        Button(
+                            onClick = onNavigateClick,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(36.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.LocalShipping,
+                                imageVector = Icons.Default.Navigation,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Load Vehicle",
-                                style = AppTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+                                text = "Navigate",
+                                style = AppTypography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
                             )
+                        }
+                        
+                        // Check In and Load Vehicle buttons row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Check In button (always enabled)
+                            Button(
+                                onClick = onCheckInClick,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(36.dp),
+                                enabled = !isCheckedIn, // Disable after check-in
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondary,
+                                    disabledContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
+                                ),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isCheckedIn) "Checked In" else "Check In",
+                                    style = AppTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+                                )
+                            }
+                            
+                            // Load Vehicle button (enabled only after check-in)
+                            Button(
+                                onClick = onLoadVehicleClick,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(36.dp),
+                                enabled = isCheckedIn, // Enabled only after check-in
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = SuccessGreen,
+                                    disabledContainerColor = SuccessGreen.copy(alpha = 0.6f)
+                                ),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocalShipping,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Load Vehicle",
+                                    style = AppTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+                                )
+                            }
                         }
                     }
                 }
