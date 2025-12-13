@@ -1,7 +1,11 @@
 package com.platform.platformdelivery.data.remote
 
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.platform.platformdelivery.core.network.ApiConfig
 import com.platform.platformdelivery.core.network.ApiService
+import com.platform.platformdelivery.data.models.RoutePathDataWrapper
+import com.platform.platformdelivery.data.models.RoutePathDataWrapperDeserializer
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -79,6 +83,11 @@ object RetrofitClient {
     private var _apiService: ApiService? = null
     private var currentBaseUrl: String? = null
 
+    // Custom Gson instance with deserializer for RoutePathDataWrapper
+    private val gson: Gson = GsonBuilder()
+        .registerTypeAdapter(RoutePathDataWrapper::class.java, RoutePathDataWrapperDeserializer())
+        .create()
+
     val apiService: ApiService
         get() {
             val baseUrl = getBaseUrl()
@@ -87,7 +96,7 @@ object RetrofitClient {
                 currentBaseUrl = baseUrl
                 _apiService = Retrofit.Builder()
                     .baseUrl(baseUrl)
-                    .addConverterFactory(GsonConverterFactory.create())
+                    .addConverterFactory(GsonConverterFactory.create(gson))
                     .client(okHttpClient)
                     .build()
                     .create(ApiService::class.java)

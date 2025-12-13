@@ -184,11 +184,14 @@ fun MyRouteHistory(
                                 enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
                                 exit = fadeOut()
                             ) {
-                                RouteItem(route) { selectedRoute ->
-                                    coroutineScope.launch {
-                                        navController.navigate("routeDetails/${selectedRoute.id}")
+                                RouteItem(
+                                    route = route,
+                                    onClick = { selectedRoute ->
+                                        coroutineScope.launch {
+                                            navController.navigate("routeDetails/${selectedRoute.id}")
+                                        }
                                     }
-                                }
+                                )
                             }
                             if (index < routes.size - 1) {
                                 HorizontalDivider(

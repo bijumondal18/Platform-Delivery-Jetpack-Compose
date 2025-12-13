@@ -141,4 +141,18 @@ class RouteRepository {
         }
     }
 
+    suspend fun cancelRoute(routeId: String, currentTime: String): Result<BaseResponse> {
+        return try {
+            val response = apiService.cancelRoute(routeId, currentTime)
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "Failed to cancel route"
+                Result.Error(errorMsg)
+            }
+        } catch (e: Exception) {
+            Result.Error("Exception occurred: ${e.message}", e)
+        }
+    }
+
 }

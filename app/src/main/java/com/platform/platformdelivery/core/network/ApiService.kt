@@ -94,6 +94,13 @@ interface ApiService {
         @Field("route_id") routeId: String
     ): Response<BaseResponse>
 
+    @FormUrlEncoded
+    @POST(RouteEndpoints.cancelRoute)
+    suspend fun cancelRoute(
+        @Field("route_id") routeId: String,
+        @Field("current_time") currentTime: String
+    ): Response<BaseResponse>
+
     @POST(RouteEndpoints.routeDetails)
     suspend fun getRouteDetails(
         @Body requestRouteDetails: RequestRouteDetails

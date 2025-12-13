@@ -16,9 +16,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,16 +37,19 @@ import com.platform.platformdelivery.data.models.Route
 @Composable
 fun RouteItem(
     route: Route,
-    onClick: (Route) -> Unit
+    onClick: (Route) -> Unit,
+    showCancelButton: Boolean = false,
+    onCancelClick: ((Route) -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick(route) }
-            .padding( vertical = 12.dp)
+            .padding(vertical = 12.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onClick(route) },
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.Top
         ) {
@@ -102,13 +108,15 @@ fun RouteItem(
                         )
                     }
                     
-                    // Chevron icon
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = "View Details",
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-                    )
+                    // Chevron icon (only when no cancel button)
+                    if (!showCancelButton || onCancelClick == null) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = "View Details",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                        )
+                    }
                 }
                 
                 // Origin and Destination addresses
@@ -195,6 +203,21 @@ fun RouteItem(
                             )
                         }
                     }
+                }
+            }
+            
+            // Cancel button (outside clickable area, for accepted routes)
+            if (showCancelButton && onCancelClick != null) {
+                IconButton(
+                    onClick = { onCancelClick(route) },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Cancel Route",
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.error
+                    )
                 }
             }
         }

@@ -33,9 +33,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.platform.platformdelivery.core.network.Result
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
 import com.platform.platformdelivery.presentation.widgets.DatePickerBox
+import com.platform.platformdelivery.presentation.widgets.ModernCancelRouteDialog
 import com.platform.platformdelivery.presentation.widgets.RouteItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -58,6 +60,8 @@ fun MyAcceptedRoutesScreen(
     val isEmpty by routesViewModel.acceptedTripsEmpty.collectAsState()
     val noMoreData by routesViewModel.noMoreAcceptedTripsAvailable.collectAsState()
     val error by routesViewModel.acceptedTripsError.collectAsState()
+    val isCancellingRoute by routesViewModel.isCancellingRoute.collectAsState()
+    val cancelRouteResult by routesViewModel.cancelRouteResult.collectAsState()
 
     // Show all accepted trips (no filtering by status)
     val displayedTrips = remember(acceptedTrips) {
@@ -70,6 +74,8 @@ fun MyAcceptedRoutesScreen(
     var isRefreshing by remember { mutableStateOf(false) }
 
     var pickedDate by remember { mutableStateOf<String?>(null) }
+    var showCancelDialog by remember { mutableStateOf(false) }
+    var routeToCancel by remember { mutableStateOf<com.platform.platformdelivery.data.models.Route?>(null) }
 
     // ✅ Format current date
     val currentDate = remember {
@@ -80,6 +86,39 @@ fun MyAcceptedRoutesScreen(
 
     LaunchedEffect(Unit) {
         routesViewModel.loadAcceptedTripsOnce()
+    }
+
+    // Handle cancel route result
+    LaunchedEffect(cancelRouteResult) {
+        when (cancelRouteResult) {
+            is Result.Success -> {
+                // Route cancelled successfully, list will be refreshed automatically
+                routeToCancel = null
+            }
+            is Result.Error -> {
+                // Handle error - could show a snackbar or toast
+                android.util.Log.e("MyAcceptedRoutes", "Failed to cancel route: ${(cancelRouteResult as Result.Error).message}")
+            }
+            else -> Unit
+        }
+    }
+
+    // Cancel Route Confirmation Dialog
+    if (showCancelDialog && routeToCancel != null) {
+        ModernCancelRouteDialog(
+            onDismiss = {
+                showCancelDialog = false
+                routeToCancel = null
+            },
+            onConfirm = {
+                routeToCancel?.id?.toString()?.let { routeId ->
+                    routesViewModel.cancelRoute(routeId) {
+                        // Route will be removed from list automatically
+                    }
+                }
+                showCancelDialog = false
+            }
+        )
     }
 
     PullToRefreshBox(
@@ -151,7 +190,7 @@ fun MyAcceptedRoutesScreen(
                 isEmpty || displayedTrips.isEmpty() -> {
                     item {
                         Text(
-                            "No accepted trips available",
+                            "No Accepted Routes available",
                             style = AppTypography.bodyLarge,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
@@ -176,11 +215,19 @@ fun MyAcceptedRoutesScreen(
                             enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
                             exit = fadeOut()
                         ) {
-                            RouteItem(route) { selectedRoute ->
-                                coroutineScope.launch {
-                                    navController.navigate("routeDetails/${selectedRoute.id}")
+                            RouteItem(
+                                route = route,
+                                onClick = { selectedRoute ->
+                                    coroutineScope.launch {
+                                        navController.navigate("routeDetails/${selectedRoute.id}")
+                                    }
+                                },
+                                showCancelButton = true,
+                                onCancelClick = { routeToCancelRoute ->
+                                    routeToCancel = routeToCancelRoute
+                                    showCancelDialog = true
                                 }
-                            }
+                            )
                         }
                         if (index < displayedTrips.size - 1) {
                             HorizontalDivider(

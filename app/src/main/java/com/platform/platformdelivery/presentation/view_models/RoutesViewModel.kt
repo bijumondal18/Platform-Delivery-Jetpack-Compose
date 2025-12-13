@@ -132,9 +132,6 @@ class RoutesViewModel(
 
                 when (result) {
                     is Result.Success -> {
-                        // Handle both response structures:
-                        // 1. data.data.data (for accepted routes) - nestedData is serialized as "data"
-                        // 2. data.headdata.bodydata.routesData (for available routes)
                         val newRoutes = result.data?.data?.nestedData?.routesData
                             ?: result.data?.data?.headdata?.bodydata?.routesData
                             ?: emptyList()
@@ -296,9 +293,6 @@ class RoutesViewModel(
 
                 when (result) {
                     is Result.Success -> {
-                        // Handle both response structures:
-                        // 1. data.data.data (for accepted routes) - nestedData is serialized as "data"
-                        // 2. data.headdata.bodydata.routesData (for available routes)
                         val newTrips = result.data?.data?.nestedData?.routesData
                             ?: result.data?.data?.headdata?.bodydata?.routesData
                             ?: emptyList()
@@ -371,6 +365,51 @@ class RoutesViewModel(
                 _acceptRouteResult.value = Result.Error(e.message ?: "Failed to accept route")
             } finally {
                 _isAcceptingRoute.value = false
+            }
+        }
+    }
+
+    private val _isCancellingRoute = MutableStateFlow(false)
+    val isCancellingRoute: StateFlow<Boolean> get() = _isCancellingRoute
+
+    private val _cancelRouteResult = MutableStateFlow<Result<Unit>?>(null)
+    val cancelRouteResult: StateFlow<Result<Unit>?> get() = _cancelRouteResult
+
+    fun cancelRoute(routeId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _isCancellingRoute.value = true
+            _cancelRouteResult.value = null
+            
+            try {
+                // Format current time as HH:mm:ss (e.g., "15:59:00")
+                val currentTime = SimpleDateFormat(
+                    "HH:mm:ss",
+                    java.util.Locale.getDefault()
+                ).format(Date())
+                
+                val result = routeRepository.cancelRoute(routeId, currentTime)
+                when (result) {
+                    is Result.Success -> {
+                        _cancelRouteResult.value = Result.Success(Unit)
+                        // Remove cancelled route from accepted trips list
+                        _acceptedTrips.value = _acceptedTrips.value.filter { it.id?.toString() != routeId }
+                        // Refresh accepted trips list
+                        val formattedDate = SimpleDateFormat(
+                            "yyyy-MM-dd",
+                            java.util.Locale.getDefault()
+                        ).format(Date())
+                        getAcceptedTrips(1, formattedDate)
+                        onSuccess()
+                    }
+                    is Result.Error -> {
+                        _cancelRouteResult.value = Result.Error(result.message)
+                    }
+                    else -> Unit
+                }
+            } catch (e: Exception) {
+                _cancelRouteResult.value = Result.Error(e.message ?: "Failed to cancel route")
+            } finally {
+                _isCancellingRoute.value = false
             }
         }
     }
