@@ -414,4 +414,45 @@ class RoutesViewModel(
         }
     }
 
+    private val _isStartingTrip = MutableStateFlow(false)
+    val isStartingTrip: StateFlow<Boolean> get() = _isStartingTrip
+
+    private val _tripStartResult = MutableStateFlow<Result<Unit>?>(null)
+    val tripStartResult: StateFlow<Result<Unit>?> get() = _tripStartResult
+
+    fun tripStartTime(routeId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _isStartingTrip.value = true
+            _tripStartResult.value = null
+            
+            try {
+                // Format current time as HH:mm:ss (e.g., "15:59:00")
+                val currentTime = SimpleDateFormat(
+                    "HH:mm:ss",
+                    java.util.Locale.getDefault()
+                ).format(Date())
+                
+                val result = routeRepository.tripStartTime(routeId, currentTime)
+                when (result) {
+                    is Result.Success -> {
+                        _tripStartResult.value = Result.Success(Unit)
+                        // Refresh route details after starting trip
+                        _routeDetails.value?.routeDetailsData?.routeData?.id?.let { id ->
+                            getRouteDetails(RequestRouteDetails(routeId = id.toString()))
+                        }
+                        onSuccess()
+                    }
+                    is Result.Error -> {
+                        _tripStartResult.value = Result.Error(result.message)
+                    }
+                    else -> Unit
+                }
+            } catch (e: Exception) {
+                _tripStartResult.value = Result.Error(e.message ?: "Failed to start trip")
+            } finally {
+                _isStartingTrip.value = false
+            }
+        }
+    }
+
 }

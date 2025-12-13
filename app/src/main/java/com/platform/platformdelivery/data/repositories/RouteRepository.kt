@@ -155,4 +155,18 @@ class RouteRepository {
         }
     }
 
+    suspend fun tripStartTime(routeId: String, currentTime: String): Result<BaseResponse> {
+        return try {
+            val response = apiService.tripStartTime(routeId, currentTime)
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "Failed to start trip"
+                Result.Error(errorMsg)
+            }
+        } catch (e: Exception) {
+            Result.Error("Exception occurred: ${e.message}", e)
+        }
+    }
+
 }

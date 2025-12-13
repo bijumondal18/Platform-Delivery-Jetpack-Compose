@@ -33,6 +33,8 @@ data class Route(
     @SerializedName("final_driver_price") val finalDriverPrice: Any?,
     @SerializedName("trip_total_distance") val tripTotalDistance: Any?,
     @SerializedName("circuit_trip") val circuitTrip: Any?,
+    @SerializedName("current_waypoint") val currentWaypoint: Any?,
+    @SerializedName("isloaded") val isloaded: Int? = 0,
     @SerializedName("chat_room_id") val chatRoomId: Any?,
     @SerializedName("waypoints") val waypoints: List<Waypoint>?,
     @SerializedName("client") val client: User?

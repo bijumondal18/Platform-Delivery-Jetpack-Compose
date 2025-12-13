@@ -101,6 +101,13 @@ interface ApiService {
         @Field("current_time") currentTime: String
     ): Response<BaseResponse>
 
+    @FormUrlEncoded
+    @POST(RouteEndpoints.tripStartTime)
+    suspend fun tripStartTime(
+        @Field("route_id") routeId: String,
+        @Field("current_time") currentTime: String
+    ): Response<BaseResponse>
+
     @POST(RouteEndpoints.routeDetails)
     suspend fun getRouteDetails(
         @Body requestRouteDetails: RequestRouteDetails
