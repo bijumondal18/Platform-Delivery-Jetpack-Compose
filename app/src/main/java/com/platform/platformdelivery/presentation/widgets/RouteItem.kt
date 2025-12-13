@@ -80,6 +80,15 @@ fun RouteItem(
                     Column(
                         modifier = Modifier.weight(1f)
                     ) {
+                        // Route name
+                        if (!route.name.isNullOrEmpty()) {
+                            Text(
+                                text = route.name,
+                                style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
                         Text(
                             text = "${route.startTime ?: ""} - ${route.estimatedEndTime ?: ""}",
                             style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -93,25 +102,13 @@ fun RouteItem(
                         )
                     }
                     
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Price
-                        Text(
-                            text = "$${route.driverPrice ?: ""}",
-                            style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        
-                        // Chevron icon
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = "View Details",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-                        )
-                    }
+                    // Chevron icon
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "View Details",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                    )
                 }
                 
                 // Origin and Destination addresses

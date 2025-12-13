@@ -24,6 +24,7 @@ import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Url
 
 
 // Retrofit API Service for all driver-related endpoints
@@ -162,8 +163,8 @@ interface ApiService {
     @GET(ProfileEndpoints.driverDetails)
     suspend fun getDriverDetails(): Response<DriverDetailsResponse>
 
-    @GET(ProfileEndpoints.getStateList)
-    suspend fun getStateList(): Response<StateListResponse>
+    @GET
+    suspend fun getStateList(@Url url: String = "https://platform.hannastransport.com/platform/public/api/state-list"): Response<StateListResponse>
 
     @Multipart
     @POST(ProfileEndpoints.updateProfile)
