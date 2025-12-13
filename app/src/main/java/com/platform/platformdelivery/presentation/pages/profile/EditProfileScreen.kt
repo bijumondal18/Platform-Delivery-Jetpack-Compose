@@ -1,5 +1,6 @@
 package com.platform.platformdelivery.presentation.pages.profile
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -20,12 +28,13 @@ import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -34,6 +43,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -136,6 +146,11 @@ fun EditProfileScreen(
         }
     }
 
+    // Bottom sheet state
+    val bottomSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -234,8 +249,9 @@ fun EditProfileScreen(
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = state,
-                        onValueChange = {},
+                        onValueChange = { }, // Completely disabled - no manual editing
                         readOnly = true,
+                        enabled = false,
                         label = { Text("State") },
                         trailingIcon = {
                             Icon(
@@ -243,46 +259,28 @@ fun EditProfileScreen(
                                 contentDescription = null
                             )
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { expandedStateDropdown = true },
+                        modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
                             unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
-                            errorBorderColor = MaterialTheme.colorScheme.error
+                            errorBorderColor = MaterialTheme.colorScheme.error,
+                            disabledBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                            disabledTextColor = MaterialTheme.colorScheme.onBackground,
+                            disabledLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                            disabledTrailingIconColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         ),
                         isError = stateError != null
                     )
-                    DropdownMenu(
-                        expanded = expandedStateDropdown,
-                        onDismissRequest = { expandedStateDropdown = false },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (isLoadingStates) {
-                            DropdownMenuItem(
-                                text = { Text("Loading states...") },
-                                onClick = {}
-                            )
-                        } else if (stateList.isEmpty()) {
-                            DropdownMenuItem(
-                                text = { Text("No states available") },
-                                onClick = {}
-                            )
-                        } else {
-                            stateList.forEach { stateItem ->
-                                DropdownMenuItem(
-                                    text = { Text(stateItem.name ?: "") },
-                                    onClick = {
-                                        state = stateItem.name ?: ""
-                                        expandedStateDropdown = false
-                                        stateError = null
-                                    }
-                                )
-                            }
-                        }
-                    }
+                    // Invisible clickable overlay to handle clicks
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .clickable { expandedStateDropdown = true }
+                    )
                 }
+                
                 if (stateError != null) {
                     Text(
                         text = stateError ?: "",
@@ -362,6 +360,104 @@ fun EditProfileScreen(
                         text = "Save Changes",
                         style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     )
+                }
+            }
+        }
+        
+        // State Selection Bottom Sheet (outside Column for proper rendering)
+        if (expandedStateDropdown) {
+            ModalBottomSheet(
+                onDismissRequest = { expandedStateDropdown = false },
+                sheetState = bottomSheetState,
+                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+                dragHandle = {
+                    Box(
+                        modifier = Modifier
+                            .padding(vertical = 12.dp)
+                            .width(40.dp)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                    )
+                }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(500.dp)
+                ) {
+                    // Header
+                    Text(
+                        text = "Select State",
+                        style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    
+                    HorizontalDivider()
+                    
+                    // Content
+                    if (isLoadingStates) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    } else if (stateList.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No states available (List size: ${stateList.size})",
+                                style = AppTypography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            itemsIndexed(stateList) { index, stateItem ->
+                                Box(
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    // Set the state title (name) into the text field
+                                                    state = stateItem.title ?: ""
+                                                    expandedStateDropdown = false
+                                                    stateError = null
+                                                }
+                                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = stateItem.title ?: "Unknown",
+                                                style = AppTypography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onBackground,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                }
+                                if (index < stateList.size - 1) {
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

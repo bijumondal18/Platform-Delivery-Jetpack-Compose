@@ -154,7 +154,9 @@ class ProfileViewModel(
 
                 when (result) {
                     is Result.Success -> {
-                        _stateList.value = result.data.data?.states ?: emptyList()
+                        // Extract states from response: result.data.data?.states
+                        val states = result.data.data?.states ?: emptyList()
+                        _stateList.value = states
                         _error.value = null
                     }
                     is Result.Error -> {
