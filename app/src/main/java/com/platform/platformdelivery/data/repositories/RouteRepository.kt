@@ -15,9 +15,27 @@ class RouteRepository {
 
     private val apiService = RetrofitClient.apiService
 
-    suspend fun getAvailableRoutes(page: Int, perPage: Int, date: String, zipCode: String? = null): com.platform.platformdelivery.core.network.Result<RoutePathModel> {
+    suspend fun getAvailableRoutes(
+        page: Int, 
+        perPage: Int, 
+        date: String, 
+        radius: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null
+    ): com.platform.platformdelivery.core.network.Result<RoutePathModel> {
         return try {
-            val response = apiService.getAvailableRoutes(page, perPage, date, zipCode)
+            // Format coordinates to 4 decimal places if provided
+            val formattedLat = latitude?.let { LocationUtils.formatCoordinate(it) }
+            val formattedLng = longitude?.let { LocationUtils.formatCoordinate(it) }
+            
+            val response = apiService.getAvailableRoutes(
+                page, 
+                perPage, 
+                date, 
+                radius,
+                formattedLat,
+                formattedLng
+            )
             if (response.isSuccessful && response.body() != null) {
                 com.platform.platformdelivery.core.network.Result.Success(response.body()!!)
             } else {

@@ -71,9 +71,14 @@ class RoutesViewModel(
     private val _acceptedTripsError = MutableStateFlow<String?>(null)
     val acceptedTripsError: StateFlow<String?> get() = _acceptedTripsError
 
-    fun loadAvailableRoutesOnce(date: String? = null, zipCode: String? = null) {
+    fun loadAvailableRoutesOnce(
+        date: String? = null, 
+        radius: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null
+    ) {
         if (!hasLoadedAvailableRoutes) {
-            getAvailableRoutes(1, date, zipCode)
+            getAvailableRoutes(1, date, radius, latitude, longitude)
             hasLoadedAvailableRoutes = true
         }
     }
@@ -94,7 +99,13 @@ class RoutesViewModel(
     }
 
 
-    fun getAvailableRoutes(page: Int = 1, date: String? = null, zipCode: String? = null) {
+    fun getAvailableRoutes(
+        page: Int = 1, 
+        date: String? = null, 
+        radius: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null
+    ) {
         viewModelScope.launch {
             if (page == 1) {
                 _isLoading.value = true
@@ -110,7 +121,14 @@ class RoutesViewModel(
                     java.util.Locale.getDefault()
                 ).format(Date())
 
-                val result = routeRepository.getAvailableRoutes(page, perPage, formattedDate, zipCode?.takeIf { it.isNotBlank() })
+                val result = routeRepository.getAvailableRoutes(
+                    page, 
+                    perPage, 
+                    formattedDate, 
+                    radius,
+                    latitude,
+                    longitude
+                )
 
                 when (result) {
                     is Result.Success -> {
@@ -147,9 +165,18 @@ class RoutesViewModel(
         }
     }
 
-    fun loadNextPage(zipCode: String? = null) {
+    fun loadNextPage(
+        radius: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null
+    ) {
         if (!_noMoreDataAvailable.value && !_isLoading.value) {
-            getAvailableRoutes(currentPage + 1, zipCode = zipCode)
+            getAvailableRoutes(
+                currentPage + 1, 
+                radius = radius,
+                latitude = latitude,
+                longitude = longitude
+            )
         }
     }
 

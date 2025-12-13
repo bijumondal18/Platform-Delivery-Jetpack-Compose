@@ -20,7 +20,7 @@ object RouteEndpoints {
     const val availableRoutes = "available-routes"
     const val acceptRoute = "accept-route"
     const val routeDetails = "route-details"
-    const val myRoutes = "my-routes"
+    const val myRoutes = "available-routes"
     const val routeHistory = "route-history"
     const val cancelRoute = "cancel-route"
     const val skipRoute = "skip-waypoint"

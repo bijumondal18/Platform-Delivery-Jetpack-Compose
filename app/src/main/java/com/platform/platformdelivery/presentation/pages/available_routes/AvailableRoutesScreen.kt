@@ -109,22 +109,46 @@ fun AvailableRoutesScreen(
     }
 
     var zipCode by remember { mutableStateOf("") }
+    var selectedRadius by remember { mutableStateOf<Int?>(null) }
+    var currentLatitude by remember { mutableStateOf<Double?>(null) }
+    var currentLongitude by remember { mutableStateOf<Double?>(null) }
     var isFetchingLocation by remember { mutableStateOf(false) }
     
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
+    // Track if this is the first load to avoid refreshing on initial empty state
+    var isInitialLoad by remember { mutableStateOf(true) }
+    var isInitialZipCodeLoad by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         routesViewModel.loadAvailableRoutesOnce(
             date = pickedDate ?: LocalDate.now()
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-            zipCode = zipCode.takeIf { it.isNotBlank() }
+            radius = selectedRadius?.toString(),
+            latitude = currentLatitude,
+            longitude = currentLongitude
         )
+        isInitialLoad = false
     }
 
-    // Track if this is the first zip code change to avoid refreshing on initial empty state
-    var isInitialZipCodeLoad by remember { mutableStateOf(true) }
-    
+    // Refresh routes when radius or location changes (skip initial load)
+    LaunchedEffect(selectedRadius, currentLatitude, currentLongitude) {
+        if (isInitialLoad) {
+            return@LaunchedEffect
+        }
+        
+        coroutineScope.launch {
+            routesViewModel.getAvailableRoutes(
+                1,
+                date = pickedDate ?: LocalDate.now()
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                radius = selectedRadius?.toString(),
+                latitude = currentLatitude,
+                longitude = currentLongitude
+            )
+        }
+    }
+
     // Refresh routes when zip code changes (only if length > 4 to avoid too many API calls)
     LaunchedEffect(zipCode) {
         if (isInitialZipCodeLoad) {
@@ -140,7 +164,9 @@ fun AvailableRoutesScreen(
                     1,
                     date = pickedDate ?: LocalDate.now()
                         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                    zipCode = zipCode
+                    radius = selectedRadius?.toString(),
+                    latitude = currentLatitude,
+                    longitude = currentLongitude
                 )
             }
         }
@@ -159,7 +185,9 @@ fun AvailableRoutesScreen(
                         1,
                         date = pickedDate ?: LocalDate.now()
                             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                        zipCode = zipCode.takeIf { it.isNotBlank() }
+                        radius = selectedRadius?.toString(),
+                        latitude = currentLatitude,
+                        longitude = currentLongitude
                     )
                     isRefreshing = false // ✅ stop indicator when refresh completes
                 }
@@ -174,7 +202,8 @@ fun AvailableRoutesScreen(
             item {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     AppTextField(
                         value = zipCode,
@@ -231,6 +260,10 @@ fun AvailableRoutesScreen(
                                     }
                                     
                                     if (location != null) {
+                                        // Update current location coordinates
+                                        currentLatitude = location.latitude
+                                        currentLongitude = location.longitude
+                                        
                                         // Reverse geocode to get zip code
                                         val zip = GeocoderUtils.getZipCodeFromLocation(
                                             context,
@@ -241,10 +274,10 @@ fun AvailableRoutesScreen(
                                         if (zip != null) {
                                             zipCode = zip
                                             snackbarHostState.showSnackbar("Zip code updated: $zip")
-                                            // Routes will automatically refresh via LaunchedEffect(zipCode)
                                         } else {
-                                            snackbarHostState.showSnackbar("Could not find zip code for this location")
+                                            snackbarHostState.showSnackbar("Location updated, but could not find zip code")
                                         }
+                                        // Routes will automatically refresh via LaunchedEffect
                                     } else {
                                         snackbarHostState.showSnackbar("Unable to get current location. Please try again.")
                                     }
@@ -276,6 +309,7 @@ fun AvailableRoutesScreen(
 
                 Spacer(Modifier.height(16.dp))
 
+                Spacer(Modifier.height(16.dp))
 
                 Text(
                     "Choose Delivery Radius (Mi)",
@@ -291,8 +325,8 @@ fun AvailableRoutesScreen(
                         .padding(horizontal = 4.dp),
                     initialIndex = 0,
                     stepValues = listOf(0, 10, 20, 30, 40, 50),
-                ) {
-
+                ) { radius ->
+                    selectedRadius = if (radius == 0) null else radius
                 }
 
                 Row(
@@ -327,7 +361,9 @@ fun AvailableRoutesScreen(
                             routesViewModel.getAvailableRoutes(
                                 1,
                                 date = selectedDate,
-                                zipCode = zipCode.takeIf { it.isNotBlank() }
+                                radius = selectedRadius?.toString(),
+                                latitude = currentLatitude,
+                                longitude = currentLongitude
                             )
                         }
                     }

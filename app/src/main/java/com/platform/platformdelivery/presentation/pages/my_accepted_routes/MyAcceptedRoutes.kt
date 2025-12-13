@@ -59,6 +59,11 @@ fun MyAcceptedRoutesScreen(
     val noMoreData by routesViewModel.noMoreAcceptedTripsAvailable.collectAsState()
     val error by routesViewModel.acceptedTripsError.collectAsState()
 
+    // Filter to show only ongoing trips
+    val ongoingTrips = remember(acceptedTrips) {
+        acceptedTrips.filter { it.status == "ongoing" }
+    }
+
     val coroutineScope = rememberCoroutineScope()
 
     val pullRefreshState = rememberPullToRefreshState()
@@ -143,10 +148,10 @@ fun MyAcceptedRoutesScreen(
                     }
                 }
 
-                isEmpty -> {
+                isEmpty || ongoingTrips.isEmpty() -> {
                     item {
                         Text(
-                            "No accepted trips available",
+                            "No ongoing trips available",
                             style = AppTypography.bodyLarge,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
@@ -158,7 +163,7 @@ fun MyAcceptedRoutesScreen(
                 }
 
                 else -> {
-                    itemsIndexed(acceptedTrips) { index, route ->
+                    itemsIndexed(ongoingTrips) { index, route ->
                         var visible by remember { mutableStateOf(false) }
 
                         LaunchedEffect(Unit) {
@@ -177,7 +182,7 @@ fun MyAcceptedRoutesScreen(
                                 }
                             }
                         }
-                        if (index < acceptedTrips.size - 1) {
+                        if (index < ongoingTrips.size - 1) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(horizontal = 16.dp),
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
