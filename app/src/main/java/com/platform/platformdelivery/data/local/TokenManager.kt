@@ -16,6 +16,7 @@ class TokenManager(context: Context) : RetrofitClient.TokenProvider {
         private const val KEY_EMAIL = "email"
         private const val KEY_PROFILE_PIC = "profile_pic"
         private const val KEY_LOGGED_ON = "is_logged_in"
+        private const val KEY_BASE_URL = "base_url"
     }
 
     override fun getAccessToken(): String? = prefs.getString(KEY_ACCESS_TOKEN, null)
@@ -70,6 +71,12 @@ class TokenManager(context: Context) : RetrofitClient.TokenProvider {
     fun saveProfilePic(profilePic: String) {
         prefs.edit { putString(KEY_PROFILE_PIC, profilePic) }
     }
+
+    fun saveBaseUrl(baseUrl: String) {
+        prefs.edit { putString(KEY_BASE_URL, baseUrl) }
+    }
+
+    override fun getBaseUrl(): String? = prefs.getString(KEY_BASE_URL, null)
 
     fun clear() {
         prefs.edit { clear() }

@@ -12,6 +12,7 @@ import com.platform.platformdelivery.data.models.RouteHistory
 import com.platform.platformdelivery.data.models.ReferralDetailsResponse
 import com.platform.platformdelivery.data.models.RoutePathModel
 import com.platform.platformdelivery.data.models.StateListResponse
+import com.platform.platformdelivery.data.models.ApiVersionResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -82,9 +83,9 @@ interface ApiService {
         @Query("page") page: Int,
         @Query("perpage") perPage: Int,
         @Query("date") date: String,
-        @Query("radius") radius: String? = null,
-        @Query("lat") latitude: String? = null,
-        @Query("lng") longitude: String? = null,
+        @Query(value = "radius", encoded = true) radius: String? = null,
+        @Query(value = "lat", encoded = true) latitude: String? = null,
+        @Query(value = "lng", encoded = true) longitude: String? = null,
     ): Response<RoutePathModel>
 
     //
@@ -188,6 +189,9 @@ interface ApiService {
         @Field("latitude") latitude: String,
         @Field("longitude") longitude: String
     ): Response<BaseResponse>
+
+    @GET
+    suspend fun getApiVersion(@Url url: String = ApiConfig.apiVersion): Response<ApiVersionResponse>
 
     @GET(ReferralEndpoints.referralDetails)
     suspend fun getReferralDetails(): Response<ReferralDetailsResponse>

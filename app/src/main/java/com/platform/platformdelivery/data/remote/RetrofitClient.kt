@@ -13,14 +13,20 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    // Token provider interface (you’ll implement it with SharedPreferences or DataStore)
+    // Token provider interface (you'll implement it with SharedPreferences or DataStore)
     interface TokenProvider {
         fun getAccessToken(): String?
         fun refreshAccessToken(): String?
+        fun getBaseUrl(): String?
     }
 
     // Provide your token manager here
     lateinit var tokenProvider: TokenProvider
+    
+    // Base URL provider function
+    private fun getBaseUrl(): String {
+        return tokenProvider.getBaseUrl() ?: ApiConfig.baseUrl
+    }
 
     private val authInterceptor = Interceptor { chain ->
         val requestBuilder = chain.request().newBuilder()
@@ -69,12 +75,29 @@ object RetrofitClient {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    val apiService: ApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl(ApiConfig.baseUrl)
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(okHttpClient)
-            .build()
-            .create(ApiService::class.java)
+    // Store the current API service instance
+    private var _apiService: ApiService? = null
+    private var currentBaseUrl: String? = null
+
+    val apiService: ApiService
+        get() {
+            val baseUrl = getBaseUrl()
+            // Recreate API service if base URL changed
+            if (_apiService == null || currentBaseUrl != baseUrl) {
+                currentBaseUrl = baseUrl
+                _apiService = Retrofit.Builder()
+                    .baseUrl(baseUrl)
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .client(okHttpClient)
+                    .build()
+                    .create(ApiService::class.java)
+            }
+            return _apiService!!
+        }
+    
+    // Function to reset API service (useful when base URL changes)
+    fun resetApiService() {
+        _apiService = null
+        currentBaseUrl = null
     }
 }

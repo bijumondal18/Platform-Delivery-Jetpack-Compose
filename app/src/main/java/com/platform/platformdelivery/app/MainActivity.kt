@@ -19,8 +19,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.platform.platformdelivery.core.services.LocationService
+import com.platform.platformdelivery.core.utils.ApiDebugUtils
 import com.platform.platformdelivery.core.utils.PermissionUtils
 import com.platform.platformdelivery.data.local.TokenManager
+import com.platform.platformdelivery.data.remote.RetrofitClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -62,8 +64,42 @@ class MainActivity : ComponentActivity() {
             }
 
         lifecycleScope.launch {
-            // Do token check in background
             val tokenManager = TokenManager(this@MainActivity)
+            
+            // Initialize RetrofitClient token provider
+            RetrofitClient.tokenProvider = tokenManager
+            
+            // Call api_version API first - call it every time app opens
+            try {
+                val apiVersionUrl = com.platform.platformdelivery.core.network.ApiConfig.apiVersion
+                ApiDebugUtils.logApiVersionRequest(apiVersionUrl)
+                
+                val apiVersionRepository = com.platform.platformdelivery.data.repositories.ApiVersionRepository()
+                val response = withContext(Dispatchers.IO) {
+                    apiVersionRepository.getApiVersion()
+                }
+                
+                // Process API version result
+                if (response.isSuccessful && response.body() != null) {
+                    val baseUrl = response.body()!!.data?.baseUrl
+                    ApiDebugUtils.logApiVersionResponse(baseUrl)
+                    if (!baseUrl.isNullOrEmpty()) {
+                        // Ensure base URL ends with /
+                        val finalBaseUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
+                        tokenManager.saveBaseUrl(finalBaseUrl)
+                        RetrofitClient.resetApiService()
+                        android.util.Log.d("MainActivity", "Base URL updated to: $finalBaseUrl")
+                    }
+                } else {
+                    android.util.Log.e("MainActivity", "API version response failed: ${response.code()} - ${response.message()}")
+                }
+            } catch (e: Exception) {
+                // If api_version fails, use default base URL
+                // Continue with app flow
+                android.util.Log.e("MainActivity", "Failed to get API version: ${e.message}", e)
+            }
+            
+            // Do token check in background
             val isLoggedIn = withContext(Dispatchers.IO) {
                 tokenManager.isLoggedIn()
             }

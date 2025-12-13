@@ -121,12 +121,14 @@ fun AvailableRoutesScreen(
     var isInitialZipCodeLoad by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
+        // Match Flutter: only send page, perpage, and date initially
+        // Don't send radius/lat/lng unless user explicitly sets them
         routesViewModel.loadAvailableRoutesOnce(
             date = pickedDate ?: LocalDate.now()
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-            radius = selectedRadius?.toString(),
-            latitude = currentLatitude,
-            longitude = currentLongitude
+            radius = null, // Don't send radius initially
+            latitude = null, // Don't send lat initially
+            longitude = null // Don't send lng initially
         )
         isInitialLoad = false
     }

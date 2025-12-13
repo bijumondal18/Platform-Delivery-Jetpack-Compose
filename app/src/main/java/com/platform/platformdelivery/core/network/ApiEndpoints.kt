@@ -1,7 +1,7 @@
 package com.platform.platformdelivery.core.network
 
 object ApiConfig {
-    const val version = "v1.14.3"
+    const val version = "v1.15.0"
     const val baseUrl = "https://platformdelivery.app/platform/public/api/driver/"
     const val apiVersion = "https://platformdelivery.app/platform/public/api/api_version"
 }

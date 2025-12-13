@@ -1,6 +1,7 @@
 package com.platform.platformdelivery.data.repositories
 
 import com.platform.platformdelivery.core.network.Result
+import com.platform.platformdelivery.core.utils.ApiDebugUtils
 import com.platform.platformdelivery.core.utils.LocationUtils
 import com.platform.platformdelivery.data.models.BaseResponse
 import com.platform.platformdelivery.data.models.LoginResponse
@@ -25,14 +26,32 @@ class RouteRepository {
     ): com.platform.platformdelivery.core.network.Result<RoutePathModel> {
         return try {
             // Format coordinates to 4 decimal places if provided
+            // Only format if values are actually provided (not null)
             val formattedLat = latitude?.let { LocationUtils.formatCoordinate(it) }
             val formattedLng = longitude?.let { LocationUtils.formatCoordinate(it) }
             
+            // Only pass radius if it's not null and not empty
+            // Match Flutter behavior: only send parameters that have values
+            val radiusParam = if (radius.isNullOrEmpty()) null else radius
+            
+            // Log request parameters for debugging
+            val baseUrl = RetrofitClient.tokenProvider.getBaseUrl() ?: com.platform.platformdelivery.core.network.ApiConfig.baseUrl
+            ApiDebugUtils.logAvailableRoutesRequest(
+                baseUrl = baseUrl,
+                page = page,
+                perPage = perPage,
+                date = date,
+                radius = radiusParam,
+                latitude = formattedLat?.toDoubleOrNull(),
+                longitude = formattedLng?.toDoubleOrNull()
+            )
+            
+            // Match Flutter: only send radius/lat/lng if they have actual values
             val response = apiService.getAvailableRoutes(
                 page, 
                 perPage, 
                 date, 
-                radius,
+                radiusParam,
                 formattedLat,
                 formattedLng
             )

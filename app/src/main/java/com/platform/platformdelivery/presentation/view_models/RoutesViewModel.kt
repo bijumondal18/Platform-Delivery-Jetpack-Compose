@@ -43,7 +43,7 @@ class RoutesViewModel(
     // Pagination state
     private var currentPage = 1
     private var currentAcceptedTripsPage = 1
-    private val perPage = 7
+    private val perPage = 10
 
 
     private val _routeDetails = MutableStateFlow<RouteDetailsResponse?>(null)
