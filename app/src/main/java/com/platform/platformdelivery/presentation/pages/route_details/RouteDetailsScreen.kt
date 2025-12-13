@@ -57,6 +57,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -139,12 +140,14 @@ fun RouteDetailsScreen(
             )
         }
     ) { innerPadding -> 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp)
-        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp),
+                // Optimize scrolling performance
+                userScrollEnabled = true
+            ) {
 
 
                 when {
@@ -178,17 +181,32 @@ fun RouteDetailsScreen(
                         } else if (routeDetails != null) {
                             val route = routeDetails!!.routeDetailsData?.routeData
                             
-                            // Map at the top
+                            // Map at the top - use stable key and remember to prevent recomposition
                             item(key = "routeMap_$routeId") {
+                                val route = routeDetails!!.routeDetailsData?.routeData
+                                
+                                // Remember map parameters to prevent unnecessary recomposition
+                                val mapParams: MapParams = remember(routeId, route?.originLat, route?.originLng) {
+                                    MapParams(
+                                        latitude = route?.destinationLat ?: 0.0,
+                                        longitude = route?.destinationLng ?: 0.0,
+                                        originLat = route?.originLat,
+                                        originLng = route?.originLng,
+                                        destinationLat = route?.destinationLat,
+                                        destinationLng = route?.destinationLng,
+                                        waypoints = route?.waypoints
+                                    )
+                                }
+                                
                                 RouteMapBox(
-                                    latitude = routeDetails!!.routeDetailsData?.routeData?.destinationLat ?: 0.0,
-                                    longitude = routeDetails!!.routeDetailsData?.routeData?.destinationLng ?: 0.0,
+                                    latitude = mapParams.latitude,
+                                    longitude = mapParams.longitude,
                                     routeId = routeId,
-                                    originLat = routeDetails!!.routeDetailsData?.routeData?.originLat,
-                                    originLng = routeDetails!!.routeDetailsData?.routeData?.originLng,
-                                    destinationLat = routeDetails!!.routeDetailsData?.routeData?.destinationLat,
-                                    destinationLng = routeDetails!!.routeDetailsData?.routeData?.destinationLng,
-                                    waypoints = routeDetails!!.routeDetailsData?.routeData?.waypoints
+                                    originLat = mapParams.originLat,
+                                    originLng = mapParams.originLng,
+                                    destinationLat = mapParams.destinationLat,
+                                    destinationLng = mapParams.destinationLng,
+                                    waypoints = mapParams.waypoints
                                 )
                                 
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -313,15 +331,19 @@ fun RouteStopsList(
     val hasWaypoints = sortedWaypoints.isNotEmpty()
     val hasDestination = destinationPlace.isNotEmpty()
     
-    // Build complete list of stops
+    // Build complete list of stops with notes
+    data class StopInfo(val place: String, val stopNumber: Int, val note: String?)
+    
     val allStops = remember(originPlace, sortedWaypoints, destinationPlace) {
         buildList {
-            add(Pair(originPlace, 0)) // Origin is stop 0
+            add(StopInfo(originPlace, 0, null)) // Origin is stop 0, no note
             sortedWaypoints.forEachIndexed { index, waypoint ->
-                add(Pair(waypoint.place?.toString() ?: "", index + 1))
+                val note = waypoint.noteForDrivers?.toString()?.takeIf { it.isNotEmpty() }
+                    ?: waypoint.noteForInternalUse?.toString()?.takeIf { it.isNotEmpty() }
+                add(StopInfo(waypoint.place?.toString() ?: "", index + 1, note))
             }
             if (hasDestination) {
-                add(Pair(destinationPlace, sortedWaypoints.size + 1))
+                add(StopInfo(destinationPlace, sortedWaypoints.size + 1, null)) // Destination, no note
             }
         }
     }
@@ -329,19 +351,16 @@ fun RouteStopsList(
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        allStops.forEachIndexed { index, (place, _) ->
+        allStops.forEachIndexed { index, stopInfo ->
             val isFirst = index == 0 // Origin
             val isLast = index == allStops.size - 1
             val isWaypoint = !isFirst && !isLast
             
-            // For origin, stopNumber is 0 (won't be displayed)
-            // For waypoints and destination, stopNumber starts from 1
-            val stopNumber = if (isFirst) 0 else index
-            
             RouteStopItem(
-                place = place,
-                stopNumber = stopNumber,
+                place = stopInfo.place,
+                stopNumber = stopInfo.stopNumber,
                 scheduledTime = calculateScheduledTime(routeStartTime, index),
+                note = stopInfo.note,
                 isFirst = isFirst,
                 isLast = isLast,
                 isWaypoint = isWaypoint,
@@ -383,6 +402,17 @@ fun RouteStopsList(
         )
     }
 }
+
+// Data class to hold map parameters for stable recomposition
+private data class MapParams(
+    val latitude: Double,
+    val longitude: Double,
+    val originLat: String?,
+    val originLng: String?,
+    val destinationLat: Double?,
+    val destinationLng: Double?,
+    val waypoints: List<Waypoint>?
+)
 
 // Helper function to parse coordinates
 fun parseCoordinate(value: Any?): Double? {
@@ -433,6 +463,7 @@ fun RouteStopItem(
     place: String,
     stopNumber: Int,
     scheduledTime: String = "",
+    note: String? = null,
     isFirst: Boolean = false,
     isLast: Boolean = false,
     isWaypoint: Boolean = false,
@@ -531,6 +562,17 @@ fun RouteStopItem(
                         modifier = Modifier.padding(start = 8.dp)
                     )
                 }
+            }
+            
+            // Note for waypoints
+            if (isWaypoint && !note.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Note: $note",
+                    style = AppTypography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    fontStyle = FontStyle.Normal
+                )
             }
             
             // Action buttons for origin (Navigate, Check In, Load Vehicle)

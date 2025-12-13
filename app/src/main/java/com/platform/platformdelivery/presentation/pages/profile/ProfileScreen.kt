@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CameraAlt
@@ -284,9 +285,14 @@ fun ProfileScreen(
                 // Camera Icon Overlay - Adjusted position for larger avatar
                 Box(
                     modifier = Modifier
-                        .offset(x = 55.dp, y = 55.dp)
-                        .size(40.dp)
+                        .offset(x = 50.dp, y = 50.dp)
+                        .size(50.dp)
                         .clip(CircleShape)
+                        .border(
+                            width = 3.dp,
+                            color = MaterialTheme.colorScheme.background,
+                            shape = CircleShape
+                        )
                         .background(MaterialTheme.colorScheme.primary)
                         .clickable {
                             showImagePickerSheet = true

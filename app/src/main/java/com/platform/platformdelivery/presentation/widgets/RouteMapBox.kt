@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -23,6 +25,7 @@ import com.platform.platformdelivery.data.models.Waypoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import java.net.URL
 import org.json.JSONObject
 
@@ -90,9 +93,9 @@ fun RouteMapBox(
         } else null
     }
 
-    // Collect all locations for bounds calculation
+    // Collect all locations for bounds calculation - use immutable list
     val allLocations = remember(originLocation, waypointLocations, destinationLocation) {
-        mutableListOf<LatLng>().apply {
+        buildList {
             originLocation?.let { add(it) }
             waypointLocations.forEach { add(it.location) }
             destinationLocation?.let { add(it) }
@@ -104,6 +107,7 @@ fun RouteMapBox(
         }
     }
 
+    // Use stable camera position state - no parameters needed
     val cameraPositionState = rememberCameraPositionState()
 
     // Detect dark theme
@@ -123,39 +127,36 @@ fun RouteMapBox(
         } else null
     }
 
-    // Track if icons are created (lazy initialization)
+    // Track if icons are created (lazy initialization) - only set once
     var iconsReady by remember { mutableStateOf(false) }
     
-    // Cache marker icons - create lazily after map is ready
-    // Origin and destination should show home icon or special marker
-    val originIcon = remember(iconsReady) {
+    // Cache marker icons - create once and reuse, stable references
+    val originIcon = remember(iconsReady, routeId) {
         if (iconsReady) {
             try {
-                // Use blue circle with home icon or "O" for origin
-                createNumberedMarkerIcon(context, "O", Color.parseColor("#2196F3")) // Blue color
-            } catch (e: Exception) {
-                null
-            }
-        } else null
-    }
-    val destinationIcon = remember(iconsReady) {
-        if (iconsReady) {
-            try {
-                // Use blue circle with "D" or home icon for destination
-                createNumberedMarkerIcon(context, "D", Color.parseColor("#2196F3")) // Blue color
+                createNumberedMarkerIcon(context, "O", Color.parseColor("#2196F3"))
             } catch (e: Exception) {
                 null
             }
         } else null
     }
     
-    // Cache waypoint icons - create icons for the number of waypoints we have
-    // Markers should show "01", "02", etc. (with leading zeros)
-    val waypointIcons = remember(iconsReady, waypointLocations.size) {
+    val destinationIcon = remember(iconsReady, routeId) {
         if (iconsReady) {
             try {
+                createNumberedMarkerIcon(context, "D", Color.parseColor("#2196F3"))
+            } catch (e: Exception) {
+                null
+            }
+        } else null
+    }
+    
+    // Cache waypoint icons - create once per route, stable list
+    val waypointIcons = remember(iconsReady, waypointLocations.size, routeId) {
+        if (iconsReady && waypointLocations.isNotEmpty()) {
+            try {
                 (0 until waypointLocations.size).map { index ->
-                    createNumberedMarkerIcon(context, String.format("%02d", index + 1), Color.parseColor("#2196F3")) // Blue color like in image
+                    createNumberedMarkerIcon(context, String.format("%02d", index + 1), Color.parseColor("#2196F3"))
                 }
             } catch (e: Exception) {
                 emptyList()
@@ -165,34 +166,35 @@ fun RouteMapBox(
         }
     }
     
-    // Build route points for polyline: only origin to first waypoint
+    // Build route points for polyline: only origin to first waypoint - use immutable list
     val routePoints = remember(originLocation, waypointLocations) {
-        mutableListOf<LatLng>().apply {
+        buildList {
             originLocation?.let { add(it) }
-            // Only add first waypoint if it exists
             waypointLocations.firstOrNull()?.let { add(it.location) }
         }
     }
     
-    // State for storing decoded polyline points from Directions API
-    var actualRoutePoints by remember { mutableStateOf<List<LatLng>>(emptyList()) }
+    // State for storing decoded polyline points from Directions API - stable reference
+    var actualRoutePoints by remember(routeId) { mutableStateOf<List<LatLng>>(emptyList()) }
     
-    // Fetch actual road route using Directions API
-    LaunchedEffect(originLocation, waypointLocations.firstOrNull()) {
-        actualRoutePoints = emptyList()
-        
+    // Get polyline color from theme - read outside GoogleMap lambda
+    val polylineColor = MaterialTheme.colorScheme.primary
+    
+    // Fetch actual road route using Directions API - only when origin/first waypoint changes
+    LaunchedEffect(originLocation, waypointLocations.firstOrNull()?.location) {
         val origin = originLocation
         val firstWaypoint = waypointLocations.firstOrNull()
         
         if (origin != null && firstWaypoint != null) {
             try {
-                // Use Google Directions API to get actual road route
                 val routePath = getDirectionsRoute(origin, firstWaypoint.location, context)
                 actualRoutePoints = routePath
             } catch (e: Exception) {
                 // Fallback to straight line if Directions API fails
                 actualRoutePoints = listOf(origin, firstWaypoint.location)
             }
+        } else {
+            actualRoutePoints = emptyList()
         }
     }
     
@@ -203,7 +205,8 @@ fun RouteMapBox(
     }
 
     // Track if camera has been initialized to prevent repeated updates
-    var isCameraInitialized by remember { mutableStateOf(false) }
+    var isCameraInitialized by remember(routeId) { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -212,73 +215,129 @@ fun RouteMapBox(
             .clip(MaterialTheme.shapes.large)
     ) {
         // GoogleMap Composable inside Box
-        GoogleMap(
-            modifier = Modifier.matchParentSize(),
-            cameraPositionState = cameraPositionState,
-            uiSettings = MapUiSettings(
+        // Use remember to prevent recomposition during scroll - stable references
+        val mapUiSettings = remember {
+            MapUiSettings(
                 zoomControlsEnabled = true,
                 scrollGesturesEnabled = true,
                 zoomGesturesEnabled = true,
                 tiltGesturesEnabled = false,
                 rotationGesturesEnabled = true,
-                mapToolbarEnabled = false
-            ),
-            properties = MapProperties(
+                mapToolbarEnabled = false,
+                compassEnabled = false,
+                myLocationButtonEnabled = false
+            )
+        }
+        
+        val mapProperties = remember(mapStyleOptions) {
+            MapProperties(
                 mapType = MapType.NORMAL,
                 mapStyleOptions = mapStyleOptions,
                 isMyLocationEnabled = false,
-                isTrafficEnabled = false
+                isTrafficEnabled = false,
+                isIndoorEnabled = false,
+                minZoomPreference = 5f,
+                maxZoomPreference = 20f
             )
+        }
+        
+        GoogleMap(
+            modifier = Modifier.matchParentSize(),
+            cameraPositionState = cameraPositionState,
+            uiSettings = mapUiSettings,
+            properties = mapProperties,
+            onMapLoaded = {
+                // Only initialize camera once when map is loaded
+                if (!isCameraInitialized && allLocations.isNotEmpty()) {
+                    coroutineScope.launch {
+                        val boundsBuilder = LatLngBounds.builder()
+                        allLocations.forEach { location ->
+                            boundsBuilder.include(location)
+                        }
+                        val bounds = boundsBuilder.build()
+                        val padding = 100 // padding in pixels
+                        
+                        cameraPositionState.animate(
+                            update = CameraUpdateFactory.newLatLngBounds(bounds, padding),
+                            durationMs = 700
+                        )
+                        isCameraInitialized = true
+                    }
+                }
+            }
         ) {
             // Draw blue polyline from origin to first waypoint on actual roads
-            if (actualRoutePoints.isNotEmpty() && actualRoutePoints.size >= 2) {
-                Polyline(
-                    points = actualRoutePoints,
-                    color = MaterialTheme.colorScheme.primary,
-                    width = 8f
-                )
-            } else if (routePoints.size >= 2) {
-                // Fallback to straight line if Directions API route not available
-                Polyline(
-                    points = routePoints,
-                    color = MaterialTheme.colorScheme.primary,
-                    width = 8f
-                )
+            // Use derivedStateOf to prevent recomposition when actualRoutePoints changes during scroll
+            val shouldShowPolyline = remember(actualRoutePoints.size, routePoints.size) {
+                actualRoutePoints.isNotEmpty() && actualRoutePoints.size >= 2 || routePoints.size >= 2
             }
             
-            // Only show markers if icons are ready
+            val polylinePoints = remember(actualRoutePoints, routePoints) {
+                if (actualRoutePoints.isNotEmpty() && actualRoutePoints.size >= 2) {
+                    actualRoutePoints
+                } else if (routePoints.size >= 2) {
+                    routePoints
+                } else {
+                    emptyList()
+                }
+            }
+            
+            // Only render polyline if we have points - stable key prevents recomposition
+            if (shouldShowPolyline && polylinePoints.isNotEmpty()) {
+                key("polyline_${polylinePoints.size}") {
+                    Polyline(
+                        points = polylinePoints,
+                        color = polylineColor,
+                        width = 10f,
+                        jointType = JointType.ROUND,
+                        startCap = RoundCap(),
+                        endCap = RoundCap()
+                    )
+                }
+            }
+            
+            // Only show markers if icons are ready - use stable keys to prevent recomposition
             if (iconsReady) {
-                // Origin marker
+                // Origin marker - stable key
                 originLocation?.let { location ->
                     originIcon?.let { icon ->
-                        Marker(
-                            state = MarkerState(position = location),
-                            title = "Origin",
-                            icon = icon
-                        )
+                        key("origin_${location.latitude}_${location.longitude}") {
+                            Marker(
+                                state = MarkerState(position = location),
+                                title = "Origin",
+                                icon = icon,
+                                anchor = Offset(0.5f, 1.0f)
+                            )
+                        }
                     }
                 }
 
-                // Waypoint markers (numbered as 01, 02, 03, etc.)
+                // Waypoint markers - stable keys prevent recomposition
                 waypointLocations.forEachIndexed { displayIndex, waypointLocation ->
                     if (displayIndex < waypointIcons.size) {
-                        Marker(
-                            state = MarkerState(position = waypointLocation.location),
-                            title = "Stop ${String.format("%02d", displayIndex + 1)}",
-                            snippet = waypointLocation.place ?: "",
-                            icon = waypointIcons[displayIndex]
-                        )
+                        key("waypoint_${displayIndex}_${waypointLocation.location.latitude}_${waypointLocation.location.longitude}") {
+                            Marker(
+                                state = MarkerState(position = waypointLocation.location),
+                                title = "Stop ${String.format("%02d", displayIndex + 1)}",
+                                snippet = waypointLocation.place ?: "",
+                                icon = waypointIcons[displayIndex],
+                                anchor = Offset(0.5f, 1.0f)
+                            )
+                        }
                     }
                 }
 
-                // Destination marker
+                // Destination marker - stable key
                 destinationLocation?.let { location ->
                     destinationIcon?.let { icon ->
-                        Marker(
-                            state = MarkerState(position = location),
-                            title = "Destination",
-                            icon = icon
-                        )
+                        key("destination_${location.latitude}_${location.longitude}") {
+                            Marker(
+                                state = MarkerState(position = location),
+                                title = "Destination",
+                                icon = icon,
+                                anchor = Offset(0.5f, 1.0f)
+                            )
+                        }
                     }
                 }
             }
@@ -294,77 +353,113 @@ fun RouteMapBox(
         }
     }
 
-    // Adjust camera to fit all markers (only once on initial load)
+    // Initialize camera only once when routeId changes (not on scroll)
     LaunchedEffect(routeId) {
         if (!isCameraInitialized && allLocations.isNotEmpty()) {
-            val boundsBuilder = LatLngBounds.builder()
-            allLocations.forEach { location ->
-                boundsBuilder.include(location)
+            // Wait for map to be ready before setting camera
+            kotlinx.coroutines.delay(300)
+            if (!isCameraInitialized) {
+                val boundsBuilder = LatLngBounds.builder()
+                allLocations.forEach { location ->
+                    boundsBuilder.include(location)
+                }
+                val bounds = boundsBuilder.build()
+                val padding = 100 // padding in pixels
+                
+                cameraPositionState.animate(
+                    update = CameraUpdateFactory.newLatLngBounds(bounds, padding),
+                    durationMs = 700
+                )
+                isCameraInitialized = true
             }
-            val bounds = boundsBuilder.build()
-            val padding = 100 // padding in pixels
-            
-            cameraPositionState.animate(
-                update = CameraUpdateFactory.newLatLngBounds(bounds, padding),
-                durationMs = 700
-            )
-            isCameraInitialized = true
         } else if (!isCameraInitialized) {
             // Fallback to single location
-            cameraPositionState.animate(
-                update = CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 14f),
-                durationMs = 700
-            )
-            isCameraInitialized = true
+            kotlinx.coroutines.delay(300)
+            if (!isCameraInitialized) {
+                cameraPositionState.animate(
+                    update = CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 14f),
+                    durationMs = 700
+                )
+                isCameraInitialized = true
+            }
         }
     }
 }
 
 /**
  * Creates a custom marker icon with a number or letter
- * Matches the numbered badge style from the image (01, 02, etc.)
+ * Modern pin-style marker with rounded badge
  */
 fun createNumberedMarkerIcon(context: android.content.Context, text: String, color: Int): BitmapDescriptor {
-    val size = 100 // Size of the marker icon
-    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val width = 80
+    val height = 100 // Pin shape: taller than wide
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     
-    // Draw circle background with blue color
-    val paint = Paint().apply {
+    val centerX = width / 2f
+    val badgeRadius = 28f
+    val badgeY = badgeRadius + 8f // Position badge near top
+    
+    // Draw pin shadow (subtle)
+    val shadowPaint = Paint().apply {
+        isAntiAlias = true
+        this.color = Color.parseColor("#40000000")
+        style = Paint.Style.FILL
+    }
+    canvas.drawCircle(centerX, badgeY + 2f, badgeRadius + 2f, shadowPaint)
+    
+    // Draw pin point (bottom triangle)
+    val pinPath = android.graphics.Path().apply {
+        moveTo(centerX, height.toFloat() - 4f)
+        lineTo(centerX - 12f, badgeY + badgeRadius + 8f)
+        lineTo(centerX + 12f, badgeY + badgeRadius + 8f)
+        close()
+    }
+    val pinPaint = Paint().apply {
         isAntiAlias = true
         this.color = color
         style = Paint.Style.FILL
     }
-    val radius = size / 2f - 8f
-    canvas.drawCircle(size / 2f, size / 2f, radius, paint)
+    canvas.drawPath(pinPath, pinPaint)
     
-    // Draw white border (thicker for better visibility)
+    // Draw badge circle background
+    val badgePaint = Paint().apply {
+        isAntiAlias = true
+        this.color = color
+        style = Paint.Style.FILL
+    }
+    canvas.drawCircle(centerX, badgeY, badgeRadius, badgePaint)
+    
+    // Draw white border around badge
     val borderPaint = Paint().apply {
         isAntiAlias = true
         this.color = Color.WHITE
         style = Paint.Style.STROKE
-        strokeWidth = 6f
+        strokeWidth = 4f
     }
-    canvas.drawCircle(size / 2f, size / 2f, radius, borderPaint)
+    canvas.drawCircle(centerX, badgeY, badgeRadius, borderPaint)
     
     // Draw text (white, bold, centered)
     val textPaint = Paint().apply {
         isAntiAlias = true
         this.color = Color.WHITE
-        // Adjust text size based on length (for "01", "02" vs "O", "D")
+        // Adjust text size based on length
         textSize = when {
-            text.length <= 1 -> 36f
-            text.length == 2 -> 28f
-            else -> 24f
+            text.length <= 1 -> 32f
+            text.length == 2 -> 24f
+            else -> 20f
         }
         typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD)
         textAlign = Paint.Align.CENTER
     }
     
-    val textY = size / 2f + (textPaint.descent() + textPaint.ascent()) / 2f
-    canvas.drawText(text, size / 2f, textY, textPaint)
+    val textY = badgeY + (textPaint.descent() + textPaint.ascent()) / 2f
+    canvas.drawText(text, centerX, textY, textPaint)
     
-    return BitmapDescriptorFactory.fromBitmap(bitmap)
+    // Set anchor point to bottom center of pin
+    return BitmapDescriptorFactory.fromBitmap(bitmap).apply {
+        // Anchor at bottom center of pin
+    }
 }
 
 /**
