@@ -433,8 +433,8 @@ fun EditProfileScreen(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clickable {
-                                                    // Set the state title (name) into the text field
-                                                    state = stateItem.title ?: ""
+                                                    // Set the state slug into the text field
+                                                    state = stateItem.slug ?: ""
                                                     expandedStateDropdown = false
                                                     stateError = null
                                                 }
