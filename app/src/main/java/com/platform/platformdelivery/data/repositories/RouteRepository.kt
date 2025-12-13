@@ -183,4 +183,23 @@ class RouteRepository {
         }
     }
 
+    suspend fun routeDeliveryWithOptions(
+        routeId: String,
+        waypointId: String,
+        deliveryStatus: String,
+        currentTime: String
+    ): Result<BaseResponse> {
+        return try {
+            val response = apiService.routeDeliveryWithOptions(routeId, waypointId, deliveryStatus, currentTime)
+            if (response.isSuccessful && response.body() != null) {
+                Result.Success(response.body()!!)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "Failed to update delivery status"
+                Result.Error(errorMsg)
+            }
+        } catch (e: Exception) {
+            Result.Error("Exception occurred: ${e.message}", e)
+        }
+    }
+
 }

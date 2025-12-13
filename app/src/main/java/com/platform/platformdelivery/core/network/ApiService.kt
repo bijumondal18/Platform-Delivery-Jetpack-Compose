@@ -116,6 +116,15 @@ interface ApiService {
         @Field("waypoint_ids") waypointIds: String
     ): Response<BaseResponse>
 
+    @FormUrlEncoded
+    @POST(RouteEndpoints.routeDeliveryWithOptions)
+    suspend fun routeDeliveryWithOptions(
+        @Field("route_id") routeId: String,
+        @Field("waypoint_id") waypointId: String,
+        @Field("delivery_status") deliveryStatus: String, // "delivered" or "failed"
+        @Field("current_time") currentTime: String
+    ): Response<BaseResponse>
+
     @POST(RouteEndpoints.routeDetails)
     suspend fun getRouteDetails(
         @Body requestRouteDetails: RequestRouteDetails

@@ -474,10 +474,7 @@ class RoutesViewModel(
                 when (result) {
                     is Result.Success -> {
                         _loadVehicleResult.value = Result.Success(Unit)
-                        // Refresh route details after loading vehicle
-                        _routeDetails.value?.routeDetailsData?.routeData?.id?.let { id ->
-                            getRouteDetails(RequestRouteDetails(routeId = id.toString()))
-                        }
+                        // Don't refresh here - let the UI handle it via LaunchedEffect
                         onSuccess()
                     }
                     is Result.Error -> {
@@ -489,6 +486,49 @@ class RoutesViewModel(
                 _loadVehicleResult.value = Result.Error(e.message ?: "Failed to load vehicle")
             } finally {
                 _isLoadingVehicle.value = false
+            }
+        }
+    }
+
+    private val _isUpdatingDelivery = MutableStateFlow(false)
+    val isUpdatingDelivery: StateFlow<Boolean> get() = _isUpdatingDelivery
+
+    private val _deliveryUpdateResult = MutableStateFlow<Result<Unit>?>(null)
+    val deliveryUpdateResult: StateFlow<Result<Unit>?> get() = _deliveryUpdateResult
+
+    fun updateWaypointDelivery(
+        routeId: String,
+        waypointId: String,
+        deliveryStatus: String, // "delivered" or "failed"
+        onSuccess: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _isUpdatingDelivery.value = true
+            _deliveryUpdateResult.value = null
+            
+            try {
+                // Format current time as HH:mm:ss
+                val currentTime = SimpleDateFormat(
+                    "HH:mm:ss",
+                    java.util.Locale.getDefault()
+                ).format(Date())
+                
+                val result = routeRepository.routeDeliveryWithOptions(routeId, waypointId, deliveryStatus, currentTime)
+                when (result) {
+                    is Result.Success -> {
+                        _deliveryUpdateResult.value = Result.Success(Unit)
+                        // Don't refresh here - let the UI handle it via LaunchedEffect
+                        onSuccess()
+                    }
+                    is Result.Error -> {
+                        _deliveryUpdateResult.value = Result.Error(result.message)
+                    }
+                    else -> Unit
+                }
+            } catch (e: Exception) {
+                _deliveryUpdateResult.value = Result.Error(e.message ?: "Failed to update delivery")
+            } finally {
+                _isUpdatingDelivery.value = false
             }
         }
     }

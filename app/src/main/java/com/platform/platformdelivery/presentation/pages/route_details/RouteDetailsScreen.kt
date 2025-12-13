@@ -22,6 +22,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreVert
@@ -29,6 +31,7 @@ import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -40,11 +43,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.runtime.Composable
@@ -346,6 +353,8 @@ fun RouteStopsList(
 ) {
     var showMapBottomSheet by remember { mutableStateOf(false) }
     var showLoadVehicleBottomSheet by remember { mutableStateOf(false) }
+    var navigationLat by remember { mutableStateOf<Double?>(null) }
+    var navigationLng by remember { mutableStateOf<Double?>(null) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -360,13 +369,46 @@ fun RouteStopsList(
     // Get route data for status and isloaded check
     val routeData = routeDetails?.routeDetailsData?.routeData
     val routeStatusFromDetails = routeData?.status ?: routeStatus
-    val isloaded = routeData?.isloaded ?: 0
+    
+    // Track isloaded state locally - update when load vehicle succeeds to avoid API call
+    var localIsloaded by remember(routeId) { 
+        mutableStateOf(routeData?.isloaded ?: 0) 
+    }
+    
+    // Update localIsloaded when routeData changes
+    LaunchedEffect(routeData?.isloaded) {
+        localIsloaded = routeData?.isloaded ?: 0
+    }
+    
+    // Update localIsloaded to 1 when load vehicle succeeds
+    LaunchedEffect(loadVehicleResult) {
+        if (loadVehicleResult is com.platform.platformdelivery.core.network.Result.Success) {
+            localIsloaded = 1
+        }
+    }
+    
+    val isloaded = localIsloaded
+    
+    // Track current waypoint locally - set to first waypoint after load vehicle
+    var localCurrentWaypointId by remember(routeId) { 
+        mutableStateOf<Int?>(routeData?.currentWaypoint?.let { (it as? Number)?.toInt() })
+    }
+    
+    // Update localCurrentWaypointId when routeData changes
+    LaunchedEffect(routeData?.currentWaypoint) {
+        localCurrentWaypointId = routeData?.currentWaypoint?.let { (it as? Number)?.toInt() }
+    }
+    
+    val currentWaypointId = localCurrentWaypointId
     
     // Check if already checked in based on route details (trip_start_time exists)
     val isCheckedIn = routeData?.tripStartTime != null
     
     // If status == "ongoing" and isloaded == 0, disable check-in and enable load vehicle
     val isOngoingAndNotLoaded = routeStatusFromDetails.equals("ongoing", ignoreCase = true) && isloaded == 0
+    
+    // Hide origin buttons if vehicle is loaded
+    val shouldShowOriginButtons = isloaded == 0
     
     // Handle trip start result
     LaunchedEffect(tripStartResult) {
@@ -385,49 +427,123 @@ fun RouteStopsList(
         }
     }
     
-    // Handle load vehicle result
-    LaunchedEffect(loadVehicleResult) {
-        when (loadVehicleResult) {
-            is com.platform.platformdelivery.core.network.Result.Success -> {
-                // Refresh route details to get updated isloaded status
-                if (routeId.isNotEmpty()) {
-                    routesViewModel.getRouteDetails(RequestRouteDetails(routeId = routeId))
-                }
-                showLoadVehicleBottomSheet = false
-            }
-            is com.platform.platformdelivery.core.network.Result.Error -> {
-                // Handle error - could show a snackbar
-                android.util.Log.e("RouteDetailsScreen", "Failed to load vehicle: ${(loadVehicleResult as Result.Error).message}")
-            }
-            else -> Unit
-        }
-    }
+    // Snackbar for load vehicle success
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
+    
     // Sort waypoints once and memoize
     val sortedWaypoints = remember(waypoints) {
         waypoints?.sortedBy { waypoint ->
             (waypoint.optimizedOrder as? Number)?.toInt() ?: 0
         } ?: emptyList()
     }
+    
+    // Track if we've handled load vehicle result for this routeId
+    var hasHandledLoadVehicle by remember(routeId) { mutableStateOf(false) }
+    
+    // Handle load vehicle result - update local state only, NO API CALL
+    LaunchedEffect(loadVehicleResult, sortedWaypoints) {
+        if (loadVehicleResult != null && !hasHandledLoadVehicle) {
+            hasHandledLoadVehicle = true
+            when (loadVehicleResult) {
+                is com.platform.platformdelivery.core.network.Result.Success -> {
+                    // Update local state: set isloaded = 1 to hide origin buttons
+                    showLoadVehicleBottomSheet = false
+                    
+                    // Set first waypoint as active (index 0 or first waypoint ID)
+                    sortedWaypoints.firstOrNull()?.let { firstWaypoint ->
+                        val firstWaypointId = (firstWaypoint.id as? Number)?.toInt()
+                        if (firstWaypointId != null) {
+                            localCurrentWaypointId = firstWaypointId
+                        } else {
+                            // If waypoint ID is not available, use index 0
+                            localCurrentWaypointId = 0
+                        }
+                    } ?: run {
+                        // If no waypoints, set to 0
+                        localCurrentWaypointId = 0
+                    }
+                    
+                    // Show success snackbar
+                    snackbarScope.launch {
+                        snackbarHostState.showSnackbar("Vehicle loaded successfully")
+                    }
+                }
+                is com.platform.platformdelivery.core.network.Result.Error -> {
+                    // Show error snackbar
+                    snackbarScope.launch {
+                        snackbarHostState.showSnackbar("Failed to load vehicle: ${(loadVehicleResult as Result.Error).message}")
+                    }
+                }
+                else -> Unit
+            }
+        }
+    }
+    
+    // Reset flag when loadVehicleResult becomes null (new operation started)
+    LaunchedEffect(loadVehicleResult) {
+        if (loadVehicleResult == null) {
+            hasHandledLoadVehicle = false
+        }
+    }
+    
+    // Handle delivery update result - only refresh once
+    val deliveryUpdateResult by routesViewModel.deliveryUpdateResult.collectAsState()
+    var hasHandledDelivery by remember(routeId) { mutableStateOf(false) }
+    LaunchedEffect(deliveryUpdateResult) {
+        if (deliveryUpdateResult != null && !hasHandledDelivery) {
+            hasHandledDelivery = true
+            when (deliveryUpdateResult) {
+                is com.platform.platformdelivery.core.network.Result.Success -> {
+                    // Refresh route details to get updated current_waypoint (only once)
+                    if (routeId.isNotEmpty()) {
+                        routesViewModel.getRouteDetails(RequestRouteDetails(routeId = routeId))
+                    }
+                }
+                is com.platform.platformdelivery.core.network.Result.Error -> {
+                    // Handle error - could show a snackbar
+                    android.util.Log.e("RouteDetailsScreen", "Failed to update delivery: ${(deliveryUpdateResult as Result.Error).message}")
+                }
+                else -> Unit
+            }
+        }
+    }
+    
+    // Reset flag when deliveryUpdateResult becomes null (new operation started)
+    LaunchedEffect(deliveryUpdateResult) {
+        if (deliveryUpdateResult == null) {
+            hasHandledDelivery = false
+        }
+    }
 
     val hasWaypoints = sortedWaypoints.isNotEmpty()
     val hasDestination = destinationPlace.isNotEmpty()
 
-    // Build complete list of stops with notes
-    data class StopInfo(val place: String, val stopNumber: Int, val note: String?)
+    // Build complete list of stops with notes and waypoint info
+    data class StopInfo(
+        val place: String, 
+        val stopNumber: Int, 
+        val note: String?,
+        val waypoint: Waypoint? = null,
+        val waypointId: Int? = null
+    )
 
     val allStops = remember(originPlace, sortedWaypoints, destinationPlace) {
         buildList {
-            add(StopInfo(originPlace, 0, null)) // Origin is stop 0, no note
+            add(StopInfo(originPlace, 0, null, null, null)) // Origin is stop 0, no note
             sortedWaypoints.forEachIndexed { index, waypoint ->
                 val note = waypoint.noteForDrivers?.toString()?.takeIf { it.isNotEmpty() }
                     ?: waypoint.noteForInternalUse?.toString()?.takeIf { it.isNotEmpty() }
-                add(StopInfo(waypoint.place?.toString() ?: "", index + 1, note))
+                val waypointId = (waypoint.id as? Number)?.toInt()
+                add(StopInfo(waypoint.place?.toString() ?: "", index + 1, note, waypoint, waypointId))
             }
             if (hasDestination) {
                 add(
                     StopInfo(
                         destinationPlace,
                         sortedWaypoints.size + 1,
+                        null,
+                        null,
                         null
                     )
                 ) // Destination, no note
@@ -435,14 +551,29 @@ fun RouteStopsList(
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
         allStops.forEachIndexed { index, stopInfo ->
             val isFirst = index == 0 // Origin
             val isLast = index == allStops.size - 1
             val isWaypoint = !isFirst && !isLast
 
+            // Check if this waypoint is the active/current waypoint
+            // currentWaypoint might be an index (0-based) or a waypoint ID
+            // Only show buttons if vehicle is loaded (isloaded == 1)
+            val waypointIndex = if (isWaypoint) index - 1 else null // Subtract 1 because index 0 is origin
+            val isActiveWaypoint = if (isWaypoint && currentWaypointId != null && isloaded == 1) {
+                // Try matching by waypoint ID first
+                val matchesById = stopInfo.waypointId != null && stopInfo.waypointId == currentWaypointId
+                // Or match by index (currentWaypoint might be 0-based index)
+                val matchesByIndex = waypointIndex != null && waypointIndex == currentWaypointId
+                matchesById || matchesByIndex
+            } else {
+                false
+            }
+            
             RouteStopItem(
                 place = stopInfo.place,
                 stopNumber = stopInfo.stopNumber,
@@ -455,10 +586,34 @@ fun RouteStopsList(
                 isRouteAvailable = isRouteAvailable,
                 routeId = routeId,
                 isAcceptingRoute = isAcceptingRoute,
-                shouldShowActionButtons = shouldShowActionButtons,
+                shouldShowActionButtons = shouldShowActionButtons && shouldShowOriginButtons,
                 isStartingTrip = isStartingTrip,
                 isOngoingAndNotLoaded = isOngoingAndNotLoaded,
-                onNavigateClick = { showMapBottomSheet = true },
+                isVehicleLoaded = isloaded == 1,
+                isActiveWaypoint = isActiveWaypoint,
+                waypointId = stopInfo.waypointId?.toString() ?: "",
+                routesViewModel = routesViewModel,
+                onNavigateClick = { 
+                    // Navigate to waypoint if it's a waypoint, otherwise to origin
+                    if (isWaypoint && stopInfo.waypoint != null) {
+                        val lat = parseCoordinate(stopInfo.waypoint.destinationLat)?.toDouble()
+                        val lng = parseCoordinate(stopInfo.waypoint.destinationLng)?.toDouble()
+                        if (lat != null && lng != null) {
+                            navigationLat = lat
+                            navigationLng = lng
+                            showMapBottomSheet = true
+                        }
+                    } else {
+                        // Navigate to origin
+                        val lat = parseCoordinate(originLat)?.toDouble()
+                        val lng = parseCoordinate(originLng)?.toDouble()
+                        if (lat != null && lng != null) {
+                            navigationLat = lat
+                            navigationLng = lng
+                            showMapBottomSheet = true
+                        }
+                    }
+                },
                 onCheckInClick = {
                     if (routeId.isNotEmpty()) {
                         routesViewModel.tripStartTime(routeId) {
@@ -471,6 +626,28 @@ fun RouteStopsList(
                     if (routeId.isNotEmpty()) {
                         routesViewModel.acceptRoute(routeId) {
                             onRouteAccepted()
+                        }
+                    }
+                },
+                onDeliverClick = {
+                    if (routeId.isNotEmpty() && stopInfo.waypointId != null) {
+                        routesViewModel.updateWaypointDelivery(
+                            routeId,
+                            stopInfo.waypointId.toString(),
+                            "delivered"
+                        ) {
+                            // Success handled in LaunchedEffect
+                        }
+                    }
+                },
+                onFailedClick = {
+                    if (routeId.isNotEmpty() && stopInfo.waypointId != null) {
+                        routesViewModel.updateWaypointDelivery(
+                            routeId,
+                            stopInfo.waypointId.toString(),
+                            "failed"
+                        ) {
+                            // Success handled in LaunchedEffect
                         }
                     }
                 }
@@ -487,23 +664,41 @@ fun RouteStopsList(
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
+        }
+        
+        // Snackbar host
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) { snackbarData ->
+            Snackbar(
+                snackbarData = snackbarData,
+                shape = RoundedCornerShape(8.dp),
+                containerColor = if (snackbarData.visuals.message.contains("Failed", ignoreCase = true)) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    SuccessGreen
+                },
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
+        }
     }
 
     // Map selection bottom sheet
-    if (showMapBottomSheet) {
+    if (showMapBottomSheet && navigationLat != null && navigationLng != null) {
         MapSelectionBottomSheet(
-            onDismiss = { showMapBottomSheet = false },
+            onDismiss = { 
+                showMapBottomSheet = false
+                navigationLat = null
+                navigationLng = null
+            },
             onMapSelected = { mapPackage ->
-                val lat = waypoints?.firstOrNull()?.let {
-                    parseCoordinate(it.destinationLat)?.toDouble()
-                }
-                val lng = waypoints?.firstOrNull()?.let {
-                    parseCoordinate(it.destinationLng)?.toDouble()
-                }
-                if (lat != null && lng != null) {
-                    openMap(context, mapPackage, lat, lng)
+                if (navigationLat != null && navigationLng != null) {
+                    openMap(context, mapPackage, navigationLat!!, navigationLng!!)
                 }
                 showMapBottomSheet = false
+                navigationLat = null
+                navigationLng = null
             }
         )
     }
@@ -597,11 +792,18 @@ fun RouteStopItem(
     isStartingTrip: Boolean = false,
     shouldShowActionButtons: Boolean = true,
     isOngoingAndNotLoaded: Boolean = false,
+    isVehicleLoaded: Boolean = false,
+    isActiveWaypoint: Boolean = false,
+    waypointId: String = "",
+    routesViewModel: RoutesViewModel? = null,
     onNavigateClick: () -> Unit = {},
     onCheckInClick: () -> Unit = {},
     onLoadVehicleClick: () -> Unit = {},
-    onAcceptRouteClick: () -> Unit = {}
+    onAcceptRouteClick: () -> Unit = {},
+    onDeliverClick: () -> Unit = {},
+    onFailedClick: () -> Unit = {}
 ) {
+    val isUpdatingDelivery by routesViewModel?.isUpdatingDelivery?.collectAsState() ?: remember { mutableStateOf(false) }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -617,7 +819,10 @@ fun RouteStopItem(
                 modifier = Modifier
                     .size(32.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        color = if (isActiveWaypoint) 
+                            SuccessGreen.copy(alpha = 0.2f)
+                        else 
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                         shape = CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -628,14 +833,14 @@ fun RouteStopItem(
                         imageVector = Icons.Default.Home,
                         contentDescription = if (isFirst) "Origin" else "Destination",
                         modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = if (isActiveWaypoint) SuccessGreen else MaterialTheme.colorScheme.primary
                     )
                 } else {
                     // Number badge for waypoints (starting from 01)
                     Text(
                         text = String.format("%02d", stopNumber),
                         style = AppTypography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
+                        color = if (isActiveWaypoint) SuccessGreen else MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -648,7 +853,10 @@ fun RouteStopItem(
                         .width(3.dp)
                         .height(40.dp)
                         .background(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                            color = if (isActiveWaypoint) 
+                                SuccessGreen.copy(alpha = 0.6f)
+                            else 
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                             shape = MaterialTheme.shapes.small
                         )
                 )
@@ -665,7 +873,7 @@ fun RouteStopItem(
             Text(
                 text = title,
                 style = AppTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.primary
+                color = if (isActiveWaypoint) SuccessGreen else MaterialTheme.colorScheme.primary
             )
 
             // Address and time row
@@ -705,8 +913,8 @@ fun RouteStopItem(
                 )
             }
 
-            // Action buttons for origin
-            if (isFirst && shouldShowActionButtons) {
+            // Action buttons for origin (only show if vehicle is not loaded)
+            if (isFirst && shouldShowActionButtons && !isVehicleLoaded) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -847,6 +1055,119 @@ fun RouteStopItem(
                                     style = AppTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
                                 )
                             }
+                        }
+                    }
+                }
+            }
+            
+            // Action buttons for active waypoint (when vehicle is loaded)
+            if (isWaypoint && isActiveWaypoint && isVehicleLoaded) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Navigate button
+                    Button(
+                        onClick = onNavigateClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(36.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Navigation,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Navigate",
+                            style = AppTypography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+                    
+                    // Deliver and Failed buttons row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Deliver button
+                        Button(
+                            onClick = onDeliverClick,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp),
+                            enabled = !isUpdatingDelivery,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = SuccessGreen,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            if (isUpdatingDelivery) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            Text(
+                                text = if (isUpdatingDelivery) "Delivering..." else "Deliver",
+                                style = AppTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        }
+                        
+                        // Failed button
+                        Button(
+                            onClick = onFailedClick,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp),
+                            enabled = !isUpdatingDelivery,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError,
+                                disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            if (isUpdatingDelivery) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = MaterialTheme.colorScheme.onError,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            Text(
+                                text = if (isUpdatingDelivery) "Updating..." else "Failed",
+                                style = AppTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+                            )
                         }
                     }
                 }
