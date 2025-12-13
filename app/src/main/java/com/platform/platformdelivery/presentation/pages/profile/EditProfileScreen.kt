@@ -366,6 +366,16 @@ fun EditProfileScreen(
         
         // State Selection Bottom Sheet (outside Column for proper rendering)
         if (expandedStateDropdown) {
+            // Calculate dynamic height based on list size
+            val itemHeight = 56.dp // Height per item (16dp padding * 2 + text height)
+            val headerHeight = 68.dp // Header + divider height
+            val maxHeight = 500.dp // Maximum height
+            val calculatedHeight = if (stateList.isEmpty() || isLoadingStates) {
+                200.dp // Minimum height for loading/empty states
+            } else {
+                (headerHeight + (itemHeight * stateList.size)).coerceAtMost(maxHeight)
+            }
+            
             ModalBottomSheet(
                 onDismissRequest = { expandedStateDropdown = false },
                 sheetState = bottomSheetState,
@@ -384,7 +394,7 @@ fun EditProfileScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(500.dp)
+                        .height(calculatedHeight)
                 ) {
                     // Header
                     Text(
