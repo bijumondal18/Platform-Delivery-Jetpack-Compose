@@ -473,7 +473,7 @@ class RoutesViewModel(
     private val _loadVehicleResult = MutableStateFlow<Result<Unit>?>(null)
     val loadVehicleResult: StateFlow<Result<Unit>?> get() = _loadVehicleResult
 
-    fun loadVehicle(routeId: String, waypointIds: List<Int>, onSuccess: () -> Unit = {}) {
+    fun loadVehicle(routeId: String, waypointIds: List<Int>, lat: Double, lng: Double, datetime: String, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             _isLoadingVehicle.value = true
             _loadVehicleResult.value = null
@@ -482,7 +482,7 @@ class RoutesViewModel(
                 // Convert waypoint IDs to comma-separated string
                 val waypointIdsString = waypointIds.joinToString(",")
                 
-                val result = routeRepository.vehicleLoaded(routeId, waypointIdsString)
+                val result = routeRepository.vehicleLoaded(routeId, waypointIdsString, lat.toString(), lng.toString(), datetime)
                 when (result) {
                     is Result.Success -> {
                         _loadVehicleResult.value = Result.Success(Unit)

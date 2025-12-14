@@ -113,7 +113,10 @@ interface ApiService {
     @POST(VehicleEndpoints.vehicleLoaded)
     suspend fun vehicleLoaded(
         @Field("route_id") routeId: String,
-        @Field("waypoint_ids") waypointIds: String
+        @Field("waypoint_ids") waypointIds: String,
+        @Field("lat") lat: String,
+        @Field("lng") lng: String,
+        @Field("datetime") datetime: String
     ): Response<BaseResponse>
 
     @FormUrlEncoded

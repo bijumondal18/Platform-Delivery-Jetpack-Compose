@@ -169,9 +169,9 @@ class RouteRepository {
         }
     }
 
-    suspend fun vehicleLoaded(routeId: String, waypointIds: String): Result<BaseResponse> {
+    suspend fun vehicleLoaded(routeId: String, waypointIds: String, lat: String, lng: String, datetime: String): Result<BaseResponse> {
         return try {
-            val response = apiService.vehicleLoaded(routeId, waypointIds)
+            val response = apiService.vehicleLoaded(routeId, waypointIds, lat, lng, datetime)
             if (response.isSuccessful && response.body() != null) {
                 Result.Success(response.body()!!)
             } else {

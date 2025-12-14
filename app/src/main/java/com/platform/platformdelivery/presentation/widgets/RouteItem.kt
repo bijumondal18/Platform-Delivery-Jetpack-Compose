@@ -109,7 +109,11 @@ fun RouteItem(
                     }
                     
                     // Cancel Trip button or Chevron icon
-                    if (showCancelButton && onCancelClick != null) {
+                    // Hide cancel button if trip is ongoing
+                    val isOngoing = route.status?.lowercase() == "ongoing"
+                    val shouldShowCancel = showCancelButton && onCancelClick != null && !isOngoing
+                    
+                    if (shouldShowCancel) {
                         Button(
                             onClick = { onCancelClick(route) },
                             modifier = Modifier.height(36.dp),

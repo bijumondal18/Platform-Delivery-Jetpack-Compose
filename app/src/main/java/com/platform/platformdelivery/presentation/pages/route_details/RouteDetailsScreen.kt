@@ -89,6 +89,16 @@ import com.platform.platformdelivery.data.models.Waypoint
 import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
 import com.platform.platformdelivery.presentation.widgets.RouteMapBox
 import java.time.format.DateTimeFormatter
+import android.Manifest
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -211,6 +221,8 @@ fun RouteDetailsScreen(
                                     )
                                 }
 
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
                             RouteMapBox(
                                 latitude = mapParams.latitude,
                                 longitude = mapParams.longitude,
@@ -774,7 +786,14 @@ fun calculateScheduledTime(startTime: String?, stopIndex: Int): String {
         val finalHour = (totalMinutes / 60) % 24
         val finalMinute = totalMinutes % 60
 
-        String.format("%d:%02d", finalHour, finalMinute)
+        // Convert to AM/PM format
+        val hour12 = when {
+            finalHour == 0 -> 12
+            finalHour > 12 -> finalHour - 12
+            else -> finalHour
+        }
+        val amPm = if (finalHour < 12) "AM" else "PM"
+        String.format("%d:%02d %s", hour12, finalMinute, amPm)
     } catch (e: Exception) {
         ""
     }
@@ -1370,6 +1389,9 @@ fun LoadVehicleBottomSheet(
     routesViewModel: RoutesViewModel,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     
     // Track checked waypoints by their IDs
@@ -1492,17 +1514,75 @@ fun LoadVehicleBottomSheet(
             // Submit button
             Button(
                 onClick = {
-                    val checkedIds = waypoints.mapNotNull { waypoint ->
-                        val waypointId = (waypoint.id as? Number)?.toInt()
-                        if (waypointId != null && checkedWaypoints[waypointId] == true) {
-                            waypointId
-                        } else {
-                            null
-                        }
-                    }
-                    if (routeId.isNotEmpty() && checkedIds.isNotEmpty()) {
-                        routesViewModel.loadVehicle(routeId, checkedIds) {
-                            // Success handled in LaunchedEffect
+                    coroutineScope.launch {
+                        try {
+                            // Get current location
+                            val hasLocationPermission = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.ACCESS_FINE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED ||
+                                    ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                    ) == PackageManager.PERMISSION_GRANTED
+
+                            if (!hasLocationPermission) {
+                                // Handle permission error - could show snackbar
+                                return@launch
+                            }
+
+                            // Get current location
+                            var location = suspendCancellableCoroutine<android.location.Location?> { continuation ->
+                                fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
+                                    continuation.resume(loc)
+                                }.addOnFailureListener { e ->
+                                    continuation.resumeWithException(e)
+                                }
+                            }
+                            
+                            // If lastLocation is null, request a fresh location update
+                            if (location == null) {
+                                location = suspendCancellableCoroutine { continuation ->
+                                    fusedLocationClient.getCurrentLocation(
+                                        com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
+                                        null
+                                    ).addOnSuccessListener { loc ->
+                                        continuation.resume(loc)
+                                    }.addOnFailureListener { e ->
+                                        continuation.resume(null)
+                                    }
+                                }
+                            }
+
+                            if (location != null) {
+                                val checkedIds = waypoints.mapNotNull { waypoint ->
+                                    val waypointId = (waypoint.id as? Number)?.toInt()
+                                    if (waypointId != null && checkedWaypoints[waypointId] == true) {
+                                        waypointId
+                                    } else {
+                                        null
+                                    }
+                                }
+                                
+                                if (routeId.isNotEmpty() && checkedIds.isNotEmpty()) {
+                                    // Format datetime as yyyy-MM-dd HH:mm:ss
+                                    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                                    val datetime = dateFormat.format(Date())
+                                    
+                                    routesViewModel.loadVehicle(
+                                        routeId, 
+                                        checkedIds,
+                                        location.latitude,
+                                        location.longitude,
+                                        datetime
+                                    ) {
+                                        // Success handled in LaunchedEffect
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            // Handle error - could show snackbar
+                            android.util.Log.e("LoadVehicleBottomSheet", "Error getting location: ${e.message}")
                         }
                     }
                 },
