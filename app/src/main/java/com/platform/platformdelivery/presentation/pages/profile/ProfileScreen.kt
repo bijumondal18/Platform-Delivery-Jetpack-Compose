@@ -26,9 +26,17 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.PrivacyTip
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.ContactSupport
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -49,6 +57,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import android.content.pm.PackageManager
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -390,140 +400,190 @@ fun ProfileScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Action Buttons
-            Column(
+            // Main Menu Items Card
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                colors = androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
-                // First Row: Edit and Refer & Earn
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
                 ) {
-                    // Edit Profile Button
-                    Button(
+                    // Edit Profile
+                    ProfileMenuItem(
+                        icon = Icons.Default.Edit,
+                        title = "Edit Profile",
                         onClick = {
                             navController?.navigate("editProfile") {
-                                // Pop up to main screen so back button works correctly
                                 popUpTo("main") { inclusive = false }
                             }
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Profile",
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(
-                            text = "Edit",
-                            style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                        )
-                    }
+                        }
+                    )
 
-                    // Refer & Earn Button
-                    Button(
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    )
+
+                    // Refer & Earn
+                    ProfileMenuItem(
+                        icon = Icons.Default.Share,
+                        title = "Refer & Earn",
                         onClick = {
                             navController?.navigate("refer_earn") {
                                 popUpTo("main") { inclusive = false }
                             }
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    ) {
-                        Text(
-                            text = "Refer & Earn",
-                            style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                        )
-                    }
+                        }
+                    )
                 }
+            }
 
-                // Second Row: Tutorials and Contact Admin
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Support Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
                 ) {
-                    // Tutorials Button
-                    Button(
+                    // Tutorials
+                    ProfileMenuItem(
+                        icon = Icons.Default.School,
+                        title = "Tutorials",
                         onClick = {
                             navController?.navigate("tutorials") {
                                 popUpTo("main") { inclusive = false }
                             }
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    ) {
-                        Text(
-                            text = "Tutorials",
-                            style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                        )
-                    }
+                        }
+                    )
 
-                    // Contact Admin Button
-                    Button(
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    )
+
+                    // Contact Admin
+                    ProfileMenuItem(
+                        icon = Icons.Default.ContactSupport,
+                        title = "Contact Admin",
                         onClick = {
                             navController?.navigate("contact_admin") {
                                 popUpTo("main") { inclusive = false }
                             }
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    ) {
-                        Text(
-                            text = "Contact Admin",
-                            style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                        )
-                    }
-                }
-
-                // Logout Button (Full Width)
-                Button(
-                    onClick = {
-                        showLogoutDialog = true
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                ) {
-                    Text(
-                        text = "Logout",
-                        style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                        }
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Legal & Info Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                ) {
+                    // About Us
+                    ProfileMenuItem(
+                        icon = Icons.Default.Info,
+                        title = "About Us",
+                        onClick = {
+                            navController?.navigate("about_us") {
+                                popUpTo("main") { inclusive = false }
+                            }
+                        }
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    )
+
+                    // Privacy Policy
+                    ProfileMenuItem(
+                        icon = Icons.Default.PrivacyTip,
+                        title = "Privacy Policy",
+                        onClick = {
+                            navController?.navigate("privacy_policy") {
+                                popUpTo("main") { inclusive = false }
+                            }
+                        }
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    )
+
+                    // Terms & Conditions
+                    ProfileMenuItem(
+                        icon = Icons.Default.Description,
+                        title = "Terms & Conditions",
+                        onClick = {
+                            navController?.navigate("terms_conditions") {
+                                popUpTo("main") { inclusive = false }
+                            }
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Logout Button
+            Button(
+                onClick = {
+                    showLogoutDialog = true
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                )
+            ) {
+                Text(
+                    text = "Logout",
+                    style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // App Version
+            val appVersion = try {
+                val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                packageInfo.versionName ?: "1.0"
+            } catch (e: PackageManager.NameNotFoundException) {
+                "1.0"
+            }
+
+            Text(
+                text = "Version $appVersion",
+                style = AppTypography.bodySmall.copy(
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                )
+            )
         }
 
     // Image Picker Bottom Sheet
@@ -581,6 +641,45 @@ fun ProfileDetailItem(
             style = AppTypography.bodyLarge.copy(
                 color = MaterialTheme.colorScheme.onBackground
             )
+        )
+    }
+}
+
+@Composable
+fun ProfileMenuItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = title,
+                style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
         )
     }
 }

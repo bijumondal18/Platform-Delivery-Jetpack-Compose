@@ -16,13 +16,16 @@ import com.platform.platformdelivery.data.local.TokenManager
 import com.platform.platformdelivery.presentation.pages.auth.forgot_password.ForgotPasswordScreen
 import com.platform.platformdelivery.presentation.pages.auth.login.LoginScreen
 import com.platform.platformdelivery.presentation.pages.auth.register.SignupScreen
+import com.platform.platformdelivery.presentation.pages.about_us.AboutUsScreen
 import com.platform.platformdelivery.presentation.pages.contact_admin.ContactAdminScreen
 import com.platform.platformdelivery.presentation.pages.main.MainBottomNavScreen
 import com.platform.platformdelivery.presentation.pages.notifications.NotificationScreen
 import com.platform.platformdelivery.presentation.pages.permissions.PermissionScreen
+import com.platform.platformdelivery.presentation.pages.privacy_policy.PrivacyPolicyScreen
 import com.platform.platformdelivery.presentation.pages.profile.EditProfileScreen
 import com.platform.platformdelivery.presentation.pages.refer_earn.ReferEarnScreen
 import com.platform.platformdelivery.presentation.pages.route_details.RouteDetailsScreen
+import com.platform.platformdelivery.presentation.pages.terms_conditions.TermsConditionsScreen
 import com.platform.platformdelivery.presentation.pages.tutorials.TutorialsScreen
 import com.platform.platformdelivery.presentation.view_models.AuthViewModel
 
@@ -109,6 +112,15 @@ fun PlatformDeliveryApp(
                 }
                 composable("tutorials") {
                     TutorialsScreen(navController = navController)
+                }
+                composable("about_us") {
+                    AboutUsScreen(navController = navController)
+                }
+                composable("privacy_policy") {
+                    PrivacyPolicyScreen(navController = navController)
+                }
+                composable("terms_conditions") {
+                    TermsConditionsScreen(navController = navController)
                 }
             }
         }
