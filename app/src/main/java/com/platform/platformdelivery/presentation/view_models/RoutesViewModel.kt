@@ -71,6 +71,14 @@ class RoutesViewModel(
     private val _acceptedTripsError = MutableStateFlow<String?>(null)
     val acceptedTripsError: StateFlow<String?> get() = _acceptedTripsError
 
+    // Selected chip state for RouteScreenWithChips
+    private val _selectedChip = MutableStateFlow("Available")
+    val selectedChip: StateFlow<String> get() = _selectedChip
+    
+    fun setSelectedChip(chip: String) {
+        _selectedChip.value = chip
+    }
+
     fun loadAvailableRoutesOnce(
         date: String? = null, 
         radius: String? = null,

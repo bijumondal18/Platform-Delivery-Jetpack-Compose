@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,8 +45,15 @@ fun RoutesScreenWithChips(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    // Chip state
-    var selectedChip by remember { mutableStateOf("Available") }
+    // Chip state - get from ViewModel to persist across navigation
+    val selectedChipState by routesViewModel.selectedChip.collectAsState()
+    var selectedChip by remember { mutableStateOf(selectedChipState) }
+    
+    // Update local state when ViewModel state changes
+    LaunchedEffect(selectedChipState) {
+        selectedChip = selectedChipState
+    }
+    
     val chipOptions = listOf("Available", "Accepted", "Route History")
 
     // Reload data when switching tabs to ensure correct data is shown
@@ -82,7 +90,10 @@ fun RoutesScreenWithChips(
                 val selected = chip == selectedChip
                 FilterChip(
                     selected = selected,
-                    onClick = { selectedChip = chip },
+                    onClick = { 
+                        selectedChip = chip
+                        routesViewModel.setSelectedChip(chip)
+                    },
                     label = {
                         Text(
                             chip,
