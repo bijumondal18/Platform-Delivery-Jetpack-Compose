@@ -98,6 +98,10 @@ class RoutesViewModel(
         hasLoadedRouteHistory = false
     }
 
+    fun resetAcceptedTripsFlag() {
+        hasLoadedAcceptedTrips = false
+    }
+
 
     fun getAvailableRoutes(
         page: Int = 1, 

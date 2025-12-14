@@ -53,10 +53,17 @@ fun RoutesScreenWithChips(
         when (selectedChip) {
             "Available" -> {
                 routesViewModel.resetRouteHistoryFlag()
+                routesViewModel.resetAcceptedTripsFlag()
                 routesViewModel.getAvailableRoutes(1)
+            }
+            "Accepted" -> {
+                routesViewModel.resetAvailableRoutesFlag()
+                routesViewModel.resetRouteHistoryFlag()
+                routesViewModel.getAcceptedTrips(1)
             }
             "Route History" -> {
                 routesViewModel.resetAvailableRoutesFlag()
+                routesViewModel.resetAcceptedTripsFlag()
                 routesViewModel.getRouteHistory(1)
             }
         }

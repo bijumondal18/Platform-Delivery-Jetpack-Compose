@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -85,7 +84,13 @@ fun MyAcceptedRoutesScreen(
     }
 
     LaunchedEffect(Unit) {
-        routesViewModel.loadAcceptedTripsOnce()
+        // Reset flag and reload when screen is navigated to
+        routesViewModel.resetAcceptedTripsFlag()
+        routesViewModel.getAcceptedTrips(
+            1,
+            date = pickedDate ?: LocalDate.now()
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        )
     }
 
     // Handle cancel route result
@@ -160,16 +165,15 @@ fun MyAcceptedRoutesScreen(
             when {
                 isLoading && !isRefreshing -> {
                     item {
-                        Box(
+                        Text(
+                            "Loading routes...",
+                            style = AppTypography.bodyLarge,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                                .padding(16.dp)
+                        )
                     }
                 }
 
