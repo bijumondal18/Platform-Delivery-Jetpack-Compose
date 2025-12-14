@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,12 +17,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -108,8 +108,24 @@ fun RouteItem(
                         )
                     }
                     
-                    // Chevron icon (only when no cancel button)
-                    if (!showCancelButton || onCancelClick == null) {
+                    // Cancel Trip button or Chevron icon
+                    if (showCancelButton && onCancelClick != null) {
+                        Button(
+                            onClick = { onCancelClick(route) },
+                            modifier = Modifier.height(36.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            shape = MaterialTheme.shapes.medium,
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "Cancel Trip",
+                                style = AppTypography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        }
+                    } else {
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
                             contentDescription = "View Details",
@@ -203,21 +219,6 @@ fun RouteItem(
                             )
                         }
                     }
-                }
-            }
-            
-            // Cancel button (outside clickable area, for accepted routes)
-            if (showCancelButton && onCancelClick != null) {
-                IconButton(
-                    onClick = { onCancelClick(route) },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Cancel Route",
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.error
-                    )
                 }
             }
         }
