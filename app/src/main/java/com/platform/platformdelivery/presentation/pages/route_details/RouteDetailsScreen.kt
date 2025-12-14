@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreVert
@@ -662,6 +663,9 @@ fun RouteStopsList(
                     modifier = Modifier.padding(start = 60.dp) // Align with content
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+            } else {
+                // Add extra space after destination
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
         }
@@ -828,9 +832,9 @@ fun RouteStopItem(
                 contentAlignment = Alignment.Center
             ) {
                 if (isFirst || isLast) {
-                    // Home icon for origin and destination
+                    // Home icon for origin, Flag icon for destination
                     Icon(
-                        imageVector = Icons.Default.Home,
+                        imageVector = if (isFirst) Icons.Default.Home else Icons.Default.Flag,
                         contentDescription = if (isFirst) "Origin" else "Destination",
                         modifier = Modifier.size(20.dp),
                         tint = if (isActiveWaypoint) SuccessGreen else MaterialTheme.colorScheme.primary
