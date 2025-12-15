@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -285,6 +286,8 @@ fun LoginScreen(
                 withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))) {
                     append("By signing up, you are creating an account and agree to our ")
                 }
+                // Terms link
+                pushStringAnnotation(tag = "terms", annotation = "terms_conditions")
                 withStyle(
                     style = SpanStyle(
                         color = MaterialTheme.colorScheme.primary,
@@ -293,9 +296,12 @@ fun LoginScreen(
                 ) {
                     append("Terms")
                 }
+                pop()
                 withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))) {
                     append(" and ")
                 }
+                // Privacy Policy link
+                pushStringAnnotation(tag = "privacy", annotation = "privacy_policy")
                 withStyle(
                     style = SpanStyle(
                         color = MaterialTheme.colorScheme.primary,
@@ -304,16 +310,37 @@ fun LoginScreen(
                 ) {
                     append("Privacy Policy")
                 }
+                pop()
                 withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))) {
                     append(".")
                 }
             }
 
-            Text(
+            ClickableText(
                 text = termsText,
-                style = AppTypography.bodySmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                style = AppTypography.bodySmall.copy(textAlign = TextAlign.Center),
+                modifier = Modifier.padding(horizontal = 16.dp),
+                onClick = { offset ->
+                    termsText.getStringAnnotations(
+                        tag = "terms",
+                        start = offset,
+                        end = offset
+                    ).firstOrNull()?.let {
+                        navController.navigate("terms_conditions") {
+                            popUpTo("login") { inclusive = false }
+                        }
+                        return@ClickableText
+                    }
+                    termsText.getStringAnnotations(
+                        tag = "privacy",
+                        start = offset,
+                        end = offset
+                    ).firstOrNull()?.let {
+                        navController.navigate("privacy_policy") {
+                            popUpTo("login") { inclusive = false }
+                        }
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(32.dp))
