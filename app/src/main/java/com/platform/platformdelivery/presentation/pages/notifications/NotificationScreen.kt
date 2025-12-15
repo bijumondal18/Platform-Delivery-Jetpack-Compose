@@ -22,6 +22,7 @@ import androidx.compose.material3.HorizontalDivider
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.Calendar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DoneAll
@@ -70,6 +71,14 @@ import com.platform.platformdelivery.presentation.view_models.NotificationViewMo
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * Represents an item in the notification list (either a date header or a notification)
+ */
+sealed class NotificationListItem {
+    data class DateHeaderItem(val dateKey: String, val firstNotification: Notification) : NotificationListItem()
+    data class NotificationItemData(val notification: Notification, val isLastInGroup: Boolean) : NotificationListItem()
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NotificationScreen(
@@ -106,6 +115,26 @@ fun NotificationScreen(
     val unreadNotificationsEmpty by notificationViewModel.unreadNotificationsEmpty.collectAsState()
     val noMoreUnreadNotificationsAvailable by notificationViewModel.noMoreUnreadNotificationsAvailable.collectAsState()
     val unreadNotificationsError by notificationViewModel.unreadNotificationsError.collectAsState()
+
+    // Group notifications by date for All notifications
+    val allNotificationsListItems = remember(allNotifications) {
+        if (allNotifications.isNotEmpty()) {
+            val grouped = groupNotificationsByDate(allNotifications)
+            createNotificationListItems(grouped)
+        } else {
+            emptyList()
+        }
+    }
+
+    // Group notifications by date for Unread notifications
+    val unreadNotificationsListItems = remember(unreadNotifications) {
+        if (unreadNotifications.isNotEmpty()) {
+            val grouped = groupNotificationsByDate(unreadNotifications)
+            createNotificationListItems(grouped)
+        } else {
+            emptyList()
+        }
+    }
 
     // Initial load - load "All" notifications when screen first appears
     LaunchedEffect(Unit) {
@@ -353,23 +382,38 @@ fun NotificationScreen(
                                 }
                                 allNotifications.isNotEmpty() -> {
                                     // Only show list when we have data
-                                    itemsIndexed(allNotifications) { index, notification ->
-                                        NotificationItem(
-                                            notification = notification,
-                                            onNotificationClick = {
-                                                // Navigate to route details using notifiableId as route ID
-                                                val routeId = notification.notifiableId?.toString()
-                                                if (!routeId.isNullOrEmpty()) {
-                                                    navController.navigate("routeDetails/$routeId")
+                                    itemsIndexed(
+                                        items = allNotificationsListItems,
+                                        key = { index, item ->
+                                            when (item) {
+                                                is NotificationListItem.DateHeaderItem -> "header_${item.dateKey}"
+                                                is NotificationListItem.NotificationItemData -> "notification_${item.notification.id}_$index"
+                                            }
+                                        }
+                                    ) { index, item ->
+                                        when (item) {
+                                            is NotificationListItem.DateHeaderItem -> {
+                                                DateHeader(item.dateKey, item.firstNotification)
+                                            }
+                                            is NotificationListItem.NotificationItemData -> {
+                                                NotificationItem(
+                                                    notification = item.notification,
+                                                    onNotificationClick = {
+                                                        // Navigate to route details using notifiableId as route ID
+                                                        val routeId = item.notification.id.toString()
+                                                        if (!routeId.isNullOrEmpty()) {
+                                                            navController.navigate("routeDetails/$routeId")
+                                                        }
+                                                    }
+                                                )
+                                                if (!item.isLastInGroup) {
+                                                    HorizontalDivider(
+                                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                                        thickness = 1.dp
+                                                    )
                                                 }
                                             }
-                                        )
-                                        if (index < allNotifications.size - 1) {
-                                            HorizontalDivider(
-                                                modifier = Modifier.padding(horizontal = 16.dp),
-                                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                                thickness = 1.dp
-                                            )
                                         }
                                     }
                                     // Loading indicator at bottom when loading more (pagination)
@@ -438,23 +482,38 @@ fun NotificationScreen(
                                 }
                                 unreadNotifications.isNotEmpty() -> {
                                     // Only show list when we have data
-                                    itemsIndexed(unreadNotifications) { index, notification ->
-                                        NotificationItem(
-                                            notification = notification,
-                                            onNotificationClick = {
-                                                // Navigate to route details using notifiableId as route ID
-                                                val routeId = notification.notifiableId?.toString()
-                                                if (!routeId.isNullOrEmpty()) {
-                                                    navController.navigate("routeDetails/$routeId")
+                                    itemsIndexed(
+                                        items = unreadNotificationsListItems,
+                                        key = { index, item ->
+                                            when (item) {
+                                                is NotificationListItem.DateHeaderItem -> "header_${item.dateKey}"
+                                                is NotificationListItem.NotificationItemData -> "notification_${item.notification.id}_$index"
+                                            }
+                                        }
+                                    ) { index, item ->
+                                        when (item) {
+                                            is NotificationListItem.DateHeaderItem -> {
+                                                DateHeader(item.dateKey, item.firstNotification)
+                                            }
+                                            is NotificationListItem.NotificationItemData -> {
+                                                NotificationItem(
+                                                    notification = item.notification,
+                                                    onNotificationClick = {
+                                                        // Navigate to route details using notifiableId as route ID
+                                                        val routeId = item.notification.notifiableId?.toString()
+                                                        if (!routeId.isNullOrEmpty()) {
+                                                            navController.navigate("routeDetails/$routeId")
+                                                        }
+                                                    }
+                                                )
+                                                if (!item.isLastInGroup) {
+                                                    HorizontalDivider(
+                                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                                                        thickness = 1.dp
+                                                    )
                                                 }
                                             }
-                                        )
-                                        if (index < unreadNotifications.size - 1) {
-                                            HorizontalDivider(
-                                                modifier = Modifier.padding(horizontal = 16.dp),
-                                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                                thickness = 1.dp
-                                            )
                                         }
                                     }
                                     // Loading indicator at bottom when loading more (pagination)
@@ -484,6 +543,25 @@ fun NotificationScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun DateHeader(dateKey: String, firstNotification: Notification) {
+    val headerText = remember(dateKey, firstNotification.createdAt) {
+        formatDateHeader(firstNotification.createdAt)
+    }
+    
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = headerText,
+            style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+        )
     }
 }
 
@@ -581,7 +659,7 @@ fun NotificationItem(
                         Text(
                             text = formattedTime,
                             style = AppTypography.labelSmall,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
                         )
                         
                         // Chevron icon - all notifications are clickable
@@ -589,7 +667,7 @@ fun NotificationItem(
                             imageVector = Icons.Default.ChevronRight,
                             contentDescription = "View Details",
                             modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
                     }
                 }
@@ -618,13 +696,13 @@ fun NotificationItem(
                                 Text(
                                     text = "From:",
                                     style = AppTypography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
                                     text = originAddress,
                                     style = AppTypography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f),
                                     maxLines = 1
                                 )
                             }
@@ -637,13 +715,13 @@ fun NotificationItem(
                                 Text(
                                     text = "To:",
                                     style = AppTypography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
                                     text = destinationAddress,
                                     style = AppTypography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f),
                                     maxLines = 1
                                 )
                             }
@@ -651,12 +729,6 @@ fun NotificationItem(
                     }
                 }
                 
-                // Date below message
-                Text(
-                    text = formattedDate,
-                    style = AppTypography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-                )
             }
         }
     }
@@ -719,7 +791,7 @@ fun extractRouteAddress(routeData: Any?, type: String): String? {
 }
 
 /**
- * Formats a date string from ISO format to "HH:mm" format
+ * Formats a date string from ISO format to "hh:mm a" format (AM/PM)
  */
 fun formatNotificationTime(dateString: String?): String {
     if (dateString.isNullOrEmpty()) return ""
@@ -729,7 +801,7 @@ fun formatNotificationTime(dateString: String?): String {
         val date = inputFormat.parse(dateString)
         
         if (date != null) {
-            val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
             timeFormat.format(date)
         } else {
             // Fallback: try simpler format
@@ -737,7 +809,7 @@ fun formatNotificationTime(dateString: String?): String {
                 val inputFormat2 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
                 val date2 = inputFormat2.parse(dateString)
                 if (date2 != null) {
-                    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+                    val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
                     timeFormat.format(date2)
                 } else {
                     ""
@@ -749,6 +821,139 @@ fun formatNotificationTime(dateString: String?): String {
     } catch (e: Exception) {
         ""
     }
+}
+
+/**
+ * Extracts date key from ISO date string (yyyy-MM-dd format)
+ */
+fun extractDateKey(dateString: String?): String {
+    if (dateString.isNullOrEmpty()) return ""
+    
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
+        val date = inputFormat.parse(dateString)
+        
+        if (date != null) {
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            dateFormat.format(date)
+        } else {
+            // Fallback: try simpler format
+            try {
+                val inputFormat2 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
+                val date2 = inputFormat2.parse(dateString)
+                if (date2 != null) {
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    dateFormat.format(date2)
+                } else {
+                    ""
+                }
+            } catch (e2: Exception) {
+                ""
+            }
+        }
+    } catch (e: Exception) {
+        ""
+    }
+}
+
+/**
+ * Formats date header label (Today, Yesterday, or formatted date)
+ */
+fun formatDateHeader(dateString: String?): String {
+    if (dateString.isNullOrEmpty()) return ""
+    
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
+        val date = inputFormat.parse(dateString)
+        
+        if (date != null) {
+            val calendar = Calendar.getInstance()
+            val today = Calendar.getInstance()
+            val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+            
+            calendar.time = date
+            
+            when {
+                calendar.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+                calendar.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR) -> {
+                    "Today"
+                }
+                calendar.get(Calendar.YEAR) == yesterday.get(Calendar.YEAR) &&
+                calendar.get(Calendar.DAY_OF_YEAR) == yesterday.get(Calendar.DAY_OF_YEAR) -> {
+                    "Yesterday"
+                }
+                else -> {
+                    formatNotificationDate(dateString)
+                }
+            }
+        } else {
+            // Fallback: try simpler format
+            try {
+                val inputFormat2 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
+                val date2 = inputFormat2.parse(dateString)
+                if (date2 != null) {
+                    val calendar = Calendar.getInstance()
+                    val today = Calendar.getInstance()
+                    val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+                    
+                    calendar.time = date2
+                    
+                    when {
+                        calendar.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+                        calendar.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR) -> {
+                            "Today"
+                        }
+                        calendar.get(Calendar.YEAR) == yesterday.get(Calendar.YEAR) &&
+                        calendar.get(Calendar.DAY_OF_YEAR) == yesterday.get(Calendar.DAY_OF_YEAR) -> {
+                            "Yesterday"
+                        }
+                        else -> {
+                            formatNotificationDate(dateString)
+                        }
+                    }
+                } else {
+                    ""
+                }
+            } catch (e2: Exception) {
+                ""
+            }
+        }
+    } catch (e: Exception) {
+        ""
+    }
+}
+
+/**
+ * Groups notifications by date
+ */
+fun groupNotificationsByDate(notifications: List<Notification>): Map<String, List<Notification>> {
+    return notifications.groupBy { notification ->
+        extractDateKey(notification.createdAt)
+    }.toSortedMap(compareByDescending { it })
+}
+
+/**
+ * Converts grouped notifications into a flat list of NotificationListItem
+ */
+fun createNotificationListItems(groupedNotifications: Map<String, List<Notification>>): List<NotificationListItem> {
+    val items = mutableListOf<NotificationListItem>()
+    
+    groupedNotifications.forEach { (dateKey, notifications) ->
+        // Add date header
+        items.add(NotificationListItem.DateHeaderItem(dateKey, notifications.first()))
+        
+        // Add notifications for this date
+        notifications.forEachIndexed { index, notification ->
+            items.add(
+                NotificationListItem.NotificationItemData(
+                    notification = notification,
+                    isLastInGroup = index == notifications.size - 1
+                )
+            )
+        }
+    }
+    
+    return items
 }
 
 /**

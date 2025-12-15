@@ -133,10 +133,7 @@ interface ApiService {
         @Body requestRouteDetails: RequestRouteDetails
     ): Response<RouteDetailsResponse>
 
-    //
-//    @GET(PlatformUrl.myRouteUrl)
-//    suspend fun getMyRoutes(): Response<MyRoutesResponse>
-//
+
     @GET(RouteEndpoints.routeHistory)
     suspend fun getRouteHistory(
         @Query("page") page: Int,
@@ -150,31 +147,7 @@ interface ApiService {
         @Query("perpage") perPage: Int,
         @Query("date") date: String,
     ): Response<RoutePathModel>
-//
-//    @GET(PlatformUrl.allNotificationUrl)
-//    suspend fun getAllNotifications(): Response<NotificationResponse>
-//
-//    @GET(PlatformUrl.profileUpdateUrl)
-//    suspend fun getProfile(): Response<ProfileResponse>
-//
-//    @FormUrlEncoded
-//    @POST(PlatformUrl.profileUpdateUrl)
-//    suspend fun updateProfile(
-//        @Field("name") name: String,
-//        @Field("phone") phone: String
-//    ): Response<BaseResponse>
-//
-//    @GET(PlatformUrl.earningUrl)
-//    suspend fun getEarnings(): Response<EarningsResponse>
-//
-//    @FormUrlEncoded
-//    @POST(PlatformUrl.cancelRouteUrl)
-//    suspend fun cancelRoute(
-//        @Field("route_id") routeId: String
-//    ): Response<BaseResponse>
-//
-//    @GET(PlatformUrl.driverDetailsUrl)
-//    suspend fun getDriverDetails(): Response<DriverDetailsResponse>
+
 
     @GET(EarningsEndpoints.totalEarnings)
     suspend fun getEarningDetails(): Response<EarningResponse>
