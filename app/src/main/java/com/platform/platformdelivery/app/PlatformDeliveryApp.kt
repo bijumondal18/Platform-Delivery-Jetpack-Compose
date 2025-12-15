@@ -10,7 +10,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.view.View
+import android.view.WindowInsetsController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -76,6 +80,9 @@ fun PlatformDeliveryApp(
 
     // Check if all permissions are granted
     val allPermissionsGranted = PermissionUtils.hasAllRequiredPermissions(context)
+
+    // Update status bar icon color based on theme
+    SetStatusBarIconColor(isDarkTheme)
 
     AppTheme(darkTheme = isDarkTheme) {
         // Show permission screen if permissions are not granted
@@ -152,6 +159,36 @@ fun PlatformDeliveryApp(
                 composable("terms_conditions") {
                     TermsConditionsScreen(navController = navController)
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Sets the status bar icon color based on the theme
+ * Light theme = dark icons, Dark theme = light icons (white)
+ */
+@Composable
+fun SetStatusBarIconColor(isDarkTheme: Boolean) {
+    val view = LocalView.current
+    
+    LaunchedEffect(isDarkTheme) {
+        val window = (view.context as? android.app.Activity)?.window ?: return@LaunchedEffect
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+ (API 30+)
+            val insetsController = window.insetsController
+            insetsController?.setSystemBarsAppearance(
+                if (!isDarkTheme) WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS else 0,
+                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+            )
+        } else {
+            // Android 10 and below
+            @Suppress("DEPRECATION")
+            WindowCompat.getInsetsController(window, view)?.apply {
+                // When dark theme: light status bars (white icons)
+                // When light theme: dark status bars (black icons)
+                isAppearanceLightStatusBars = !isDarkTheme
             }
         }
     }
