@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -9,7 +10,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.platform.platformdelivery"
+        applicationId = "com.developer.delivery_application"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -80,4 +81,8 @@ dependencies {
 
     implementation("com.google.maps.android:maps-compose:4.3.3") // latest as of Oct 2025
     implementation("com.google.android.gms:play-services-maps:19.0.0")
+    
+    // Firebase Firestore
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-firestore-ktx")
 }

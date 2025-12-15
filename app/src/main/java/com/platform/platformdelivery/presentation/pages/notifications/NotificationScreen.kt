@@ -69,6 +69,7 @@ import com.platform.platformdelivery.data.models.Notification
 import com.platform.platformdelivery.presentation.view_models.NotificationViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -288,6 +289,25 @@ fun NotificationScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Group notifications by date - compute outside LazyColumn
+            val allNotificationListItems = remember(allNotifications) {
+                if (allNotifications.isNotEmpty()) {
+                    val grouped = groupNotificationsByDate(allNotifications)
+                    flattenGroupedNotifications(grouped)
+                } else {
+                    emptyList()
+                }
+            }
+            
+            val unreadNotificationListItems = remember(unreadNotifications) {
+                if (unreadNotifications.isNotEmpty()) {
+                    val grouped = groupNotificationsByDate(unreadNotifications)
+                    flattenGroupedNotifications(grouped)
+                } else {
+                    emptyList()
+                }
+            }
+            
             // Content based on selected chip
             PullToRefreshBox(
                 state = pullRefreshState,
@@ -353,23 +373,30 @@ fun NotificationScreen(
                                 }
                                 allNotifications.isNotEmpty() -> {
                                     // Only show list when we have data
-                                    itemsIndexed(allNotifications) { index, notification ->
-                                        NotificationItem(
-                                            notification = notification,
-                                            onNotificationClick = {
-                                                // Navigate to route details using notifiableId as route ID
-                                                val routeId = notification.id.toString()
-                                                if (!routeId.isNullOrEmpty()) {
-                                                    navController.navigate("routeDetails/$routeId")
+                                    itemsIndexed(allNotificationListItems) { index, item ->
+                                        when (item) {
+                                            is NotificationListItem.DateHeader -> {
+                                                DateHeaderItem(dateText = item.dateText)
+                                            }
+                                            is NotificationListItem.NotificationItem -> {
+                                                NotificationItem(
+                                                    notification = item.notification,
+                                                    onNotificationClick = {
+                                                        // Navigate to route details using notifiableId as route ID
+                                                        val routeId = item.notification.id.toString()
+                                                        if (!routeId.isNullOrEmpty()) {
+                                                            navController.navigate("routeDetails/$routeId")
+                                                        }
+                                                    }
+                                                )
+                                                if (index < allNotificationListItems.size - 1) {
+                                                    HorizontalDivider(
+                                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                                        thickness = 1.dp
+                                                    )
                                                 }
                                             }
-                                        )
-                                        if (index < allNotifications.size - 1) {
-                                            HorizontalDivider(
-                                                modifier = Modifier.padding(horizontal = 16.dp),
-                                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                                thickness = 1.dp
-                                            )
                                         }
                                     }
                                     // Loading indicator at bottom when loading more (pagination)
@@ -438,23 +465,30 @@ fun NotificationScreen(
                                 }
                                 unreadNotifications.isNotEmpty() -> {
                                     // Only show list when we have data
-                                    itemsIndexed(unreadNotifications) { index, notification ->
-                                        NotificationItem(
-                                            notification = notification,
-                                            onNotificationClick = {
-                                                // Navigate to route details using notifiableId as route ID
-                                                val routeId = notification.notifiableId?.toString()
-                                                if (!routeId.isNullOrEmpty()) {
-                                                    navController.navigate("routeDetails/$routeId")
+                                    itemsIndexed(unreadNotificationListItems) { index, item ->
+                                        when (item) {
+                                            is NotificationListItem.DateHeader -> {
+                                                DateHeaderItem(dateText = item.dateText)
+                                            }
+                                            is NotificationListItem.NotificationItem -> {
+                                                NotificationItem(
+                                                    notification = item.notification,
+                                                    onNotificationClick = {
+                                                        // Navigate to route details using notifiableId as route ID
+                                                        val routeId = item.notification.notifiableId?.toString()
+                                                        if (!routeId.isNullOrEmpty()) {
+                                                            navController.navigate("routeDetails/$routeId")
+                                                        }
+                                                    }
+                                                )
+                                                if (index < unreadNotificationListItems.size - 1) {
+                                                    HorizontalDivider(
+                                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                                        thickness = 1.dp
+                                                    )
                                                 }
                                             }
-                                        )
-                                        if (index < unreadNotifications.size - 1) {
-                                            HorizontalDivider(
-                                                modifier = Modifier.padding(horizontal = 16.dp),
-                                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                                thickness = 1.dp
-                                            )
                                         }
                                     }
                                     // Loading indicator at bottom when loading more (pagination)
@@ -485,6 +519,18 @@ fun NotificationScreen(
             }
         }
     }
+}
+
+@Composable
+fun DateHeaderItem(dateText: String) {
+    Text(
+        text = dateText,
+        style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    )
 }
 
 @Composable
@@ -719,7 +765,7 @@ fun extractRouteAddress(routeData: Any?, type: String): String? {
 }
 
 /**
- * Formats a date string from ISO format to "HH:mm" format
+ * Formats a date string from ISO format to "hh:mm a" format (AM/PM)
  */
 fun formatNotificationTime(dateString: String?): String {
     if (dateString.isNullOrEmpty()) return ""
@@ -729,7 +775,7 @@ fun formatNotificationTime(dateString: String?): String {
         val date = inputFormat.parse(dateString)
         
         if (date != null) {
-            val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
             timeFormat.format(date)
         } else {
             // Fallback: try simpler format
@@ -737,7 +783,7 @@ fun formatNotificationTime(dateString: String?): String {
                 val inputFormat2 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
                 val date2 = inputFormat2.parse(dateString)
                 if (date2 != null) {
-                    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+                    val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
                     timeFormat.format(date2)
                 } else {
                     ""
@@ -748,6 +794,78 @@ fun formatNotificationTime(dateString: String?): String {
         }
     } catch (e: Exception) {
         ""
+    }
+}
+
+/**
+ * Sealed class to represent different types of items in the notification list
+ */
+sealed class NotificationListItem {
+    data class DateHeader(val dateText: String) : NotificationListItem()
+    data class NotificationItem(val notification: Notification) : NotificationListItem()
+}
+
+/**
+ * Groups notifications by date
+ */
+fun groupNotificationsByDate(notifications: List<Notification>): Map<String, List<Notification>> {
+    val calendar = Calendar.getInstance()
+    
+    return notifications.groupBy { notification ->
+        val dateString = notification.createdAt
+        if (dateString.isNullOrEmpty()) {
+            "Unknown Date"
+        } else {
+            try {
+                val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
+                val date = inputFormat.parse(dateString) ?: run {
+                    val inputFormat2 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
+                    inputFormat2.parse(dateString)
+                }
+                
+                if (date != null) {
+                    calendar.time = date
+                    val today = Calendar.getInstance()
+                    val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+                    
+                    when {
+                        calendar.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+                        calendar.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR) -> {
+                            "Today"
+                        }
+                        calendar.get(Calendar.YEAR) == yesterday.get(Calendar.YEAR) &&
+                        calendar.get(Calendar.DAY_OF_YEAR) == yesterday.get(Calendar.DAY_OF_YEAR) -> {
+                            "Yesterday"
+                        }
+                        else -> {
+                            formatNotificationDate(dateString)
+                        }
+                    }
+                } else {
+                    "Unknown Date"
+                }
+            } catch (e: Exception) {
+                "Unknown Date"
+            }
+        }
+    }
+}
+
+/**
+ * Flattens grouped notifications into a list of NotificationListItem
+ */
+fun flattenGroupedNotifications(grouped: Map<String, List<Notification>>): List<NotificationListItem> {
+    val sortedGroups = grouped.toSortedMap(compareBy<String> { dateKey ->
+        when (dateKey) {
+            "Today" -> 0
+            "Yesterday" -> 1
+            else -> 2
+        }
+    }.thenBy { it })
+    
+    return sortedGroups.flatMap { (dateKey, notifications) ->
+        listOf(NotificationListItem.DateHeader(dateKey)) + 
+        notifications.map { NotificationListItem.NotificationItem(it) }
     }
 }
 

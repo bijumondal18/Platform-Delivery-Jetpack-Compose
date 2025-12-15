@@ -358,14 +358,43 @@ class RoutesViewModel(
             _acceptRouteResult.value = null
             
             try {
+                // First, get route details before accepting (if not already loaded)
+                var routeDetails: RouteDetailsResponse? = _routeDetails.value
+                if (routeDetails == null || routeDetails.routeDetailsData?.routeData?.id?.toString() != routeId) {
+                    val detailsResult = routeRepository.getRouteDetails(RequestRouteDetails(routeId = routeId))
+                    if (detailsResult is Result.Success) {
+                        routeDetails = detailsResult.data
+                        _routeDetails.value = routeDetails
+                    }
+                }
+                
+                // Accept the route
                 val result = routeRepository.acceptRoute(routeId)
                 when (result) {
                     is Result.Success -> {
                         _acceptRouteResult.value = Result.Success(Unit)
-                        // Refresh route details after accepting
-                        _routeDetails.value?.routeDetailsData?.routeData?.id?.let { id ->
-                            getRouteDetails(RequestRouteDetails(routeId = id.toString()))
+                        
+                        // Refresh route details after accepting to get updated status
+                        val refreshResult = routeRepository.getRouteDetails(RequestRouteDetails(routeId = routeId))
+                        if (refreshResult is Result.Success) {
+                            val updatedRouteDetails = refreshResult.data
+                            _routeDetails.value = updatedRouteDetails
+                            
+                            // Save to Firestore with updated route details
+                            com.platform.platformdelivery.core.utils.FirestoreHelper.saveAcceptedRoute(
+                                routeId = routeId,
+                                routeDetails = updatedRouteDetails
+                            )
+                        } else {
+                            // If refresh fails, save with current route details
+                            routeDetails?.let {
+                                com.platform.platformdelivery.core.utils.FirestoreHelper.saveAcceptedRoute(
+                                    routeId = routeId,
+                                    routeDetails = it
+                                )
+                            }
                         }
+                        
                         onSuccess()
                     }
                     is Result.Error -> {
