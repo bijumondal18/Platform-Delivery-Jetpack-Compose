@@ -53,10 +53,8 @@ import androidx.navigation.NavController
 import com.platform.platformdelivery.R
 import com.platform.platformdelivery.core.network.Result
 import com.platform.platformdelivery.core.theme.AppTypography
-import com.platform.platformdelivery.core.utils.FcmTokenManager
 import com.platform.platformdelivery.presentation.view_models.AuthViewModel
 import com.platform.platformdelivery.presentation.widgets.AppTextField
-import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 
 @Composable
@@ -64,7 +62,6 @@ fun LoginScreen(
     navController: NavController,
     viewModel: AuthViewModel
 ) {
-    val context = LocalContext.current
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -265,9 +262,6 @@ fun LoginScreen(
             is Result.Success -> {
                 val data = (loginState as Result.Success).data
                 if (data.data != null && data.data.status == true) {
-                    // Register FCM token after successful login
-                    FcmTokenManager.registerFcmToken(context)
-                    
                     navController.navigate("main") {
                         popUpTo("login") { inclusive = true }
                     }

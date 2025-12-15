@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -38,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -47,28 +49,28 @@ import com.platform.platformdelivery.data.local.TokenManager
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    navController: NavController? = null,
-    onThemeChange: ((Boolean) -> Unit)? = null
+    navController: NavController?,
+    onThemeChange: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
-    val appPrefs = remember { TokenManager(context) }
+    val tokenManager = remember { TokenManager(context) }
     
-    // Theme state - initialize from preferences
-    var isDarkTheme by remember { 
-        mutableStateOf(appPrefs.isDarkTheme() ?: false) 
+    // Theme state
+    val savedTheme = tokenManager.isDarkTheme()
+    val systemIsDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
+    var isDarkTheme by remember(savedTheme, systemIsDarkTheme) {
+        mutableStateOf(savedTheme ?: systemIsDarkTheme)
     }
     
-    // Notification states - initialize from preferences
+    // Notification preferences
     var isPushNotificationEnabled by remember {
-        mutableStateOf(appPrefs.isPushNotificationEnabled())
+        mutableStateOf(tokenManager.isPushNotificationEnabled())
     }
-    
     var isEmailNotificationEnabled by remember {
-        mutableStateOf(appPrefs.isEmailNotificationEnabled())
+        mutableStateOf(tokenManager.isEmailNotificationEnabled())
     }
-    
     var isSmsNotificationEnabled by remember {
-        mutableStateOf(appPrefs.isSmsNotificationEnabled())
+        mutableStateOf(tokenManager.isSmsNotificationEnabled())
     }
 
     Scaffold(
@@ -90,32 +92,30 @@ fun SettingsScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
-    ) { innerPadding ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
-            // Section Title
             Text(
                 text = "Appearance",
                 style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 4.dp)
             )
 
-            // Appearance Settings Card
+            // Appearance Section
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = androidx.compose.material3.CardDefaults.cardColors(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             ) {
@@ -124,33 +124,28 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(vertical = 8.dp)
                 ) {
-                    // Theme Toggle
                     ThemeToggleItem(
                         isDarkTheme = isDarkTheme,
                         onThemeChange = { isDark ->
                             isDarkTheme = isDark
-                            appPrefs.setDarkTheme(isDark)
-                            onThemeChange?.invoke(isDark)
+                            tokenManager.setDarkTheme(isDark)
+                            onThemeChange(isDark)
                         }
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Section Title
             Text(
-                text = "Notification Settings",
+                text = "Notifications",
                 style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 4.dp)
             )
-            // Notification Settings Card
+
+            // Notifications Section
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = androidx.compose.material3.CardDefaults.cardColors(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             ) {
@@ -159,46 +154,44 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(vertical = 8.dp)
                 ) {
-                    // Push Notification Toggle
+                    
                     NotificationToggleItem(
                         icon = Icons.Default.Notifications,
                         title = "Push Notifications",
                         isEnabled = isPushNotificationEnabled,
                         onToggle = { enabled ->
                             isPushNotificationEnabled = enabled
-                            appPrefs.setPushNotificationEnabled(enabled)
+                            tokenManager.setPushNotificationEnabled(enabled)
                         }
                     )
-
+                    
                     HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
+                        modifier = Modifier.padding(vertical = 8.dp),
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                     )
-
-                    // Email Notification Toggle
+                    
                     NotificationToggleItem(
                         icon = Icons.Default.Email,
                         title = "Email Notifications",
                         isEnabled = isEmailNotificationEnabled,
                         onToggle = { enabled ->
                             isEmailNotificationEnabled = enabled
-                            appPrefs.setEmailNotificationEnabled(enabled)
+                            tokenManager.setEmailNotificationEnabled(enabled)
                         }
                     )
-
+                    
                     HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
+                        modifier = Modifier.padding(vertical = 8.dp),
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                     )
-
-                    // SMS Notification Toggle
+                    
                     NotificationToggleItem(
                         icon = Icons.Default.Sms,
                         title = "SMS Notifications",
                         isEnabled = isSmsNotificationEnabled,
                         onToggle = { enabled ->
                             isSmsNotificationEnabled = enabled
-                            appPrefs.setSmsNotificationEnabled(enabled)
+                            tokenManager.setSmsNotificationEnabled(enabled)
                         }
                     )
                 }
@@ -215,7 +208,7 @@ fun ThemeToggleItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, ),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -258,7 +251,7 @@ fun NotificationToggleItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

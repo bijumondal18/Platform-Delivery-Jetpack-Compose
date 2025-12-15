@@ -13,7 +13,6 @@ import com.platform.platformdelivery.data.models.ReferralDetailsResponse
 import com.platform.platformdelivery.data.models.RoutePathModel
 import com.platform.platformdelivery.data.models.StateListResponse
 import com.platform.platformdelivery.data.models.ApiVersionResponse
-import com.platform.platformdelivery.core.network.VehicleEndpoints
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -95,6 +94,25 @@ interface ApiService {
         @Field("route_id") routeId: String
     ): Response<BaseResponse>
 
+    @POST(RouteEndpoints.routeDetails)
+    suspend fun getRouteDetails(
+        @Body requestRouteDetails: RequestRouteDetails
+    ): Response<RouteDetailsResponse>
+
+    @GET(RouteEndpoints.routeHistory)
+    suspend fun getRouteHistory(
+        @Query("page") page: Int,
+        @Query("perpage") perPage: Int,
+        @Query("date") date: String,
+    ): Response<RouteHistory>
+
+    @GET(RouteEndpoints.myRoutes)
+    suspend fun getAcceptedTrips(
+        @Query("page") page: Int,
+        @Query("perpage") perPage: Int,
+        @Query("date") date: String,
+    ): Response<RoutePathModel>
+
     @FormUrlEncoded
     @POST(RouteEndpoints.cancelRoute)
     suspend fun cancelRoute(
@@ -127,27 +145,6 @@ interface ApiService {
         @Field("delivery_status") deliveryStatus: String, // "delivered" or "failed"
         @Field("current_time") currentTime: String
     ): Response<BaseResponse>
-
-    @POST(RouteEndpoints.routeDetails)
-    suspend fun getRouteDetails(
-        @Body requestRouteDetails: RequestRouteDetails
-    ): Response<RouteDetailsResponse>
-
-
-    @GET(RouteEndpoints.routeHistory)
-    suspend fun getRouteHistory(
-        @Query("page") page: Int,
-        @Query("perpage") perPage: Int,
-        @Query("date") date: String,
-    ): Response<RouteHistory>
-
-    @GET(RouteEndpoints.myRoutes)
-    suspend fun getAcceptedTrips(
-        @Query("page") page: Int,
-        @Query("perpage") perPage: Int,
-        @Query("date") date: String,
-    ): Response<RoutePathModel>
-
 
     @GET(EarningsEndpoints.totalEarnings)
     suspend fun getEarningDetails(): Response<EarningResponse>
@@ -186,7 +183,6 @@ interface ApiService {
         @Part("base_location") baseLocation: RequestBody?,
         @Part("base_location_lat") baseLocationLat: RequestBody?,
         @Part("base_location_lng") baseLocationLng: RequestBody?,
-        @Part("fcm_token") fcmToken: RequestBody?,
         @Part profilePic: MultipartBody.Part?
     ): Response<DriverDetailsResponse>
 

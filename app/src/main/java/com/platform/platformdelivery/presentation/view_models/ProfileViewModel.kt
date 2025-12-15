@@ -97,7 +97,6 @@ class ProfileViewModel(
         baseLocation: String? = null,
         baseLocationLat: String? = null,
         baseLocationLng: String? = null,
-        fcmToken: String? = null,
         profilePicFile: File? = null,
         onSuccess: () -> Unit = {}
     ) {
@@ -118,7 +117,6 @@ class ProfileViewModel(
                     baseLocation = baseLocation,
                     baseLocationLat = baseLocationLat,
                     baseLocationLng = baseLocationLng,
-                    fcmToken = fcmToken,
                     profilePicFile = profilePicFile
                 )
                 _updateProfileState.value = result

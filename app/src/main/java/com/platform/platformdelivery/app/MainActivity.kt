@@ -34,13 +34,13 @@ class MainActivity : ComponentActivity() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Set splash screen background color BEFORE installing splash screen
+        // This ensures the background color is set before the splash screen is displayed
+
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
-        // Create notification channel for FCM
-        createNotificationChannel()
-        
+
         // Handle notification click (if app was opened from notification)
         handleNotificationIntent(intent)
 
@@ -71,20 +71,20 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             val tokenManager = TokenManager(this@MainActivity)
-            
+
             // Initialize RetrofitClient token provider
             RetrofitClient.tokenProvider = tokenManager
-            
+
             // Call api_version API first - call it every time app opens
             try {
                 val apiVersionUrl = com.platform.platformdelivery.core.network.ApiConfig.apiVersion
                 ApiDebugUtils.logApiVersionRequest(apiVersionUrl)
-                
+
                 val apiVersionRepository = com.platform.platformdelivery.data.repositories.ApiVersionRepository()
                 val response = withContext(Dispatchers.IO) {
                     apiVersionRepository.getApiVersion()
                 }
-                
+
                 // Process API version result
                 if (response.isSuccessful && response.body() != null) {
                     val baseUrl = response.body()!!.data?.baseUrl
@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
                 // Continue with app flow
                 android.util.Log.e("MainActivity", "Failed to get API version: ${e.message}", e)
             }
-            
+
             // Do token check in background
             val isLoggedIn = withContext(Dispatchers.IO) {
                 tokenManager.isLoggedIn()
@@ -147,13 +147,13 @@ class MainActivity : ComponentActivity() {
 
     private fun requestPermissions(hasLocation: Boolean, hasNotification: Boolean) {
         val permissionsToRequest = mutableListOf<String>()
-        
+
         // Add location permissions
         if (!hasLocation) {
             permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
             permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
-        
+
         // Add notification permission for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotification) {
             permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
@@ -203,36 +203,28 @@ class MainActivity : ComponentActivity() {
             PermissionUtils.hasLocationPermissions(this),
             PermissionUtils.hasNotificationPermission(this)
         )
-        
+
         // Handle notification intent when app resumes (in case app was opened from notification)
         handleNotificationIntent(intent)
     }
-    
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = android.app.NotificationChannel(
-                com.platform.platformdelivery.core.services.PlatformFirebaseMessagingService.CHANNEL_ID,
-                com.platform.platformdelivery.core.services.PlatformFirebaseMessagingService.CHANNEL_NAME,
-                android.app.NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = com.platform.platformdelivery.core.services.PlatformFirebaseMessagingService.CHANNEL_DESCRIPTION
-                enableVibration(true)
-                enableLights(true)
-            }
 
-            val notificationManager = getSystemService(android.app.NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
-    
     private fun handleNotificationIntent(intent: Intent?) {
         val routeId = intent?.getStringExtra("route_id")
         val fromNotification = intent?.getBooleanExtra("from_notification", false) ?: false
-        
+
         if (fromNotification && !routeId.isNullOrEmpty()) {
             // Store route ID to navigate after app initialization
             // This will be handled in PlatformDeliveryApp
             android.util.Log.d("MainActivity", "Notification clicked with route_id: $routeId")
         }
+    }
+
+
+    /**
+     * Checks if the system is in dark mode
+     */
+    private fun isSystemInDarkMode(): Boolean {
+        val nightModeFlags = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+        return nightModeFlags == android.content.res.Configuration.UI_MODE_NIGHT_YES
     }
 }

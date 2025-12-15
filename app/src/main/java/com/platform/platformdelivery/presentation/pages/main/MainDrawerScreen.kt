@@ -247,8 +247,7 @@ fun MainBottomNavScreen(
                         navController = rootNavController,
                         onLogout = {
                             onLogout()
-                        },
-                        onThemeChange = onThemeChange
+                        }
                     ) 
                 }
                 composable(DrawerDestinations.RouteScreenWithChips) { RoutesScreenWithChips(navController = rootNavController) }

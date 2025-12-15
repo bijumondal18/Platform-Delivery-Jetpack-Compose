@@ -32,8 +32,8 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.ContactSupport
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -80,8 +80,7 @@ fun ProfileScreen(
     navController: NavController? = null,
     onDeleteAccount: () -> Unit = {},
     onLogout: () -> Unit = {},
-    profileViewModel: ProfileViewModel = viewModel(),
-    onThemeChange: ((Boolean) -> Unit)? = null
+    profileViewModel: ProfileViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val appPrefs = remember { TokenManager(context) }
@@ -432,12 +431,12 @@ fun ProfileScreen(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                     )
 
-                    // Refer & Earn
+                    // Settings
                     ProfileMenuItem(
-                        icon = Icons.Default.Share,
-                        title = "Refer & Earn",
+                        icon = Icons.Default.Settings,
+                        title = "Settings",
                         onClick = {
-                            navController?.navigate("refer_earn") {
+                            navController?.navigate("settings") {
                                 popUpTo("main") { inclusive = false }
                             }
                         }
@@ -448,12 +447,12 @@ fun ProfileScreen(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                     )
 
-                    // Settings
+                    // Refer & Earn
                     ProfileMenuItem(
-                        icon = Icons.Default.Settings,
-                        title = "Settings",
+                        icon = Icons.Default.Share,
+                        title = "Refer & Earn",
                         onClick = {
-                            navController?.navigate("settings") {
+                            navController?.navigate("refer_earn") {
                                 popUpTo("main") { inclusive = false }
                             }
                         }
@@ -701,4 +700,3 @@ fun ProfileMenuItem(
         )
     }
 }
-
