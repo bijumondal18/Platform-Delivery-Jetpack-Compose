@@ -21,6 +21,7 @@ class TokenManager(context: Context) : RetrofitClient.TokenProvider {
         private const val KEY_PUSH_NOTIFICATION = "push_notification"
         private const val KEY_EMAIL_NOTIFICATION = "email_notification"
         private const val KEY_SMS_NOTIFICATION = "sms_notification"
+        private const val KEY_FCM_TOKEN = "fcm_token"
     }
 
     override fun getAccessToken(): String? = prefs.getString(KEY_ACCESS_TOKEN, null)
@@ -111,6 +112,12 @@ class TokenManager(context: Context) : RetrofitClient.TokenProvider {
 
     fun setSmsNotificationEnabled(enabled: Boolean) {
         prefs.edit { putBoolean(KEY_SMS_NOTIFICATION, enabled) }
+    }
+
+    fun getFcmToken(): String? = prefs.getString(KEY_FCM_TOKEN, null)
+
+    fun saveFcmToken(token: String) {
+        prefs.edit { putString(KEY_FCM_TOKEN, token) }
     }
 
     fun clear() {

@@ -49,6 +49,21 @@ fun PlatformDeliveryApp(
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
+    
+    // Handle notification navigation
+    LaunchedEffect(Unit) {
+        val activity = context as? android.app.Activity
+        val routeId = activity?.intent?.getStringExtra("route_id")
+        val fromNotification = activity?.intent?.getBooleanExtra("from_notification", false) ?: false
+        
+        if (fromNotification && !routeId.isNullOrEmpty() && startDestination == "main") {
+            // Navigate to route details after a short delay to ensure app is initialized
+            kotlinx.coroutines.delay(500)
+            navController.navigate("routeDetails/$routeId") {
+                popUpTo("main") { inclusive = false }
+            }
+        }
+    }
 
     // Provide your shared AuthViewModel here
     val authViewModel: AuthViewModel = viewModel()

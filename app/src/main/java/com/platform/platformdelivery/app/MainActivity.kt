@@ -37,6 +37,12 @@ class MainActivity : ComponentActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Create notification channel for FCM
+        createNotificationChannel()
+        
+        // Handle notification click (if app was opened from notification)
+        handleNotificationIntent(intent)
 
         var keepSplash = true
         splashScreen.setKeepOnScreenCondition { keepSplash }
@@ -197,5 +203,36 @@ class MainActivity : ComponentActivity() {
             PermissionUtils.hasLocationPermissions(this),
             PermissionUtils.hasNotificationPermission(this)
         )
+        
+        // Handle notification intent when app resumes (in case app was opened from notification)
+        handleNotificationIntent(intent)
+    }
+    
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = android.app.NotificationChannel(
+                com.platform.platformdelivery.core.services.PlatformFirebaseMessagingService.CHANNEL_ID,
+                com.platform.platformdelivery.core.services.PlatformFirebaseMessagingService.CHANNEL_NAME,
+                android.app.NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = com.platform.platformdelivery.core.services.PlatformFirebaseMessagingService.CHANNEL_DESCRIPTION
+                enableVibration(true)
+                enableLights(true)
+            }
+
+            val notificationManager = getSystemService(android.app.NotificationManager::class.java)
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+    
+    private fun handleNotificationIntent(intent: Intent?) {
+        val routeId = intent?.getStringExtra("route_id")
+        val fromNotification = intent?.getBooleanExtra("from_notification", false) ?: false
+        
+        if (fromNotification && !routeId.isNullOrEmpty()) {
+            // Store route ID to navigate after app initialization
+            // This will be handled in PlatformDeliveryApp
+            android.util.Log.d("MainActivity", "Notification clicked with route_id: $routeId")
+        }
     }
 }

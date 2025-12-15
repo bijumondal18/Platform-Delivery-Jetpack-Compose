@@ -186,6 +186,7 @@ interface ApiService {
         @Part("base_location") baseLocation: RequestBody?,
         @Part("base_location_lat") baseLocationLat: RequestBody?,
         @Part("base_location_lng") baseLocationLng: RequestBody?,
+        @Part("fcm_token") fcmToken: RequestBody?,
         @Part profilePic: MultipartBody.Part?
     ): Response<DriverDetailsResponse>
 

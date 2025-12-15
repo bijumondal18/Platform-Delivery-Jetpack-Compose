@@ -40,6 +40,7 @@ class ProfileRepository {
         baseLocation: String? = null,
         baseLocationLat: String? = null,
         baseLocationLng: String? = null,
+        fcmToken: String? = null,
         profilePicFile: File? = null
     ): Result<DriverDetailsResponse> {
         return try {
@@ -57,6 +58,7 @@ class ProfileRepository {
             val formattedLng = LocationUtils.formatCoordinate(baseLocationLng)
             val baseLocationLatBody = formattedLat?.toRequestBody("text/plain".toMediaTypeOrNull())
             val baseLocationLngBody = formattedLng?.toRequestBody("text/plain".toMediaTypeOrNull())
+            val fcmTokenBody = fcmToken?.toRequestBody("text/plain".toMediaTypeOrNull())
 
             // Handle profile picture upload
             var profilePicPart: MultipartBody.Part? = null
@@ -78,6 +80,7 @@ class ProfileRepository {
                 baseLocation = baseLocationBody,
                 baseLocationLat = baseLocationLatBody,
                 baseLocationLng = baseLocationLngBody,
+                fcmToken = fcmTokenBody,
                 profilePic = profilePicPart
             )
 
