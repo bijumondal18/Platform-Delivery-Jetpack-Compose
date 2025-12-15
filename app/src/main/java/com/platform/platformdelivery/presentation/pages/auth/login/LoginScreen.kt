@@ -15,15 +15,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -44,9 +40,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -55,6 +55,7 @@ import com.platform.platformdelivery.core.network.Result
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.presentation.view_models.AuthViewModel
 import com.platform.platformdelivery.presentation.widgets.AppTextField
+import com.platform.platformdelivery.presentation.widgets.SocialLoginButton
 import kotlinx.coroutines.launch
 
 @Composable
@@ -76,183 +77,246 @@ fun LoginScreen(
     val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .statusBarsPadding()
+                .background(color = MaterialTheme.colorScheme.background)
                 .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(innerPadding)
-                .padding(horizontal = 24.dp, vertical = 40.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(32.dp)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(60.dp))
 
             // Logo
-            Image(
-                painter = painterResource(id = R.drawable.ic_delivery_truck),
-                contentDescription = "app_logo",
-                modifier = Modifier.size(100.dp),
-                contentScale = ContentScale.Fit,
-                colorFilter = ColorFilter.tint(color = MaterialTheme.colorScheme.primary)
+            Box(
+                modifier = Modifier.size(64.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_delivery_truck),
+                    contentDescription = "App Logo",
+                    modifier = Modifier.size(64.dp),
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(color = MaterialTheme.colorScheme.onBackground)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Heading
+            Text(
+                text = "Log in or sign up",
+                style = AppTypography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center
             )
 
-            // Welcome Text
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Welcome Back",
-                    style = AppTypography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Center
-                )
+            Spacer(modifier = Modifier.height(40.dp))
 
-                Text(
-                    text = "Sign in to continue",
-                    style = AppTypography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Login Form Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    AppTextField(
-                        value = email,
-                        onValueChange = {
-                            email = it
-                            emailError = null
-                        },
-                        label = "Email",
-                        keyboardType = KeyboardType.Email,
-                        isError = emailError != null,
-                        errorMessage = emailError
-                    )
-
-                    AppTextField(
-                        value = password,
-                        onValueChange = {
-                            password = it
-                            passwordError = null
-                        },
-                        label = "Password",
-                        keyboardType = KeyboardType.Password,
-                        isPassword = true,
-                        isError = passwordError != null,
-                        errorMessage = passwordError
-                    )
-
-                    TextButton(
-                        onClick = {
-                            navController.navigate("forgot_password") {
-                                popUpTo("login") { inclusive = false }
-                            }
-                        },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text(
-                            text = "Forgot Password?",
-                            style = AppTypography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Login Button with Loader
-                    Button(
-                        onClick = {
-                            var valid = true
-                            if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                                emailError = "Please enter a valid email"
-                                valid = false
-                            }
-                            if (password.length < 6) {
-                                passwordError = "Password must be at least 6 characters"
-                                valid = false
-                            }
-
-                            if (valid) {
-                                viewModel.login(email = email, password = password)
-                            }
-                        },
-                        enabled = !isLoading && email.isNotEmpty() && password.isNotEmpty() && password.length >= 6,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        } else {
-                            Text(
-                                text = "Login",
-                                style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Sign Up Section
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
+            // Email Input
+            AppTextField(
+                value = email,
+                onValueChange = {
+                    email = it
+                    emailError = null
+                },
+                label = "Email",
+                keyboardType = KeyboardType.Email,
+                isError = emailError != null,
+                errorMessage = emailError,
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Don't have an account?",
-                    style = AppTypography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                TextButton(
-                    onClick = {
-                        navController.navigate("signup") {
-                            popUpTo("login") { inclusive = false }
-                        }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Password Input
+            AppTextField(
+                value = password,
+                onValueChange = {
+                    password = it
+                    passwordError = null
+                },
+                label = "Password",
+                keyboardType = KeyboardType.Password,
+                isPassword = true,
+                isError = passwordError != null,
+                errorMessage = passwordError,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Continue Button (Dark Gray Primary)
+            Button(
+                onClick = {
+                    var valid = true
+                    if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                        emailError = "Please enter a valid email"
+                        valid = false
                     }
-                ) {
+                    if (password.length < 6) {
+                        passwordError = "Password must be at least 6 characters"
+                        valid = false
+                    }
+
+                    if (valid) {
+                        viewModel.login(email = email, password = password)
+                    }
+                },
+                enabled = !isLoading && email.isNotEmpty() && password.isNotEmpty() && password.length >= 6,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.onBackground,
+                    contentColor = MaterialTheme.colorScheme.background,
+                    disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.background,
+                        strokeWidth = 2.dp
+                    )
+                } else {
                     Text(
-                        text = "Sign Up",
-                        style = AppTypography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.primary
+                        text = "Continue",
+                        style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.background
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Separator
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "or",
+                    style = AppTypography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Social Login Buttons
+            SocialLoginButton(
+                text = "Continue with Google",
+                onClick = {
+                    // TODO: Implement Google Sign In
+                },
+                modifier = Modifier.fillMaxWidth(),
+                icon = {
+                    // Google G icon placeholder - you can replace with actual icon
+                    Box(modifier = Modifier.size(20.dp)) {
+                        Text("G", style = AppTypography.bodyMedium)
+                    }
+                }
+            )
+
+//            Spacer(modifier = Modifier.height(12.dp))
+//
+//            SocialLoginButton(
+//                text = "Continue with Apple",
+//                onClick = {
+//                    // TODO: Implement Apple Sign In
+//                },
+//                modifier = Modifier.fillMaxWidth(),
+//                icon = {
+//                    // Apple icon placeholder
+//                    Box(modifier = Modifier.size(20.dp)) {
+//                        Text("🍎", style = AppTypography.bodyMedium)
+//                    }
+//                }
+//            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            SocialLoginButton(
+                text = "Continue with Facebook",
+                onClick = {
+                    // TODO: Implement Facebook Sign In
+                },
+                modifier = Modifier.fillMaxWidth(),
+                icon = {
+                    // Facebook icon placeholder
+                    Box(modifier = Modifier.size(20.dp)) {
+                        Text("f", style = AppTypography.bodyMedium.copy(color = androidx.compose.ui.graphics.Color(0xFF1877F2)))
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Need help signing in?
+            TextButton(
+                onClick = {
+                    navController.navigate("forgot_password") {
+                        popUpTo("login") { inclusive = false }
+                    }
+                }
+            ) {
+                Text(
+                    text = "Forgot Password?",
+                    style = AppTypography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    textDecoration = TextDecoration.Underline
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Terms and Privacy Policy
+            val termsText = buildAnnotatedString {
+                withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))) {
+                    append("By signing up, you are creating an account and agree to our ")
+                }
+                withStyle(
+                    style = SpanStyle(
+                        color = MaterialTheme.colorScheme.primary,
+                        textDecoration = TextDecoration.Underline
+                    )
+                ) {
+                    append("Terms")
+                }
+                withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))) {
+                    append(" and ")
+                }
+                withStyle(
+                    style = SpanStyle(
+                        color = MaterialTheme.colorScheme.primary,
+                        textDecoration = TextDecoration.Underline
+                    )
+                ) {
+                    append("Privacy Policy")
+                }
+                withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))) {
+                    append(".")
+                }
+            }
+
+            Text(
+                text = termsText,
+                style = AppTypography.bodySmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 

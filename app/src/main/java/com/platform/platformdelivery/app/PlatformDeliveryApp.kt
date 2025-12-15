@@ -113,9 +113,14 @@ fun PlatformDeliveryApp(
                     MainBottomNavScreen(
                         rootNavController = navController,
                         onLogout = {
+                            // Clear all user data
                             appPrefs.clear()
+                            // Navigate to login screen and clear entire back stack
                             navController.navigate("login") {
-                                popUpTo("main") { inclusive = true }
+                                // Pop all destinations up to and including the start destination
+                                popUpTo(startDestination) { inclusive = true }
+                                // Prevent multiple instances of login screen
+                                launchSingleTop = true
                             }
                         },
                         onThemeChange = updateTheme
