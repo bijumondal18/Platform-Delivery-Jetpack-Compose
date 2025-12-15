@@ -1434,12 +1434,42 @@ fun LoadVehicleBottomSheet(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
-            Text(
-                text = "Load Vehicle",
-                style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.padding(bottom = 20.dp),
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            // Title row with Check All button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Load Vehicle",
+                    style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                
+                // Check All button
+                if (waypoints.isNotEmpty()) {
+                    TextButton(
+                        onClick = {
+                            // Toggle all waypoints
+                            val shouldCheckAll = !allChecked
+                            waypoints.forEach { waypoint ->
+                                val waypointId = (waypoint.id as? Number)?.toInt()
+                                if (waypointId != null) {
+                                    checkedWaypoints[waypointId] = shouldCheckAll
+                                }
+                            }
+                        }
+                    ) {
+                        Text(
+                            text = if (allChecked) "Uncheck All" else "Check All",
+                            style = AppTypography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
             
             Text(
                 text = "Please check all waypoints to confirm vehicle loading",
