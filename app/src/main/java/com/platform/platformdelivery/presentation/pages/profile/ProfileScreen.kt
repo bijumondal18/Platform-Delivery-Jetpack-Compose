@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.ContactSupport
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -79,7 +80,8 @@ fun ProfileScreen(
     navController: NavController? = null,
     onDeleteAccount: () -> Unit = {},
     onLogout: () -> Unit = {},
-    profileViewModel: ProfileViewModel = viewModel()
+    profileViewModel: ProfileViewModel = viewModel(),
+    onThemeChange: ((Boolean) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val appPrefs = remember { TokenManager(context) }
@@ -440,6 +442,22 @@ fun ProfileScreen(
                             }
                         }
                     )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    )
+
+                    // Settings
+                    ProfileMenuItem(
+                        icon = Icons.Default.Settings,
+                        title = "Settings",
+                        onClick = {
+                            navController?.navigate("settings") {
+                                popUpTo("main") { inclusive = false }
+                            }
+                        }
+                    )
                 }
             }
 
@@ -683,3 +701,4 @@ fun ProfileMenuItem(
         )
     }
 }
+

@@ -17,6 +17,10 @@ class TokenManager(context: Context) : RetrofitClient.TokenProvider {
         private const val KEY_PROFILE_PIC = "profile_pic"
         private const val KEY_LOGGED_ON = "is_logged_in"
         private const val KEY_BASE_URL = "base_url"
+        private const val KEY_DARK_THEME = "dark_theme"
+        private const val KEY_PUSH_NOTIFICATION = "push_notification"
+        private const val KEY_EMAIL_NOTIFICATION = "email_notification"
+        private const val KEY_SMS_NOTIFICATION = "sms_notification"
     }
 
     override fun getAccessToken(): String? = prefs.getString(KEY_ACCESS_TOKEN, null)
@@ -77,6 +81,37 @@ class TokenManager(context: Context) : RetrofitClient.TokenProvider {
     }
 
     override fun getBaseUrl(): String? = prefs.getString(KEY_BASE_URL, null)
+
+    fun isDarkTheme(): Boolean? {
+        return if (prefs.contains(KEY_DARK_THEME)) {
+            prefs.getBoolean(KEY_DARK_THEME, false)
+        } else {
+            null // No preference set yet
+        }
+    }
+
+    fun setDarkTheme(isDark: Boolean) {
+        prefs.edit { putBoolean(KEY_DARK_THEME, isDark) }
+    }
+
+    // Notification preferences
+    fun isPushNotificationEnabled(): Boolean = prefs.getBoolean(KEY_PUSH_NOTIFICATION, true)
+
+    fun setPushNotificationEnabled(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_PUSH_NOTIFICATION, enabled) }
+    }
+
+    fun isEmailNotificationEnabled(): Boolean = prefs.getBoolean(KEY_EMAIL_NOTIFICATION, true)
+
+    fun setEmailNotificationEnabled(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_EMAIL_NOTIFICATION, enabled) }
+    }
+
+    fun isSmsNotificationEnabled(): Boolean = prefs.getBoolean(KEY_SMS_NOTIFICATION, true)
+
+    fun setSmsNotificationEnabled(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_SMS_NOTIFICATION, enabled) }
+    }
 
     fun clear() {
         prefs.edit { clear() }

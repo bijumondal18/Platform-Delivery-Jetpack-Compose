@@ -111,7 +111,8 @@ fun getTitleForRoute(route: String?): String {
 @Composable
 fun MainBottomNavScreen(
     rootNavController: androidx.navigation.NavController,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onThemeChange: ((Boolean) -> Unit)? = null
 ) {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -246,7 +247,8 @@ fun MainBottomNavScreen(
                         navController = rootNavController,
                         onLogout = {
                             onLogout()
-                        }
+                        },
+                        onThemeChange = onThemeChange
                     ) 
                 }
                 composable(DrawerDestinations.RouteScreenWithChips) { RoutesScreenWithChips(navController = rootNavController) }

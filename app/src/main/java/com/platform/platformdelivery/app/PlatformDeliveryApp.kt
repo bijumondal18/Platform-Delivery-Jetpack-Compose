@@ -2,11 +2,15 @@ package com.platform.platformdelivery.app
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -25,6 +29,7 @@ import com.platform.platformdelivery.presentation.pages.privacy_policy.PrivacyPo
 import com.platform.platformdelivery.presentation.pages.profile.EditProfileScreen
 import com.platform.platformdelivery.presentation.pages.refer_earn.ReferEarnScreen
 import com.platform.platformdelivery.presentation.pages.route_details.RouteDetailsScreen
+import com.platform.platformdelivery.presentation.pages.settings.SettingsScreen
 import com.platform.platformdelivery.presentation.pages.terms_conditions.TermsConditionsScreen
 import com.platform.platformdelivery.presentation.pages.tutorials.TutorialsScreen
 import com.platform.platformdelivery.presentation.view_models.AuthViewModel
@@ -42,9 +47,27 @@ fun PlatformDeliveryApp(
     val context = LocalContext.current
 
     // Provide your shared AuthViewModel here
-    val authViewModel: AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val authViewModel: AuthViewModel = viewModel()
 
     val appPrefs = remember { TokenManager(context) }
+
+    // Get system theme preference (composable function)
+    val systemIsDarkTheme = isSystemInDarkTheme()
+
+    // Theme state - check if user has set a preference, otherwise use system theme
+    var isDarkTheme by remember(appPrefs, systemIsDarkTheme) {
+        val savedTheme = appPrefs.isDarkTheme()
+        // Use saved preference if it exists, otherwise use system theme
+        mutableStateOf(
+            savedTheme ?: systemIsDarkTheme
+        )
+    }
+    
+    // Function to update theme
+    val updateTheme: (Boolean) -> Unit = { isDark ->
+        isDarkTheme = isDark
+        appPrefs.setDarkTheme(isDark)
+    }
 
     // Check permissions when screen becomes visible
     LaunchedEffect(Unit) {
@@ -54,7 +77,7 @@ fun PlatformDeliveryApp(
     // Check if all permissions are granted
     val allPermissionsGranted = PermissionUtils.hasAllRequiredPermissions(context)
 
-    AppTheme {
+    AppTheme(darkTheme = isDarkTheme) {
         // Show permission screen if permissions are not granted
         if (!allPermissionsGranted) {
             PermissionScreen(
@@ -88,7 +111,8 @@ fun PlatformDeliveryApp(
                             navController.navigate("login") {
                                 popUpTo("main") { inclusive = true }
                             }
-                        }
+                        },
+                        onThemeChange = updateTheme
                     )
                 }
                 composable("routeDetails/{routeId}") { backStackEntry ->
@@ -103,6 +127,12 @@ fun PlatformDeliveryApp(
                 }
                 composable("editProfile") {
                     EditProfileScreen(navController = navController)
+                }
+                composable("settings") {
+                    SettingsScreen(
+                        navController = navController,
+                        onThemeChange = updateTheme
+                    )
                 }
                 composable("contact_admin") {
                     ContactAdminScreen(navController = navController)
