@@ -33,6 +33,11 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Mail
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -366,6 +371,8 @@ fun RouteStopsList(
 ) {
     var showMapBottomSheet by remember { mutableStateOf(false) }
     var showLoadVehicleBottomSheet by remember { mutableStateOf(false) }
+    var showDeliveryOptionsBottomSheet by remember { mutableStateOf(false) }
+    var selectedWaypointId by remember { mutableStateOf<String?>(null) }
     var navigationLat by remember { mutableStateOf<Double?>(null) }
     var navigationLng by remember { mutableStateOf<Double?>(null) }
     val context = LocalContext.current
@@ -644,13 +651,8 @@ fun RouteStopsList(
                 },
                 onDeliverClick = {
                     if (routeId.isNotEmpty() && stopInfo.waypointId != null) {
-                        routesViewModel.updateWaypointDelivery(
-                            routeId,
-                            stopInfo.waypointId.toString(),
-                            "delivered"
-                        ) {
-                            // Success handled in LaunchedEffect
-                        }
+                        selectedWaypointId = stopInfo.waypointId.toString()
+                        showDeliveryOptionsBottomSheet = true
                     }
                 },
                 onFailedClick = {
@@ -727,6 +729,30 @@ fun RouteStopsList(
             isLoadingVehicle = isLoadingVehicle,
             routesViewModel = routesViewModel,
             onDismiss = { showLoadVehicleBottomSheet = false }
+        )
+    }
+    
+    // Delivery Options bottom sheet
+    if (showDeliveryOptionsBottomSheet && selectedWaypointId != null) {
+        DeliveryOptionsBottomSheet(
+            onDismiss = { 
+                showDeliveryOptionsBottomSheet = false
+                selectedWaypointId = null
+            },
+            onOptionSelected = { deliveryType ->
+                if (routeId.isNotEmpty() && selectedWaypointId != null) {
+                    routesViewModel.updateWaypointDelivery(
+                        routeId,
+                        selectedWaypointId!!,
+                        "delivered",
+                        deliveryType
+                    ) {
+                        // Success handled in LaunchedEffect
+                    }
+                    showDeliveryOptionsBottomSheet = false
+                    selectedWaypointId = null
+                }
+            }
         )
     }
 }
@@ -1277,6 +1303,125 @@ fun MapSelectionBottomSheet(
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+/**
+ * Data class for delivery option with icon
+ */
+data class DeliveryOption(
+    val text: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val deliveryType: String
+)
+
+/**
+ * Bottom sheet for selecting delivery options
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DeliveryOptionsBottomSheet(
+    onDismiss: () -> Unit,
+    onOptionSelected: (String) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    
+    val deliveryOptions = remember {
+        listOf(
+            DeliveryOption(
+                text = "Deliver to recipient",
+                icon = Icons.Default.Person,
+                deliveryType = "recipient"
+            ),
+            DeliveryOption(
+                text = "Deliver to third party",
+                icon = Icons.Default.Group,
+                deliveryType = "third_party"
+            ),
+            DeliveryOption(
+                text = "Left in mailbox",
+                icon = Icons.Default.Mail,
+                deliveryType = "mailbox"
+            ),
+            DeliveryOption(
+                text = "Left in safe place",
+                icon = Icons.Default.Lock,
+                deliveryType = "safe_place"
+            ),
+            DeliveryOption(
+                text = "Other",
+                icon = Icons.Default.MoreHoriz,
+                deliveryType = "other"
+            )
+        )
+    }
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 12.dp)
+                    .width(40.dp)
+                    .height(4.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+            )
+        },
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(
+            topStart = 12.dp,
+            topEnd = 12.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = "Select Delivery Option",
+                style = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                modifier = Modifier.padding(bottom = 20.dp),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            
+            deliveryOptions.forEach { option ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .clickable {
+                            onOptionSelected(option.deliveryType)
+                            onDismiss()
+                        }
+                        .padding(vertical = 16.dp, horizontal = 16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = option.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = option.text,
+                            style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            
             Spacer(modifier = Modifier.height(16.dp))
         }
     }

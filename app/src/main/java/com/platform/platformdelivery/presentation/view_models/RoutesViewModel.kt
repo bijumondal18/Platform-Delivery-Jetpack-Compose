@@ -541,6 +541,7 @@ class RoutesViewModel(
         routeId: String,
         waypointId: String,
         deliveryStatus: String, // "delivered" or "failed"
+        deliveryType: String? = null,
         onSuccess: () -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -554,7 +555,7 @@ class RoutesViewModel(
                     java.util.Locale.getDefault()
                 ).format(Date())
                 
-                val result = routeRepository.routeDeliveryWithOptions(routeId, waypointId, deliveryStatus, currentTime)
+                val result = routeRepository.routeDeliveryWithOptions(routeId, waypointId, deliveryStatus, currentTime, deliveryType)
                 when (result) {
                     is Result.Success -> {
                         _deliveryUpdateResult.value = Result.Success(Unit)

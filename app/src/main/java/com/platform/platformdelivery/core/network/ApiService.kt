@@ -145,7 +145,8 @@ interface ApiService {
         @Field("route_id") routeId: String,
         @Field("waypoint_id") waypointId: String,
         @Field("delivery_status") deliveryStatus: String, // "delivered" or "failed"
-        @Field("current_time") currentTime: String
+        @Field("current_time") currentTime: String,
+        @Field("delivery_type") deliveryType: String? = null
     ): Response<BaseResponse>
 
     @GET(EarningsEndpoints.totalEarnings)
