@@ -6,28 +6,28 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.AltRoute
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.platform.platformdelivery.R
 import com.platform.platformdelivery.core.theme.AppTypography
@@ -44,187 +44,181 @@ fun RouteItem(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp)
+            .clickable { onClick(route) }
+            .padding(vertical = 12.dp, horizontal = 16.dp)
     ) {
+        // Route name row with status badge
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onClick(route) },
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
-            // Route icon
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_delivery_truck),
-                    contentDescription = "Route",
-                    modifier = Modifier.size(20.dp),
-                    colorFilter = ColorFilter.tint(color = MaterialTheme.colorScheme.primary)
+            // Route name
+            if (!route.name.isNullOrEmpty()) {
+                Text(
+                    text = route.name,
+                    style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f)
                 )
             }
-            
-            // Content
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                // Title row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Route title/time
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        // Route name
-                        if (!route.name.isNullOrEmpty()) {
-                            Text(
-                                text = route.name,
-                                style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                        }
-                        Text(
-                            text = "${route.startTime ?: ""} - ${route.estimatedEndTime ?: ""}",
-                            style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "${route.estimatedTotalTime ?: ""} - ${route.distance ?: ""}",
-                            style = AppTypography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                        )
-                    }
-                    
-                    // Cancel Trip button or Chevron icon
-                    // Hide cancel button if trip is ongoing
-                    val isOngoing = route.status?.lowercase() == "ongoing"
-                    val shouldShowCancel = showCancelButton && onCancelClick != null && !isOngoing
-                    
-                    if (shouldShowCancel) {
-                        Button(
-                            onClick = { onCancelClick(route) },
-                            modifier = Modifier.height(36.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            ),
-                            shape = MaterialTheme.shapes.medium,
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = "Cancel Trip",
-                                style = AppTypography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                            )
-                        }
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = "View Details",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-                        )
-                    }
-                }
-                
-                // Origin and Destination addresses
-                Column(
+
+            // Status badge on the right
+            if (!route.status.isNullOrEmpty()) {
+                val statusColor = if (route.status.lowercase() == "completed" ||
+                    route.status.lowercase() == "compleated"
+                )
+                    SuccessGreen
+                else
+                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                        .background(
+                            color = statusColor.copy(alpha = 0.1f),
+                            shape = MaterialTheme.shapes.small
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    // Origin address
-                    if (!route.originPlace.isNullOrEmpty()) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "From:",
-                                style = AppTypography.labelSmall,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = route.originPlace,
-                                style = AppTypography.labelSmall,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                                maxLines = 1
-                            )
-                        }
-                    }
-                    
-                    // Destination address
-                    if (!route.destinationPlace.isNullOrEmpty()) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "To:",
-                                style = AppTypography.labelSmall,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = route.destinationPlace,
-                                style = AppTypography.labelSmall,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                                maxLines = 1
-                            )
-                        }
-                    }
-                }
-                
-                // Status badge
-                if (!route.status.isNullOrEmpty()) {
                     Row(
-                        modifier = Modifier.padding(top = 2.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Status:",
+                            text = "•",
                             style = AppTypography.labelSmall,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                            fontWeight = FontWeight.SemiBold
+                            color = statusColor
                         )
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    color = if (route.status.lowercase() == "completed") 
-                                        SuccessGreen.copy(alpha = 0.2f) 
-                                    else 
-                                        MaterialTheme.colorScheme.surfaceContainer,
-                                    shape = MaterialTheme.shapes.small
-                                )
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = route.status.replaceFirstChar { it.uppercaseChar() },
-                                style = AppTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                color = if (route.status.lowercase() == "completed") 
-                                    SuccessGreen 
-                                else 
-                                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                            )
-                        }
+                        Text(
+                            text = route.status.replaceFirstChar { it.uppercaseChar() },
+                            style = AppTypography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = statusColor
+                        )
                     }
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Location row with pin icon
+        val locationText = route.originPlace ?: route.destinationPlace ?: ""
+        if (locationText.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                            shape = MaterialTheme.shapes.medium
+                        ).padding(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Location",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    )
+                }
+                Text(
+                    text = locationText,
+                    style = AppTypography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Details row: START, DURATION, STOPS
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // START
+            DetailItem(
+                iconDrawable = R.drawable.ic_clock,
+                label = "START",
+                value = route.startTime ?: "--"
+            )
+
+            // DURATION
+            DetailItem(
+                icon = Icons.Default.Refresh,
+                label = "DURATION",
+                value = route.estimatedTotalTime ?: "0h 0m"
+            )
+
+            // STOPS
+            val totalStops = (route.waypoints?.size ?: 0) +
+                    if (route.destinationPlace.isNullOrEmpty()) 0 else 1
+            DetailItem(
+                icon = Icons.Default.AltRoute,
+                label = "STOPS",
+                value = totalStops.toString()
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailItem(
+    icon: ImageVector? = null,
+    iconDrawable: Int? = null,
+    label: String,
+    value: String
+) {
+    Box(
+        modifier = Modifier
+            .background(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                shape = MaterialTheme.shapes.medium
+            )
+            .padding(8.dp)
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    )
+                } else if (iconDrawable != null) {
+                    Image(
+                        painter = painterResource(id = iconDrawable),
+                        contentDescription = label,
+                        modifier = Modifier.size(14.dp),
+                        colorFilter = ColorFilter.tint(
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        )
+                    )
+                }
+                Text(
+                    text = label,
+                    style = AppTypography.labelSmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Text(
+                text = value,
+                style = AppTypography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }

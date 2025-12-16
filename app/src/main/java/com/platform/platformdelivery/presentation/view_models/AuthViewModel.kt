@@ -2,7 +2,6 @@ package com.platform.platformdelivery.presentation.view_models
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.platform.platformdelivery.data.models.BaseResponse
 import com.platform.platformdelivery.data.models.LoginResponse
 import com.platform.platformdelivery.data.repositories.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,9 +17,6 @@ class AuthViewModel(
 
     private val _loginState = MutableStateFlow<Result<LoginResponse>>(Result.Idle)
     val loginState: StateFlow<Result<LoginResponse>> = _loginState
-
-    private val _forgotPasswordState = MutableStateFlow<Result<BaseResponse>>(Result.Idle)
-    val forgotPasswordState: StateFlow<Result<BaseResponse>> = _forgotPasswordState
 
     fun login(email: String, password: String) {
         viewModelScope.launch {
@@ -49,16 +45,5 @@ class AuthViewModel(
         }
     }
 
-    fun forgotPassword(email: String) {
-        viewModelScope.launch {
-            _forgotPasswordState.value = Result.Loading
-            val result = authRepository.forgotPassword(email)
-            _forgotPasswordState.value = result
-        }
-    }
-
-    fun resetForgotPasswordState() {
-        _forgotPasswordState.value = Result.Idle
-    }
 
 }

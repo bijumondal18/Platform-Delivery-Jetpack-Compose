@@ -12,8 +12,8 @@ object AuthEndpoints {
     const val register = "signup"
     const val resendOtp = "resend-otp"
     const val logout = "logout"
-    const val forgotPassword = "forgotPassword"
-    const val resetPassword = "resetPassword"
+    // const val forgotPassword = "forgotPassword"
+    // const val resetPassword = "resetPassword"
     const val verifyOtp = "verify-otp"
 }
 
