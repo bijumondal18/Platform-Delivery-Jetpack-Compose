@@ -45,7 +45,7 @@ fun RouteItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick(route) }
-            .padding(vertical = 12.dp, horizontal = 16.dp)
+            .padding(vertical = 12.dp, horizontal = 4.dp)
     ) {
         // Route name row with status badge
         Row(
