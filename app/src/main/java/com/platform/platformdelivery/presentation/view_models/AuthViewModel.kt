@@ -25,6 +25,12 @@ class AuthViewModel(
     private val _verifyOtpState = MutableStateFlow<Result<BaseResponse>>(Result.Idle)
     val verifyOtpState: StateFlow<Result<BaseResponse>> = _verifyOtpState
 
+    private val _resendOtpState = MutableStateFlow<Result<BaseResponse>>(Result.Idle)
+    val resendOtpState: StateFlow<Result<BaseResponse>> = _resendOtpState
+
+    private val _resetPasswordState = MutableStateFlow<Result<BaseResponse>>(Result.Idle)
+    val resetPasswordState: StateFlow<Result<BaseResponse>> = _resetPasswordState
+
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _loginState.value = Result.Loading
@@ -64,16 +70,40 @@ class AuthViewModel(
         _forgotPasswordState.value = Result.Idle
     }
 
-    fun verifyOtp(email: String, otp: String) {
+    fun verifyOtp(userId: String, otp: String) {
         viewModelScope.launch {
             _verifyOtpState.value = Result.Loading
-            val result = authRepository.verifyOtp(email, otp)
+            val result = authRepository.verifyOtp(userId, otp)
             _verifyOtpState.value = result
         }
     }
 
     fun resetVerifyOtpState() {
         _verifyOtpState.value = Result.Idle
+    }
+
+    fun resendOtp(email: String) {
+        viewModelScope.launch {
+            _resendOtpState.value = Result.Loading
+            val result = authRepository.resendOtp(email)
+            _resendOtpState.value = result
+        }
+    }
+
+    fun resetResendOtpState() {
+        _resendOtpState.value = Result.Idle
+    }
+
+    fun resetPassword(token: String, password: String) {
+        viewModelScope.launch {
+            _resetPasswordState.value = Result.Loading
+            val result = authRepository.resetPassword(token, password)
+            _resetPasswordState.value = result
+        }
+    }
+
+    fun resetResetPasswordState() {
+        _resetPasswordState.value = Result.Idle
     }
 
 }

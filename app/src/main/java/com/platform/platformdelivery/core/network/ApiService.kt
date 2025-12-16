@@ -47,29 +47,30 @@ interface ApiService {
 //        @Field("password") password: String
 //    ): Response<RegisterResponse>
 //
-//    @FormUrlEncoded
-//    @POST(AuthEndpoints.resendOtp)
-//    suspend fun resendOtp(
-//        @Field("email") email: String
-//    ): Response<BaseResponse>
-//
+    @FormUrlEncoded
+    @POST(AuthEndpoints.resendOtp)
+    suspend fun resendOtp(
+        @Field("email") email: String
+    ): Response<BaseResponse>
+
     @FormUrlEncoded
     @POST(AuthEndpoints.forgotPassword)
     suspend fun forgotPassword(
         @Field("email") email: String
     ): Response<BaseResponse>
 
-//    @FormUrlEncoded
-//    @POST(AuthEndpoints.resetPassword)
-//    suspend fun resetPassword(
-//        @Field("token") token: String,
-//        @Field("password") password: String
-//    ): Response<BaseResponse>
+    @FormUrlEncoded
+    @POST(AuthEndpoints.resetPassword)
+    suspend fun resetPassword(
+        @Field("token") token: String,
+        @Field("password") password: String
+    ): Response<BaseResponse>
+
 //
     @FormUrlEncoded
     @POST(AuthEndpoints.verifyOtp)
     suspend fun verifyOtp(
-        @Field("email") email: String,
+        @Field("user_id") userId: String,
         @Field("otp") otp: String
     ): Response<BaseResponse>
 

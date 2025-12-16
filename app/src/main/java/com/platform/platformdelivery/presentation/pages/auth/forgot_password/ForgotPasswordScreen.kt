@@ -78,9 +78,10 @@ fun ForgotPasswordScreen(
                     )
                 }
                 
-                // Navigate to OTP verification screen with email
+                // Navigate to OTP verification screen with email and user_id
+                val userId = state.data?.data?.userId?.toString() ?: ""
                 delay(1000) // Small delay to show snackbar
-                navController.navigate("otp_verification/$email") {
+                navController.navigate("otp_verification/$email/$userId") {
                     popUpTo("forgot_password") { inclusive = false }
                 }
             }

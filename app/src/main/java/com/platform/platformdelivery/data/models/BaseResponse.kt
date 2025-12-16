@@ -10,7 +10,8 @@ data class BaseResponse(
 
 data class BaseResponseData(
     @SerializedName("msg") val msg: String? = null,
-    @SerializedName("status") val status: Boolean? = null
+    @SerializedName("status") val status: Boolean? = null,
+    @SerializedName("user_id") val userId: Int? = null
 )
 
 

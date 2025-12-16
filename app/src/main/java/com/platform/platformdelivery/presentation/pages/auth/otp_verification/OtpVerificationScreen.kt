@@ -11,9 +11,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -29,6 +32,7 @@ import kotlinx.coroutines.launch
 fun OtpVerificationScreen(
     navController: NavController,
     email: String,
+    userId: String,
     modifier: Modifier = Modifier,
     viewModel: AuthViewModel = viewModel()
 ) {
@@ -38,7 +42,9 @@ fun OtpVerificationScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val verifyOtpState by viewModel.verifyOtpState.collectAsState()
+    val resendOtpState by viewModel.resendOtpState.collectAsState()
     val isLoading = verifyOtpState is Result.Loading
+    val isResending = resendOtpState is Result.Loading
 
     // Handle OTP verification result
     LaunchedEffect(verifyOtpState) {
@@ -56,10 +62,10 @@ fun OtpVerificationScreen(
                     )
                 }
                 
-                // Navigate to reset password screen or login
+                // Navigate to reset password screen
                 delay(1500)
-                navController.navigate("login") {
-                    popUpTo("login") { inclusive = true }
+                navController.navigate("reset_password/$email") {
+                    popUpTo("forgot_password") { inclusive = false }
                 }
             }
             is Result.Error -> {
@@ -72,6 +78,37 @@ fun OtpVerificationScreen(
                 // Clear OTP on error
                 otpDigits.replaceAll { "" }
                 focusRequesters[0].requestFocus()
+            }
+            else -> {}
+        }
+    }
+
+    // Handle resend OTP result
+    LaunchedEffect(resendOtpState) {
+        val state = resendOtpState
+        when (state) {
+            is Result.Success -> {
+                val successMessage = state.data?.data?.msg 
+                    ?: state.data?.message 
+                    ?: "OTP resent successfully!"
+                
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = successMessage,
+                        duration = SnackbarDuration.Short
+                    )
+                }
+                // Clear OTP fields
+                otpDigits.replaceAll { "" }
+                focusRequesters[0].requestFocus()
+            }
+            is Result.Error -> {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = state.message,
+                        duration = SnackbarDuration.Long
+                    )
+                }
             }
             else -> {}
         }
@@ -121,7 +158,12 @@ fun OtpVerificationScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                "Enter the 6-digit code sent to $email",
+                text = buildAnnotatedString {
+                    append("Enter the 6-digit code sent to ")
+                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append(email)
+                    }
+                },
                 style = AppTypography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center
@@ -152,7 +194,7 @@ fun OtpVerificationScreen(
                                 if (index == 5 && newValue.isNotEmpty()) {
                                     val otp = otpDigits.joinToString("")
                                     if (otp.length == 6) {
-                                        viewModel.verifyOtp(email, otp)
+                                        viewModel.verifyOtp(userId, otp)
                                     }
                                 }
                             }
@@ -195,7 +237,7 @@ fun OtpVerificationScreen(
                 onClick = {
                     val otp = otpDigits.joinToString("")
                     if (otp.length == 6) {
-                        viewModel.verifyOtp(email, otp)
+                        viewModel.verifyOtp(userId, otp)
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -203,22 +245,30 @@ fun OtpVerificationScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            TextButton(
-                onClick = {
-                    // TODO: Implement resend OTP
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = "Resend OTP functionality coming soon",
-                            duration = SnackbarDuration.Short
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                TextButton(
+                    onClick = {
+                        viewModel.resendOtp(email)
+                    },
+                    enabled = !isResending
+                ) {
+                    if (isResending) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            "Resend OTP",
+                            style = AppTypography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
-            ) {
-                Text(
-                    "Resend OTP",
-                    style = AppTypography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
             }
         }
     }
