@@ -53,12 +53,12 @@ interface ApiService {
 //        @Field("email") email: String
 //    ): Response<BaseResponse>
 //
-//    @FormUrlEncoded
-//    @POST(AuthEndpoints.forgotPassword)
-//    suspend fun forgotPassword(
-//        @Field("email") email: String
-//    ): Response<BaseResponse>
-//
+    @FormUrlEncoded
+    @POST(AuthEndpoints.forgotPassword)
+    suspend fun forgotPassword(
+        @Field("email") email: String
+    ): Response<BaseResponse>
+
 //    @FormUrlEncoded
 //    @POST(AuthEndpoints.resetPassword)
 //    suspend fun resetPassword(
@@ -66,12 +66,13 @@ interface ApiService {
 //        @Field("password") password: String
 //    ): Response<BaseResponse>
 //
-//    @FormUrlEncoded
-//    @POST(AuthEndpoints.verifyOtp)
-//    suspend fun verifyOtp(
-//        @Field("email") email: String,
-//        @Field("otp") otp: String
-//    ): Response<BaseResponse>
+    @FormUrlEncoded
+    @POST(AuthEndpoints.verifyOtp)
+    suspend fun verifyOtp(
+        @Field("email") email: String,
+        @Field("otp") otp: String
+    ): Response<BaseResponse>
+
 //
 //    @POST(AuthEndpoints.logout)
 //    suspend fun logout(): Response<BaseResponse>

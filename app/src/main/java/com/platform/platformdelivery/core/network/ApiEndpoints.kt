@@ -2,7 +2,8 @@ package com.platform.platformdelivery.core.network
 
 object ApiConfig {
     const val version = "v1.15.0"
-//    const val baseUrl = "https://platformdelivery.app/platform/public/api/driver/"
+
+    //    const val baseUrl = "https://platformdelivery.app/platform/public/api/driver/"
     const val baseUrl = "https://platform.hannastransport.com/platform/public/api/driver/"
     const val apiVersion = "https://platformdelivery.app/platform/public/api/api_version"
 }
@@ -12,8 +13,8 @@ object AuthEndpoints {
     const val register = "signup"
     const val resendOtp = "resend-otp"
     const val logout = "logout"
-    // const val forgotPassword = "forgotPassword"
-    // const val resetPassword = "resetPassword"
+    const val forgotPassword = "forgotPassword"
+    const val resetPassword = "resetPassword"
     const val verifyOtp = "verify-otp"
 }
 

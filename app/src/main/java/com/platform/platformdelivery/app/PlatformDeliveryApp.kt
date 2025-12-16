@@ -22,6 +22,7 @@ import com.platform.platformdelivery.core.utils.PermissionUtils
 import com.platform.platformdelivery.data.local.TokenManager
 import com.platform.platformdelivery.presentation.pages.auth.forgot_password.ForgotPasswordScreen
 import com.platform.platformdelivery.presentation.pages.auth.login.LoginScreen
+import com.platform.platformdelivery.presentation.pages.auth.otp_verification.OtpVerificationScreen
 import com.platform.platformdelivery.presentation.pages.auth.register.SignupScreen
 import com.platform.platformdelivery.presentation.pages.about_us.AboutUsScreen
 import com.platform.platformdelivery.presentation.pages.contact_admin.ContactAdminScreen
@@ -105,6 +106,13 @@ fun PlatformDeliveryApp(
                 }
                 composable("forgot_password") {
                     ForgotPasswordScreen(navController)
+                }
+                composable("otp_verification/{email}") { backStackEntry ->
+                    val email = backStackEntry.arguments?.getString("email") ?: ""
+                    OtpVerificationScreen(
+                        navController = navController,
+                        email = email
+                    )
                 }
                 composable("signup") {
                     SignupScreen(navController)

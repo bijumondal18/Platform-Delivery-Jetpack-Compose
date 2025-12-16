@@ -24,33 +24,89 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.platform.platformdelivery.core.network.Result
 import com.platform.platformdelivery.core.theme.AppTypography
+import com.platform.platformdelivery.presentation.view_models.AuthViewModel
 import com.platform.platformdelivery.presentation.widgets.AppTextField
 import com.platform.platformdelivery.presentation.widgets.PrimaryButton
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ForgotPasswordScreen(navController: NavController, modifier: Modifier = Modifier) {
+fun ForgotPasswordScreen(
+    navController: NavController,
+    modifier: Modifier = Modifier,
+    viewModel: AuthViewModel = viewModel()
+) {
 
     var email by remember { mutableStateOf("") }
     var emailError by remember { mutableStateOf<String?>(null) }
 
+    val forgotPasswordState by viewModel.forgotPasswordState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Handle success and error states
+    LaunchedEffect(forgotPasswordState) {
+        val state = forgotPasswordState // Store in local variable for smart cast
+        when (state) {
+            is Result.Success -> {
+                // Show success message in snackbar, then navigate to OTP screen
+                val successMessage = state.data?.data?.msg 
+                    ?: state.data?.message 
+                    ?: "OTP sent to your email!"
+                
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = successMessage,
+                        duration = SnackbarDuration.Short
+                    )
+                }
+                
+                // Navigate to OTP verification screen with email
+                delay(1000) // Small delay to show snackbar
+                navController.navigate("otp_verification/$email") {
+                    popUpTo("forgot_password") { inclusive = false }
+                }
+            }
+            is Result.Error -> {
+                // Show error message in snackbar
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = state.message,
+                        duration = SnackbarDuration.Long
+                    )
+                }
+            }
+            else -> {}
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {Text("")},
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { 
+                        viewModel.resetForgotPasswordState()
+                        navController.popBackStack() 
+                    }) {
                         Icon(
                             imageVector = Icons.Filled.ArrowBack,
                             contentDescription = "Back"
@@ -94,6 +150,7 @@ fun ForgotPasswordScreen(navController: NavController, modifier: Modifier = Modi
                 onValueChange = {
                     email = it
                     emailError = null
+                    viewModel.resetForgotPasswordState()
                 },
                 label = "Registered Email",
                 keyboardType = KeyboardType.Email,
@@ -103,9 +160,13 @@ fun ForgotPasswordScreen(navController: NavController, modifier: Modifier = Modi
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            val isLoading = forgotPasswordState is Result.Loading
+            val isEnabled = email.isNotEmpty() && !isLoading
+
             PrimaryButton(
                 text = "Submit",
-                enabled = email.isNotEmpty(),
+                enabled = isEnabled,
+                isLoading = isLoading,
                 onClick = {
                     var valid = true
                     if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
@@ -113,9 +174,7 @@ fun ForgotPasswordScreen(navController: NavController, modifier: Modifier = Modi
                         valid = false
                     }
                     if(valid){
-                        navController.navigate("login"){
-                            popUpTo("login") { inclusive = true }
-                        }
+                        viewModel.forgotPassword(email)
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
