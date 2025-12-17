@@ -156,7 +156,7 @@ fun SettingsScreen(
             }
 
             Text(
-                text = "Notifications",
+                text = "Notification Settings",
                 style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 4.dp)
