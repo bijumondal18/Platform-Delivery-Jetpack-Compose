@@ -59,19 +59,39 @@ fun PlatformDeliveryApp(
     // Get system theme preference (composable function)
     val systemIsDarkTheme = isSystemInDarkTheme()
 
-    // Theme state - check if user has set a preference, otherwise use system theme
-    var isDarkTheme by remember(appPrefs, systemIsDarkTheme) {
-        val savedTheme = appPrefs.isDarkTheme()
-        // Use saved preference if it exists, otherwise use system theme
+    // Get theme mode from preferences
+    val initialThemeMode = remember { appPrefs.getThemeMode() }
+    
+    // Theme state - update when system theme changes (for SYSTEM mode)
+    var currentThemeMode by remember { mutableStateOf(initialThemeMode) }
+    
+    // Calculate effective dark theme based on current mode
+    var effectiveDarkTheme by remember(currentThemeMode, systemIsDarkTheme) {
         mutableStateOf(
-            savedTheme ?: systemIsDarkTheme
+            when (currentThemeMode) {
+                TokenManager.ThemeMode.LIGHT -> false
+                TokenManager.ThemeMode.DARK -> true
+                TokenManager.ThemeMode.SYSTEM -> systemIsDarkTheme
+            }
         )
     }
     
+    // Watch for system theme changes when in SYSTEM mode
+    LaunchedEffect(systemIsDarkTheme, currentThemeMode) {
+        if (currentThemeMode == TokenManager.ThemeMode.SYSTEM) {
+            effectiveDarkTheme = systemIsDarkTheme
+        }
+    }
+    
     // Function to update theme
-    val updateTheme: (Boolean) -> Unit = { isDark ->
-        isDarkTheme = isDark
-        appPrefs.setDarkTheme(isDark)
+    val updateTheme: (TokenManager.ThemeMode) -> Unit = { mode ->
+        currentThemeMode = mode
+        appPrefs.setThemeMode(mode)
+        effectiveDarkTheme = when (mode) {
+            TokenManager.ThemeMode.LIGHT -> false
+            TokenManager.ThemeMode.DARK -> true
+            TokenManager.ThemeMode.SYSTEM -> systemIsDarkTheme
+        }
     }
 
     // Check permissions when screen becomes visible
@@ -83,9 +103,9 @@ fun PlatformDeliveryApp(
     val allPermissionsGranted = PermissionUtils.hasAllRequiredPermissions(context)
 
     // Update status bar icon color based on theme
-    SetStatusBarIconColor(isDarkTheme)
+    SetStatusBarIconColor(effectiveDarkTheme)
 
-    AppTheme(darkTheme = isDarkTheme) {
+    AppTheme(darkTheme = effectiveDarkTheme) {
         // Show permission screen if permissions are not granted
         if (!allPermissionsGranted) {
             PermissionScreen(

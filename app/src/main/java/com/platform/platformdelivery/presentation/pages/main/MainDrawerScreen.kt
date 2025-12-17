@@ -112,7 +112,7 @@ fun getTitleForRoute(route: String?): String {
 fun MainBottomNavScreen(
     rootNavController: androidx.navigation.NavController,
     onLogout: () -> Unit,
-    onThemeChange: ((Boolean) -> Unit)? = null
+    onThemeChange: ((com.platform.platformdelivery.data.local.TokenManager.ThemeMode) -> Unit)? = null
 ) {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()

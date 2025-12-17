@@ -13,24 +13,38 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Sms
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,9 +53,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.data.local.TokenManager
@@ -50,17 +65,18 @@ import com.platform.platformdelivery.data.local.TokenManager
 @Composable
 fun SettingsScreen(
     navController: NavController?,
-    onThemeChange: (Boolean) -> Unit
+    onThemeChange: (TokenManager.ThemeMode) -> Unit
 ) {
     val context = LocalContext.current
     val tokenManager = remember { TokenManager(context) }
     
     // Theme state
-    val savedTheme = tokenManager.isDarkTheme()
-    val systemIsDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
-    var isDarkTheme by remember(savedTheme, systemIsDarkTheme) {
-        mutableStateOf(savedTheme ?: systemIsDarkTheme)
+    var selectedThemeMode by remember {
+        mutableStateOf(tokenManager.getThemeMode())
     }
+    
+    // Dialog state
+    var showThemeDialog by remember { mutableStateOf(false) }
     
     // Notification preferences
     var isPushNotificationEnabled by remember {
@@ -119,20 +135,24 @@ fun SettingsScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
-                    ThemeToggleItem(
-                        isDarkTheme = isDarkTheme,
-                        onThemeChange = { isDark ->
-                            isDarkTheme = isDark
-                            tokenManager.setDarkTheme(isDark)
-                            onThemeChange(isDark)
-                        }
-                    )
-                }
+                ThemeSelectionItem(
+                    selectedThemeMode = selectedThemeMode,
+                    onClick = { showThemeDialog = true }
+                )
+            }
+            
+            // Theme Selection Dialog
+            if (showThemeDialog) {
+                ThemeSelectionDialog(
+                    selectedThemeMode = selectedThemeMode,
+                    onDismiss = { showThemeDialog = false },
+                    onThemeSelected = { mode ->
+                        selectedThemeMode = mode
+                        tokenManager.setThemeMode(mode)
+                        onThemeChange(mode)
+                        showThemeDialog = false
+                    }
+                )
             }
 
             Text(
@@ -201,14 +221,21 @@ fun SettingsScreen(
 }
 
 @Composable
-fun ThemeToggleItem(
-    isDarkTheme: Boolean,
-    onThemeChange: (Boolean) -> Unit
+fun ThemeSelectionItem(
+    selectedThemeMode: TokenManager.ThemeMode,
+    onClick: () -> Unit
 ) {
+    val themeName = when (selectedThemeMode) {
+        TokenManager.ThemeMode.LIGHT -> "Light"
+        TokenManager.ThemeMode.DARK -> "Dark"
+        TokenManager.ThemeMode.SYSTEM -> "System Default"
+    }
+    
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -217,25 +244,153 @@ fun ThemeToggleItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
+                imageVector = Icons.Default.Palette,
                 contentDescription = "Theme",
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
-            Text(
-                text = if (isDarkTheme) "Dark Theme" else "Light Theme",
-                style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            Column(
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = "Theme",
+                    style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = themeName,
+                    style = AppTypography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+            }
         }
-        Switch(
-            checked = isDarkTheme,
-            onCheckedChange = onThemeChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.primary,
-                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                uncheckedThumbColor = MaterialTheme.colorScheme.surfaceVariant,
-                uncheckedTrackColor = MaterialTheme.colorScheme.outlineVariant
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+        )
+    }
+}
+
+@Composable
+fun ThemeSelectionDialog(
+    selectedThemeMode: TokenManager.ThemeMode,
+    onDismiss: () -> Unit,
+    onThemeSelected: (TokenManager.ThemeMode) -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        Card(
+            modifier = Modifier
+                .widthIn(max = 400.dp)
+                .fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Title
+                Text(
+                    text = "Select Theme",
+                    style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                // Theme Options
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    ThemeDialogOption(
+                        title = "Light",
+                        themeMode = TokenManager.ThemeMode.LIGHT,
+                        selectedMode = selectedThemeMode,
+                        onSelect = onThemeSelected
+                    )
+                    
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    
+                    ThemeDialogOption(
+                        title = "Dark",
+                        themeMode = TokenManager.ThemeMode.DARK,
+                        selectedMode = selectedThemeMode,
+                        onSelect = onThemeSelected
+                    )
+                    
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    
+                    ThemeDialogOption(
+                        title = "System Default",
+                        themeMode = TokenManager.ThemeMode.SYSTEM,
+                        selectedMode = selectedThemeMode,
+                        onSelect = onThemeSelected
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Close Button
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Close",
+                        style = AppTypography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ThemeDialogOption(
+    title: String,
+    themeMode: TokenManager.ThemeMode,
+    selectedMode: TokenManager.ThemeMode,
+    onSelect: (TokenManager.ThemeMode) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSelect(themeMode) }
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        RadioButton(
+            selected = selectedMode == themeMode,
+            onClick = { onSelect(themeMode) },
+            colors = RadioButtonDefaults.colors(
+                selectedColor = MaterialTheme.colorScheme.primary,
+                unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
     }

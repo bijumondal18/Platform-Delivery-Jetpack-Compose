@@ -82,16 +82,61 @@ class TokenManager(context: Context) : RetrofitClient.TokenProvider {
 
     override fun getBaseUrl(): String? = prefs.getString(KEY_BASE_URL, null)
 
+    enum class ThemeMode {
+        LIGHT, DARK, SYSTEM
+    }
+
+    fun getThemeMode(): ThemeMode {
+        if (!prefs.contains(KEY_DARK_THEME)) {
+            // No preference set, default to SYSTEM
+            return ThemeMode.SYSTEM
+        }
+        
+        // Try to read as String (new format)
+        try {
+            val modeString = prefs.getString(KEY_DARK_THEME, null)
+            return when (modeString) {
+                "LIGHT" -> ThemeMode.LIGHT
+                "DARK" -> ThemeMode.DARK
+                "SYSTEM" -> ThemeMode.SYSTEM
+                else -> ThemeMode.SYSTEM
+            }
+        } catch (e: ClassCastException) {
+            // Old format: stored as Boolean, migrate it
+            try {
+                val isDark = prefs.getBoolean(KEY_DARK_THEME, false)
+                val mode = if (isDark) ThemeMode.DARK else ThemeMode.LIGHT
+                // Migrate to new format
+                setThemeMode(mode)
+                return mode
+            } catch (e2: Exception) {
+                // If migration fails, default to SYSTEM
+                return ThemeMode.SYSTEM
+            }
+        }
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        prefs.edit { putString(KEY_DARK_THEME, mode.name) }
+    }
+
+    // Legacy methods for backward compatibility
     fun isDarkTheme(): Boolean? {
         return if (prefs.contains(KEY_DARK_THEME)) {
-            prefs.getBoolean(KEY_DARK_THEME, false)
+            val mode = getThemeMode()
+            when (mode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                ThemeMode.SYSTEM -> null // System mode means no explicit preference
+            }
         } else {
             null // No preference set yet
         }
     }
 
     fun setDarkTheme(isDark: Boolean) {
-        prefs.edit { putBoolean(KEY_DARK_THEME, isDark) }
+        val mode = if (isDark) ThemeMode.DARK else ThemeMode.LIGHT
+        setThemeMode(mode)
     }
 
     // Notification preferences
