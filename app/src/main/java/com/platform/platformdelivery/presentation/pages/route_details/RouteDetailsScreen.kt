@@ -67,6 +67,11 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.asImageBitmap
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
+import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -1262,13 +1267,44 @@ fun MapSelectionBottomSheet(
                                 onMapSelected(mapApp.packageName)
                                 onDismiss()
                             }
-                            .padding(vertical = 16.dp, horizontal = 16.dp)
+                            .padding(vertical = 12.dp, horizontal = 16.dp)
                     ) {
-                        Text(
-                            text = mapApp.name,
-                            style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            // App icon
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surface),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                mapApp.icon?.let { drawable ->
+                                    val bitmap = drawable.toBitmap(40, 40)
+                                    Image(
+                                        bitmap = bitmap.asImageBitmap(),
+                                        contentDescription = mapApp.name,
+                                        modifier = Modifier.size(40.dp)
+                                    )
+                                } ?: run {
+                                    // Fallback icon if drawable is null
+                                    Icon(
+                                        imageVector = Icons.Default.Navigation,
+                                        contentDescription = mapApp.name,
+                                        modifier = Modifier.size(24.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = mapApp.name,
+                                style = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -1403,7 +1439,8 @@ fun DeliveryOptionsBottomSheet(
  */
 data class MapAppInfo(
     val name: String,
-    val packageName: String?
+    val packageName: String?,
+    val icon: Drawable?
 )
 
 /**
@@ -1415,25 +1452,37 @@ fun getAvailableMapApps(context: android.content.Context): List<MapAppInfo> {
 
     // Google Maps
     try {
-        pm.getPackageInfo("com.google.android.apps.maps", 0)
-        mapApps.add(MapAppInfo("Google Maps", "com.google.android.apps.maps"))
+        val packageInfo = pm.getPackageInfo("com.google.android.apps.maps", 0)
+        val icon = pm.getApplicationIcon("com.google.android.apps.maps")
+        mapApps.add(MapAppInfo("Google Maps", "com.google.android.apps.maps", icon))
     } catch (e: PackageManager.NameNotFoundException) {
         // Not installed
     }
 
     // Waze
     try {
-        pm.getPackageInfo("com.waze", 0)
-        mapApps.add(MapAppInfo("Waze", "com.waze"))
+        val packageInfo = pm.getPackageInfo("com.waze", 0)
+        val icon = pm.getApplicationIcon("com.waze")
+        mapApps.add(MapAppInfo("Waze", "com.waze", icon))
     } catch (e: PackageManager.NameNotFoundException) {
         // Not installed
     }
 
-    // Apple Maps (via web)
-    mapApps.add(MapAppInfo("Apple Maps", null))
+    // Apple Maps (via web) - use Navigation icon
+    val appleMapsIcon = try {
+        ContextCompat.getDrawable(context, android.R.drawable.ic_menu_mylocation)
+    } catch (e: Exception) {
+        null
+    }
+    mapApps.add(MapAppInfo("Apple Maps", null, appleMapsIcon))
 
-    // Default browser (for web-based maps)
-    mapApps.add(MapAppInfo("Browser", "default"))
+    // Default browser (for web-based maps) - use Web icon
+    val browserIcon = try {
+        ContextCompat.getDrawable(context, android.R.drawable.ic_menu_search)
+    } catch (e: Exception) {
+        null
+    }
+    mapApps.add(MapAppInfo("Browser", "default", browserIcon))
 
     return mapApps
 }
