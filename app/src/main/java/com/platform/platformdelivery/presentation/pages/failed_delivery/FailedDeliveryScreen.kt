@@ -32,8 +32,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -83,6 +85,7 @@ fun FailedDeliveryScreen(
     
     var selectedReason by remember { mutableStateOf<String?>(null) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var notes by remember { mutableStateOf("") }
     var showError by remember { mutableStateOf(false) }
     
     val deliveryUpdateResult by routesViewModel.deliveryUpdateResult.collectAsState()
@@ -185,7 +188,7 @@ fun FailedDeliveryScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(130.dp)
                     .clickable {
                         imagePickerLauncher.launch("image/*")
                     },
@@ -233,38 +236,77 @@ fun FailedDeliveryScreen(
                 color = MaterialTheme.colorScheme.onBackground
             )
             
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            var expanded by remember { mutableStateOf(false) }
+            val selectedReasonText = remember(selectedReason) {
+                failedReasons.find { it.id == selectedReason }?.text ?: ""
+            }
+            
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                failedReasons.forEach { reason ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                selectedReason = reason.id
-                            }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = selectedReason == reason.id,
+                OutlinedTextField(
+                    value = selectedReasonText,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Failure Reason") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                    },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    failedReasons.forEach { reason ->
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = reason.text,
+                                    style = AppTypography.bodyMedium
+                                )
+                            },
                             onClick = {
                                 selectedReason = reason.id
+                                expanded = false
                             },
-                            colors = RadioButtonDefaults.colors(
-                                selectedColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(
-                            text = reason.text,
-                            style = AppTypography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
             }
+            
+            // Notes section
+            Text(
+                text = "Notes (Optional)",
+                style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                label = { Text("Add notes") },
+                placeholder = { Text("Enter any additional notes...") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                minLines = 3,
+                maxLines = 5,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
             
             Spacer(modifier = Modifier.height(16.dp))
             
