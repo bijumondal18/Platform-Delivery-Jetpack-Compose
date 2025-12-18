@@ -101,7 +101,14 @@ fun FailedDeliveryScreen(
         FailedReason("3", "Refused delivery"),
         FailedReason("4", "Access issue"),
         FailedReason("5", "Missing package"),
-        FailedReason("6", "Other")
+        FailedReason("6", "Payment required"),
+        FailedReason("7", "Package damaged"),
+        FailedReason("8", "Delivery timeframe missed"),
+        FailedReason("9", "Incorrect address on maps"),
+        FailedReason("10", "Incorrect package"),
+        FailedReason("11", "Animal interference"),
+        FailedReason("12", "Weather/ road condition"),
+        FailedReason("13", "Other")
     )
     
     // Image picker launcher
@@ -324,7 +331,9 @@ fun FailedDeliveryScreen(
                 ExposedDropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
                 ) {
                     failedReasons.forEach { reason ->
                         androidx.compose.material3.DropdownMenuItem(
