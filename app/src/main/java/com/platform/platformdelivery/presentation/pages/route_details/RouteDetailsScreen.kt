@@ -304,6 +304,7 @@ fun RouteDetailsScreen(
                                 routeStatus = routeStatus,
                                 routeId = route?.id?.toString() ?: "",
                                 routesViewModel = routesViewModel,
+                                navController = navController,
                                 shouldShowActionButtons = !isCompleted,
                                 onRouteAccepted = {
                                     // Refresh route details after accepting
@@ -379,6 +380,7 @@ fun RouteStopsList(
     routeStatus: String = "",
     routeId: String = "",
     routesViewModel: RoutesViewModel,
+    navController: NavController? = null,
     shouldShowActionButtons: Boolean = true,
     onRouteAccepted: () -> Unit = {}
 ) {
@@ -631,13 +633,8 @@ fun RouteStopsList(
                 },
                 onFailedClick = {
                     if (routeId.isNotEmpty() && stopInfo.waypointId != null) {
-                        routesViewModel.updateWaypointDelivery(
-                            routeId,
-                            stopInfo.waypointId.toString(),
-                            "failed"
-                        ) {
-                            // Success handled in LaunchedEffect
-                        }
+                        // Navigate to failed delivery screen
+                        navController?.navigate("failedDelivery/$routeId/${stopInfo.waypointId}")
                     }
                 }
             )

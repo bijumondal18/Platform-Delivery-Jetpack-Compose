@@ -176,6 +176,15 @@ fun PlatformDeliveryApp(
                         navController = navController
                     )
                 }
+                composable("failedDelivery/{routeId}/{waypointId}") { backStackEntry ->
+                    val routeId = backStackEntry.arguments?.getString("routeId") ?: ""
+                    val waypointId = backStackEntry.arguments?.getString("waypointId") ?: ""
+                    com.platform.platformdelivery.presentation.pages.failed_delivery.FailedDeliveryScreen(
+                        routeId = routeId,
+                        waypointId = waypointId,
+                        navController = navController
+                    )
+                }
                 composable("notifications") {
                     NotificationScreen(navController = navController)
                 }
