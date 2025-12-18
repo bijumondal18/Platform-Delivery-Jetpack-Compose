@@ -16,6 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AltRoute
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
@@ -41,12 +43,21 @@ fun RouteItem(
     showCancelButton: Boolean = false,
     onCancelClick: ((Route) -> Unit)? = null
 ) {
-    Column(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick(route) }
-            .padding(vertical = 12.dp, horizontal = 4.dp)
+            .clickable { onClick(route) },
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp, horizontal = 16.dp)
+        ) {
         // Route name row with status badge
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -163,6 +174,7 @@ fun RouteItem(
                 label = "STOPS",
                 value = totalStops.toString()
             )
+        }
         }
     }
 }

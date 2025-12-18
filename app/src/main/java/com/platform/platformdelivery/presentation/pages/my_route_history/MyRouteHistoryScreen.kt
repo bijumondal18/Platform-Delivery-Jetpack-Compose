@@ -170,7 +170,8 @@ fun MyRouteHistory(
                             AnimatedVisibility(
                                 visible = visible,
                                 enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                                exit = fadeOut()
+                                exit = fadeOut(),
+                                modifier = Modifier.padding(top = 8.dp)
                             ) {
                                 RouteItem(
                                     route = route,
@@ -181,13 +182,13 @@ fun MyRouteHistory(
                                     }
                                 )
                             }
-                            if (index < routes.size - 1) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                    thickness = 1.dp
-                                )
-                            }
+//                            if (index < routes.size - 1) {
+//                                HorizontalDivider(
+//                                    modifier = Modifier.padding(horizontal = 16.dp),
+//                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+//                                    thickness = 1.dp
+//                                )
+//                            }
                         }
                         if (noMoreData) {
                             item {
