@@ -328,108 +328,110 @@ fun SuccessDeliveryScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Signature section
-            Text(
-                text = "Add Signature",
-                style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.fillMaxWidth()
-            )
-            
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp),
-                shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+            // Signature section - hide for "Left in mailbox" and "Left in safe place"
+            if (deliveryOptionText != "Left in mailbox" && deliveryOptionText != "Left in safe place") {
+                Text(
+                    text = "Add Signature",
+                    style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.fillMaxWidth()
                 )
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Canvas(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pointerInput(Unit) {
-                                detectDragGestures(
-                                    onDragStart = { offset ->
-                                        val path = Path()
-                                        path.moveTo(offset.x, offset.y)
-                                        currentPath = path
-                                        currentPathPoints = listOf(offset)
-                                    },
-                                    onDrag = { change, _ ->
-                                        currentPath?.let { path ->
-                                            path.lineTo(change.position.x, change.position.y)
-                                            currentPathPoints = currentPathPoints + change.position
-                                        }
-                                    },
-                                    onDragEnd = {
-                                        currentPath?.let { path ->
-                                            signaturePaths = signaturePaths + path
-                                            currentPath = null
-                                            currentPathPoints = emptyList()
-                                        }
-                                    }
-                                )
-                            }
-                    ) {
-                        // Draw all saved paths
-                        signaturePaths.forEach { path ->
-                            drawPath(
-                                path = path,
-                                color = Color.Black,
-                                style = Stroke(width = 4f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                            )
-                        }
-                        // Draw current path being drawn
-                        if (currentPathPoints.isNotEmpty()) {
-                            val path = Path()
-                            path.moveTo(currentPathPoints[0].x, currentPathPoints[0].y)
-                            currentPathPoints.drop(1).forEach { point ->
-                                path.lineTo(point.x, point.y)
-                            }
-                            drawPath(
-                                path = path,
-                                color = Color.Black,
-                                style = Stroke(width = 4f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                            )
-                        }
-                    }
-                    
-                    // Clear button
-                    if (signaturePaths.isNotEmpty() || currentPathPoints.isNotEmpty()) {
-                        IconButton(
-                            onClick = {
-                                signaturePaths = emptyList()
-                                currentPath = null
-                                currentPathPoints = emptyList()
-                            },
+                
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Canvas(
                             modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(8.dp)
+                                .fillMaxSize()
+                                .pointerInput(Unit) {
+                                    detectDragGestures(
+                                        onDragStart = { offset ->
+                                            val path = Path()
+                                            path.moveTo(offset.x, offset.y)
+                                            currentPath = path
+                                            currentPathPoints = listOf(offset)
+                                        },
+                                        onDrag = { change, _ ->
+                                            currentPath?.let { path ->
+                                                path.lineTo(change.position.x, change.position.y)
+                                                currentPathPoints = currentPathPoints + change.position
+                                            }
+                                        },
+                                        onDragEnd = {
+                                            currentPath?.let { path ->
+                                                signaturePaths = signaturePaths + path
+                                                currentPath = null
+                                                currentPathPoints = emptyList()
+                                            }
+                                        }
+                                    )
+                                }
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .background(
-                                        color = MaterialTheme.colorScheme.error,
-                                        shape = CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear signature",
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onError
+                            // Draw all saved paths
+                            signaturePaths.forEach { path ->
+                                drawPath(
+                                    path = path,
+                                    color = Color.Black,
+                                    style = Stroke(width = 4f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
                                 )
+                            }
+                            // Draw current path being drawn
+                            if (currentPathPoints.isNotEmpty()) {
+                                val path = Path()
+                                path.moveTo(currentPathPoints[0].x, currentPathPoints[0].y)
+                                currentPathPoints.drop(1).forEach { point ->
+                                    path.lineTo(point.x, point.y)
+                                }
+                                drawPath(
+                                    path = path,
+                                    color = Color.Black,
+                                    style = Stroke(width = 4f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                                )
+                            }
+                        }
+                        
+                        // Clear button
+                        if (signaturePaths.isNotEmpty() || currentPathPoints.isNotEmpty()) {
+                            IconButton(
+                                onClick = {
+                                    signaturePaths = emptyList()
+                                    currentPath = null
+                                    currentPathPoints = emptyList()
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.error,
+                                            shape = CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear signature",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onError
+                                    )
+                                }
                             }
                         }
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(24.dp))
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
             
             // Recipient Name field
             Column(
