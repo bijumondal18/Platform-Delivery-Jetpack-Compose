@@ -190,7 +190,7 @@ fun FailedDeliveryScreen(
                 style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground
             )
-            
+
             // Add photo button
             Card(
                 modifier = Modifier
@@ -315,8 +315,10 @@ fun FailedDeliveryScreen(
                         .fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                        focusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                        disabledBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                        errorBorderColor = MaterialTheme.colorScheme.error
                     )
                 )
                 ExposedDropdownMenu(
@@ -359,8 +361,10 @@ fun FailedDeliveryScreen(
                 minLines = 3,
                 maxLines = 5,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    focusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                    disabledBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                    errorBorderColor = MaterialTheme.colorScheme.error
                 )
             )
             
