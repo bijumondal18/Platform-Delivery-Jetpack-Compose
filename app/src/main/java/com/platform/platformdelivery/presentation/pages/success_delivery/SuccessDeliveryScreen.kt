@@ -220,7 +220,7 @@ fun SuccessDeliveryScreen(
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -326,7 +326,7 @@ fun SuccessDeliveryScreen(
                 }
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
             // Signature section
             Text(
@@ -429,55 +429,63 @@ fun SuccessDeliveryScreen(
                 }
             }
             
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
             // Recipient Name field
-            Text(
-                text = "Recipient Name",
-                style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.fillMaxWidth()
-            )
-            
-            OutlinedTextField(
-                value = recipientName,
-                onValueChange = { recipientName = it },
-                label = { Text("Enter recipient name") },
-                placeholder = { Text("Recipient name") },
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
-                    disabledBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
-                    errorBorderColor = MaterialTheme.colorScheme.error
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Recipient Name",
+                    style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.fillMaxWidth()
                 )
-            )
+                OutlinedTextField(
+                    value = recipientName,
+                    onValueChange = { recipientName = it },
+                    label = { Text("Enter recipient name") },
+                    placeholder = { Text("Recipient name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                        disabledBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                        errorBorderColor = MaterialTheme.colorScheme.error
+                    )
+                )
+            }
             
             // Notes field
-            Text(
-                text = "Add Notes",
-                style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.fillMaxWidth()
-            )
-            
-            OutlinedTextField(
-                value = notes,
-                onValueChange = { notes = it },
-                label = { Text("Add notes") },
-                placeholder = { Text("Enter any additional notes...") },
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                minLines = 3,
-                maxLines = 5,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
-                    disabledBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
-                    errorBorderColor = MaterialTheme.colorScheme.error
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Add Notes",
+                    style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.fillMaxWidth()
                 )
-            )
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Add notes") },
+                    placeholder = { Text("Enter any additional notes...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    minLines = 3,
+                    maxLines = 5,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                        disabledBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+                        errorBorderColor = MaterialTheme.colorScheme.error
+                    )
+                )
+            }
             
             Spacer(modifier = Modifier.height(24.dp))
             
