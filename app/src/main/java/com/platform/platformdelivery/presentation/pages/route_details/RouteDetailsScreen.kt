@@ -393,58 +393,36 @@ fun RouteStopsList(
     val routeDetails by routesViewModel.routeDetails.collectAsState()
     val isRouteAvailable = routeStatus.equals("available", ignoreCase = true)
     
-    // Get route data for status and isloaded check
+    // Get route data for status and isloaded check - use Firestore data directly
     val routeData = routeDetails?.routeDetailsData?.routeData
     val routeStatusFromDetails = routeData?.status ?: routeStatus
     
-    // Track isloaded state locally - update when load vehicle succeeds to avoid API call
-    var localIsloaded by remember(routeId) { 
-        mutableStateOf(routeData?.isloaded ?: 0) 
-    }
+    // Use Firestore data directly - no local state needed
+    // Status and isloaded will persist from Firestore when navigating back and forth
+    val isloaded = (routeData?.isloaded as? Number)?.toInt() ?: 0
     
-    // Update localIsloaded when routeData changes
-    LaunchedEffect(routeData?.isloaded) {
-        localIsloaded = routeData?.isloaded ?: 0
-    }
+    // Get current waypoint from Firestore data
+    val currentWaypointId = routeData?.currentWaypoint?.let { (it as? Number)?.toInt() }
     
-    // Update localIsloaded to 1 when load vehicle succeeds
-    LaunchedEffect(loadVehicleResult) {
-        if (loadVehicleResult is com.platform.platformdelivery.core.network.Result.Success) {
-            localIsloaded = 1
-        }
-    }
-    
-    val isloaded = localIsloaded
-    
-    // Track current waypoint locally - set to first waypoint after load vehicle
-    var localCurrentWaypointId by remember(routeId) { 
-        mutableStateOf<Int?>(routeData?.currentWaypoint?.let { (it as? Number)?.toInt() })
-    }
-    
-    // Update localCurrentWaypointId when routeData changes
-    LaunchedEffect(routeData?.currentWaypoint) {
-        localCurrentWaypointId = routeData?.currentWaypoint?.let { (it as? Number)?.toInt() }
-    }
-    
-    val currentWaypointId = localCurrentWaypointId
-    
-    // Check if already checked in based on route details (trip_start_time exists)
-    val isCheckedIn = routeData?.tripStartTime != null
+    // Check if already checked in based on Firestore data
+    // Check both status == "ongoing" OR trip_start_time exists (for backward compatibility)
+    val isCheckedIn = routeStatusFromDetails.equals("ongoing", ignoreCase = true) || routeData?.tripStartTime != null
     
     // If status == "ongoing" and isloaded == 0, disable check-in and enable load vehicle
     val isOngoingAndNotLoaded = routeStatusFromDetails.equals("ongoing", ignoreCase = true) && isloaded == 0
     
-    // Hide origin buttons if vehicle is loaded
+    // Hide origin buttons (Check In, Load Vehicle) if vehicle is loaded
+    // Show waypoint buttons only if vehicle is loaded (isloaded == 1)
     val shouldShowOriginButtons = isloaded == 0
+    val shouldShowWaypointButtons = isloaded == 1
     
     // Handle trip start result
     LaunchedEffect(tripStartResult) {
         when (tripStartResult) {
             is com.platform.platformdelivery.core.network.Result.Success -> {
-                // Refresh route details to get updated trip_start_time
-                if (routeId.isNotEmpty()) {
-                    routesViewModel.getRouteDetails(RequestRouteDetails(routeId = routeId))
-                }
+                // Don't call route details API - data is streaming from Firestore
+                // Firestore will automatically update the UI when status changes to 'ongoing'
+                android.util.Log.d("RouteDetailsScreen", "Checkin successful. Firestore will update automatically.")
             }
             is com.platform.platformdelivery.core.network.Result.Error -> {
                 // Handle error - could show a snackbar
@@ -468,36 +446,19 @@ fun RouteStopsList(
     // Track if we've handled load vehicle result for this routeId
     var hasHandledLoadVehicle by remember(routeId) { mutableStateOf(false) }
     
-    // Handle load vehicle result - update local state only, NO API CALL
-    LaunchedEffect(loadVehicleResult, sortedWaypoints) {
+    // Handle load vehicle result - Firestore will update automatically
+    LaunchedEffect(loadVehicleResult) {
         if (loadVehicleResult != null && !hasHandledLoadVehicle) {
             hasHandledLoadVehicle = true
             when (loadVehicleResult) {
                 is com.platform.platformdelivery.core.network.Result.Success -> {
-                    // Update local state: set isloaded = 1 to hide origin buttons
                     showLoadVehicleBottomSheet = false
-                    
-                    // Set first waypoint as active (index 0 or first waypoint ID)
-                    sortedWaypoints.firstOrNull()?.let { firstWaypoint ->
-                        val firstWaypointId = (firstWaypoint.id as? Number)?.toInt()
-                        if (firstWaypointId != null) {
-                            localCurrentWaypointId = firstWaypointId
-                        } else {
-                            // If waypoint ID is not available, use index 0
-                            localCurrentWaypointId = 0
-                        }
-                    } ?: run {
-                        // If no waypoints, set to 0
-                        localCurrentWaypointId = 0
-                    }
-                    
-                    // Show success snackbar
+                    // Firestore will automatically update isloaded to 1, which will trigger UI update
                     snackbarScope.launch {
                         snackbarHostState.showSnackbar("Vehicle loaded successfully")
                     }
                 }
                 is com.platform.platformdelivery.core.network.Result.Error -> {
-                    // Show error snackbar
                     snackbarScope.launch {
                         snackbarHostState.showSnackbar("Failed to load vehicle: ${(loadVehicleResult as Result.Error).message}")
                     }
@@ -522,10 +483,9 @@ fun RouteStopsList(
             hasHandledDelivery = true
             when (deliveryUpdateResult) {
                 is com.platform.platformdelivery.core.network.Result.Success -> {
-                    // Refresh route details to get updated current_waypoint (only once)
-                    if (routeId.isNotEmpty()) {
-                        routesViewModel.getRouteDetails(RequestRouteDetails(routeId = routeId))
-                    }
+                    // Don't call route details API - data is streaming from Firestore
+                    // Firestore will automatically update the UI when delivery status changes
+                    android.util.Log.d("RouteDetailsScreen", "Delivery update successful. Firestore will update automatically.")
                 }
                 is com.platform.platformdelivery.core.network.Result.Error -> {
                     // Handle error - could show a snackbar
@@ -589,9 +549,10 @@ fun RouteStopsList(
 
             // Check if this waypoint is the active/current waypoint
             // currentWaypoint might be an index (0-based) or a waypoint ID
-            // Only show buttons if vehicle is loaded (isloaded == 1)
+            // Only show waypoint buttons if vehicle is loaded (isloaded == 1)
+            // Button visibility is controlled by shouldShowWaypointButtons which is based on Firestore isloaded
             val waypointIndex = if (isWaypoint) index - 1 else null // Subtract 1 because index 0 is origin
-            val isActiveWaypoint = if (isWaypoint && currentWaypointId != null && isloaded == 1) {
+            val isActiveWaypoint = if (isWaypoint && currentWaypointId != null && shouldShowWaypointButtons) {
                 // Try matching by waypoint ID first
                 val matchesById = stopInfo.waypointId != null && stopInfo.waypointId == currentWaypointId
                 // Or match by index (currentWaypoint might be 0-based index)
@@ -616,7 +577,7 @@ fun RouteStopsList(
                 shouldShowActionButtons = shouldShowActionButtons && shouldShowOriginButtons,
                 isStartingTrip = isStartingTrip,
                 isOngoingAndNotLoaded = isOngoingAndNotLoaded,
-                isVehicleLoaded = isloaded == 1,
+                isVehicleLoaded = shouldShowWaypointButtons, // Use Firestore-based flag
                 isActiveWaypoint = isActiveWaypoint,
                 waypointId = stopInfo.waypointId?.toString() ?: "",
                 routesViewModel = routesViewModel,

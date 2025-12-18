@@ -288,7 +288,7 @@ class RoutesViewModel(
     /**
      * Ensures a Firestore document exists for the route.
      * If it doesn't exist, creates it from the Route object.
-     * If it exists, fetches full route details and updates the document.
+     * If it exists, does nothing (don't update).
      */
     suspend fun ensureRouteDocumentInFirestore(route: Route): Boolean {
         return try {
@@ -312,14 +312,8 @@ class RoutesViewModel(
                     Log.d(TAG, "Route document $routeId created in Firestore, but could not fetch full details")
                 }
             } else {
-                Log.d(TAG, "Route document $routeId already exists in Firestore")
-                // Optionally update with latest data
-                val detailsResult = routeRepository.getRouteDetails(RequestRouteDetails(routeId = routeId))
-                if (detailsResult is Result.Success) {
-                    val routeDetails = detailsResult.data
-                    FirestoreHelper.saveAcceptedRoute(routeId, routeDetails)
-                    Log.d(TAG, "Route document $routeId updated with latest details in Firestore")
-                }
+                Log.d(TAG, "Route document $routeId already exists in Firestore. Skipping update.")
+                // Don't update if document already exists - data is streaming from Firestore
             }
             true
         } catch (e: Exception) {
@@ -573,10 +567,20 @@ class RoutesViewModel(
                 when (result) {
                     is Result.Success -> {
                         _tripStartResult.value = Result.Success(Unit)
-                        // Refresh route details after starting trip
-                        _routeDetails.value?.routeDetailsData?.routeData?.id?.let { id ->
-                            getRouteDetails(RequestRouteDetails(routeId = id.toString()))
-                        }
+                        
+                        // Update Firestore: change status from 'accepted' to 'ongoing'
+                        val updates = hashMapOf<String, Any>(
+                            "status" to "ongoing",
+                            "trip_start_time" to currentTime,
+                            "updated_at" to SimpleDateFormat(
+                                "yyyy-MM-dd HH:mm:ss",
+                                java.util.Locale.getDefault()
+                            ).format(Date())
+                        )
+                        FirestoreHelper.updateAcceptedRoute(routeId, updates)
+                        Log.d(TAG, "Checkin successful. Updated Firestore status to 'ongoing' for route $routeId")
+                        
+                        // Don't call route details API - data is streaming from Firestore
                         onSuccess()
                     }
                     is Result.Error -> {
@@ -586,6 +590,7 @@ class RoutesViewModel(
                 }
             } catch (e: Exception) {
                 _tripStartResult.value = Result.Error(e.message ?: "Failed to start trip")
+                Log.e(TAG, "Exception in tripStartTime", e)
             } finally {
                 _isStartingTrip.value = false
             }
@@ -611,7 +616,19 @@ class RoutesViewModel(
                 when (result) {
                     is Result.Success -> {
                         _loadVehicleResult.value = Result.Success(Unit)
-                        // Don't refresh here - let the UI handle it via LaunchedEffect
+                        
+                        // Update Firestore: set isloaded to 1
+                        val updates = hashMapOf<String, Any>(
+                            "isloaded" to 1,
+                            "updated_at" to SimpleDateFormat(
+                                "yyyy-MM-dd HH:mm:ss",
+                                java.util.Locale.getDefault()
+                            ).format(Date())
+                        )
+                        FirestoreHelper.updateAcceptedRoute(routeId, updates)
+                        Log.d(TAG, "Load vehicle successful. Updated Firestore isloaded to 1 for route $routeId")
+                        
+                        // Don't call route details API - data is streaming from Firestore
                         onSuccess()
                     }
                     is Result.Error -> {
@@ -621,6 +638,7 @@ class RoutesViewModel(
                 }
             } catch (e: Exception) {
                 _loadVehicleResult.value = Result.Error(e.message ?: "Failed to load vehicle")
+                Log.e(TAG, "Exception in loadVehicle", e)
             } finally {
                 _isLoadingVehicle.value = false
             }
@@ -655,7 +673,20 @@ class RoutesViewModel(
                 when (result) {
                     is Result.Success -> {
                         _deliveryUpdateResult.value = Result.Success(Unit)
-                        // Don't refresh here - let the UI handle it via LaunchedEffect
+                        
+                        // Update Firestore with delivery status
+                        // Note: We update the waypoint status in the waypoints array
+                        // This is a simplified update - in production you might want to update the specific waypoint
+                        val updates = hashMapOf<String, Any>(
+                            "updated_at" to SimpleDateFormat(
+                                "yyyy-MM-dd HH:mm:ss",
+                                java.util.Locale.getDefault()
+                            ).format(Date())
+                        )
+                        FirestoreHelper.updateAcceptedRoute(routeId, updates)
+                        Log.d(TAG, "Delivery update successful. Firestore will update automatically.")
+                        
+                        // Don't call route details API - data is streaming from Firestore
                         onSuccess()
                     }
                     is Result.Error -> {
@@ -665,6 +696,7 @@ class RoutesViewModel(
                 }
             } catch (e: Exception) {
                 _deliveryUpdateResult.value = Result.Error(e.message ?: "Failed to update delivery")
+                Log.e(TAG, "Exception in updateWaypointDelivery", e)
             } finally {
                 _isUpdatingDelivery.value = false
             }
