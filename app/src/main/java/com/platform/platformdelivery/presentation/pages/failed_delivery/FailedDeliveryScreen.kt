@@ -406,7 +406,7 @@ fun FailedDeliveryScreen(
                 enabled = !isUpdatingDelivery && selectedReason != null,
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
+                    containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onError,
                     disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
                     disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
