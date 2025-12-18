@@ -12,9 +12,14 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -95,6 +100,7 @@ import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
 import com.platform.platformdelivery.presentation.widgets.RouteMapBox
 import java.time.format.DateTimeFormatter
 import android.Manifest
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -140,40 +146,13 @@ fun RouteDetailsScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                ),
-                title = {
-                    Text(
-                        routeTitle,
-                        style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        navController?.popBackStack()
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val mapHeight = screenHeight * 0.35f // 35% of screen height
+    
+    Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            // Optimize scrolling performance
+            modifier = Modifier.fillMaxSize(),
             userScrollEnabled = true
         ) {
 
@@ -227,8 +206,6 @@ fun RouteDetailsScreen(
                                     )
                                 }
 
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
                             RouteMapBox(
                                 latitude = mapParams.latitude,
                                 longitude = mapParams.longitude,
@@ -237,10 +214,11 @@ fun RouteDetailsScreen(
                                 originLng = mapParams.originLng,
                                 destinationLat = mapParams.destinationLat,
                                 destinationLng = mapParams.destinationLng,
-                                waypoints = mapParams.waypoints
+                                waypoints = mapParams.waypoints,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(mapHeight)
                             )
-
-                            Spacer(modifier = Modifier.height(16.dp))
                         }
 
                         // Route Summary Section (like in the image)
@@ -248,6 +226,7 @@ fun RouteDetailsScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
                                     .padding(vertical = 12.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
@@ -351,6 +330,33 @@ fun RouteDetailsScreen(
 
             }
 
+        }
+        
+        // Floating circular back button over the map
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp)
+                .statusBarsPadding()
+        ) {
+            IconButton(
+                onClick = {
+                    navController?.popBackStack()
+                },
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        shape = CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
@@ -574,7 +580,7 @@ fun RouteStopsList(
 
     Box(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().padding(end = 12.dp)
         ) {
         allStops.forEachIndexed { index, stopInfo ->
             val isFirst = index == 0 // Origin

@@ -38,12 +38,9 @@ fun RouteMapBox(
     originLng: String? = null,
     destinationLat: Double? = null,
     destinationLng: Double? = null,
-    waypoints: List<Waypoint>? = null
+    waypoints: List<Waypoint>? = null,
+    modifier: Modifier = Modifier
 ) {
-
-    val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp.dp
-    val mapHeight = screenHeight * 0.3f // 30% of device height
 
     val context = LocalContext.current
 
@@ -166,35 +163,38 @@ fun RouteMapBox(
         }
     }
     
-    // Build route points for polyline: only origin to first waypoint - use immutable list
-    val routePoints = remember(originLocation, waypointLocations) {
-        buildList {
-            originLocation?.let { add(it) }
-            waypointLocations.firstOrNull()?.let { add(it.location) }
-        }
-    }
-    
-    // State for storing decoded polyline points from Directions API - stable reference
-    var actualRoutePoints by remember(routeId) { mutableStateOf<List<LatLng>>(emptyList()) }
+    // State for storing the complete driving route polyline from Directions API
+    var drivingRoutePolyline by remember(routeId) { mutableStateOf<List<LatLng>>(emptyList()) }
     
     // Get polyline color from theme - read outside GoogleMap lambda
     val polylineColor = MaterialTheme.colorScheme.primary
     
-    // Fetch actual road route using Directions API - only when origin/first waypoint changes
-    LaunchedEffect(originLocation, waypointLocations.firstOrNull()?.location) {
+    // Fetch actual driving route using Google Directions API
+    // Route order: origin -> waypoint 1 -> waypoint 2 -> ... -> destination
+    LaunchedEffect(originLocation, waypointLocations, destinationLocation) {
         val origin = originLocation
-        val firstWaypoint = waypointLocations.firstOrNull()
+        val waypoints = waypointLocations.map { it.location } // Already sorted by optimized_order
+        val destination = destinationLocation
         
-        if (origin != null && firstWaypoint != null) {
+        if (origin != null && destination != null) {
             try {
-                val routePath = getDirectionsRoute(origin, firstWaypoint.location, context)
-                actualRoutePoints = routePath
+                // Get complete driving route with all waypoints in order
+                val routePolyline = getDrivingRouteWithWaypoints(origin, waypoints, destination, context)
+                android.util.Log.d("RouteMapBox", "Fetched route polyline with ${routePolyline.size} points")
+                drivingRoutePolyline = routePolyline
             } catch (e: Exception) {
+                android.util.Log.e("RouteMapBox", "Error fetching route: ${e.message}", e)
                 // Fallback to straight line if Directions API fails
-                actualRoutePoints = listOf(origin, firstWaypoint.location)
+                val fallbackPoints = buildList {
+                    add(origin)
+                    waypoints.forEach { add(it) }
+                    add(destination)
+                }
+                drivingRoutePolyline = fallbackPoints
             }
         } else {
-            actualRoutePoints = emptyList()
+            android.util.Log.d("RouteMapBox", "Origin or destination is null. Origin: $origin, Destination: $destination")
+            drivingRoutePolyline = emptyList()
         }
     }
     
@@ -209,9 +209,8 @@ fun RouteMapBox(
     val coroutineScope = rememberCoroutineScope()
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(mapHeight)
             .clip(MaterialTheme.shapes.large)
     ) {
         // GoogleMap Composable inside Box
@@ -266,33 +265,27 @@ fun RouteMapBox(
                 }
             }
         ) {
-            // Draw blue polyline from origin to first waypoint on actual roads
-            // Use derivedStateOf to prevent recomposition when actualRoutePoints changes during scroll
-            val shouldShowPolyline = remember(actualRoutePoints.size, routePoints.size) {
-                actualRoutePoints.isNotEmpty() && actualRoutePoints.size >= 2 || routePoints.size >= 2
-            }
-            
-            val polylinePoints = remember(actualRoutePoints, routePoints) {
-                if (actualRoutePoints.isNotEmpty() && actualRoutePoints.size >= 2) {
-                    actualRoutePoints
-                } else if (routePoints.size >= 2) {
-                    routePoints
-                } else {
-                    emptyList()
-                }
-            }
-            
-            // Only render polyline if we have points - stable key prevents recomposition
-            if (shouldShowPolyline && polylinePoints.isNotEmpty()) {
-                key("polyline_${polylinePoints.size}") {
+            // Draw driving route polyline following actual roads
+            // Route: origin -> waypoint 1 -> waypoint 2 -> ... -> destination
+            if (drivingRoutePolyline.isNotEmpty() && drivingRoutePolyline.size >= 2) {
+                key("driving_polyline_${drivingRoutePolyline.size}") {
                     Polyline(
-                        points = polylinePoints,
+                        points = drivingRoutePolyline,
                         color = polylineColor,
-                        width = 10f,
+                        width = 12f,
                         jointType = JointType.ROUND,
                         startCap = RoundCap(),
                         endCap = RoundCap()
                     )
+                }
+            } else {
+                // Log when polyline is not shown
+                LaunchedEffect(drivingRoutePolyline.size) {
+                    if (drivingRoutePolyline.isEmpty()) {
+                        android.util.Log.d("RouteMapBox", "Polyline is empty, not drawing")
+                    } else if (drivingRoutePolyline.size < 2) {
+                        android.util.Log.d("RouteMapBox", "Polyline has only ${drivingRoutePolyline.size} points, need at least 2")
+                    }
                 }
             }
             
@@ -463,7 +456,124 @@ fun createNumberedMarkerIcon(context: android.content.Context, text: String, col
 }
 
 /**
- * Fetches actual road route from Google Directions API
+ * Fetches driving route from Google Directions API with waypoints
+ * Route order: origin -> waypoint 1 -> waypoint 2 -> ... -> destination
+ * Returns a single continuous polyline following actual roads
+ */
+suspend fun getDrivingRouteWithWaypoints(
+    origin: LatLng,
+    waypoints: List<LatLng>,
+    destination: LatLng,
+    context: android.content.Context
+): List<LatLng> = withContext(Dispatchers.IO) {
+    try {
+        // Get API key from resources
+        val apiKey = context.getString(R.string.google_maps_key)
+        if (apiKey.isEmpty()) {
+            android.util.Log.e("RouteMapBox", "Google Maps API key is empty")
+            return@withContext emptyList()
+        }
+        
+        // Build waypoints parameter - Google Directions API will route through them in order
+        val waypointsParam = if (waypoints.isNotEmpty()) {
+            "&waypoints=" + waypoints.joinToString("|") { "${it.latitude},${it.longitude}" }
+        } else {
+            ""
+        }
+        
+        // Request driving directions with waypoints
+        // URL encode the parameters properly
+        val originStr = "${origin.latitude},${origin.longitude}"
+        val destStr = "${destination.latitude},${destination.longitude}"
+        val encodedOrigin = java.net.URLEncoder.encode(originStr, "UTF-8")
+        val encodedDest = java.net.URLEncoder.encode(destStr, "UTF-8")
+        
+        val url = "https://maps.googleapis.com/maps/api/directions/json?" +
+                "origin=$encodedOrigin" +
+                "&destination=$encodedDest" +
+                waypointsParam +
+                "&mode=driving" +
+                "&key=$apiKey"
+        
+        android.util.Log.d("RouteMapBox", "Fetching directions. Origin: $originStr, Dest: $destStr, Waypoints: ${waypoints.size}")
+        
+        val response = URL(url).readText()
+        val json = JSONObject(response)
+        
+        val status = json.getString("status")
+        android.util.Log.d("RouteMapBox", "Directions API status: $status")
+        
+        if (status == "OK") {
+            val routes = json.getJSONArray("routes")
+            if (routes.length() > 0) {
+                val route = routes.getJSONObject(0)
+                
+                // Use overview_polyline - it's simpler and more reliable
+                // It contains the complete route through all waypoints
+                if (route.has("overview_polyline")) {
+                    val overviewPolyline = route.getJSONObject("overview_polyline")
+                    val encodedPolyline = overviewPolyline.getString("points")
+                    val decodedPoints = decodePolyline(encodedPolyline)
+                    android.util.Log.d("RouteMapBox", "Decoded ${decodedPoints.size} points from overview_polyline")
+                    return@withContext decodedPoints
+                } else {
+                    android.util.Log.w("RouteMapBox", "No overview_polyline in route response")
+                    // Fallback: extract from legs
+                    val legs = route.getJSONArray("legs")
+                    val allPolylinePoints = mutableListOf<LatLng>()
+                    
+                    for (i in 0 until legs.length()) {
+                        val leg = legs.getJSONObject(i)
+                        val steps = leg.getJSONArray("steps")
+                        
+                        for (j in 0 until steps.length()) {
+                            val step = steps.getJSONObject(j)
+                            val polyline = step.getJSONObject("polyline")
+                            val encodedPolyline = polyline.getString("points")
+                            val decodedPoints = decodePolyline(encodedPolyline)
+                            
+                            if (allPolylinePoints.isEmpty()) {
+                                allPolylinePoints.addAll(decodedPoints)
+                            } else {
+                                val startIndex = if (decodedPoints.isNotEmpty() && 
+                                    decodedPoints.first() == allPolylinePoints.last()) {
+                                    1
+                                } else {
+                                    0
+                                }
+                                if (startIndex < decodedPoints.size) {
+                                    allPolylinePoints.addAll(decodedPoints.subList(startIndex, decodedPoints.size))
+                                }
+                            }
+                        }
+                    }
+                    
+                    android.util.Log.d("RouteMapBox", "Extracted ${allPolylinePoints.size} points from legs")
+                    return@withContext allPolylinePoints
+                }
+            } else {
+                android.util.Log.w("RouteMapBox", "No routes in response")
+                return@withContext emptyList()
+            }
+        } else {
+            // Log error status for debugging
+            val errorMessage = if (json.has("error_message")) {
+                json.getString("error_message")
+            } else {
+                "Unknown error"
+            }
+            android.util.Log.e("RouteMapBox", "Directions API error: $status - $errorMessage")
+            return@withContext emptyList()
+        }
+    } catch (e: Exception) {
+        // Log exception for debugging
+        android.util.Log.e("RouteMapBox", "Exception fetching driving route: ${e.message}", e)
+        return@withContext emptyList()
+    }
+}
+
+/**
+ * Fetches actual road route from Google Directions API (legacy method for single segment)
  * Returns list of LatLng points following actual roads
  */
 suspend fun getDirectionsRoute(
@@ -472,7 +582,7 @@ suspend fun getDirectionsRoute(
     context: android.content.Context
 ): List<LatLng> = withContext(Dispatchers.IO) {
     try {
-        // Get API key from resources (you'll need to add this to your strings.xml or buildConfig)
+        // Get API key from resources
         val apiKey = context.getString(R.string.google_maps_key)
             .takeIf { it.isNotEmpty() } 
             ?: return@withContext listOf(origin, destination) // Fallback if no API key
@@ -489,7 +599,6 @@ suspend fun getDirectionsRoute(
             val routes = json.getJSONArray("routes")
             if (routes.length() > 0) {
                 val route = routes.getJSONObject(0)
-                val legs = route.getJSONArray("legs")
                 val overviewPolyline = route.getJSONObject("overview_polyline")
                 val encodedPolyline = overviewPolyline.getString("points")
                 
