@@ -182,15 +182,14 @@ fun FailedDeliveryScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
-            
+            Spacer(modifier = Modifier.height(4.dp))
+
             // Photo upload section
             Text(
                 text = "Add Photos",
                 style = AppTypography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground
             )
-
             
             // Add photo button
             Card(
