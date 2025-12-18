@@ -35,6 +35,7 @@ import com.platform.platformdelivery.presentation.pages.profile.EditProfileScree
 import com.platform.platformdelivery.presentation.pages.refer_earn.ReferEarnScreen
 import com.platform.platformdelivery.presentation.pages.route_details.RouteDetailsScreen
 import com.platform.platformdelivery.presentation.pages.settings.SettingsScreen
+import com.platform.platformdelivery.presentation.pages.success_delivery.SuccessDeliveryScreen
 import com.platform.platformdelivery.presentation.pages.terms_conditions.TermsConditionsScreen
 import com.platform.platformdelivery.presentation.pages.tutorials.TutorialsScreen
 import com.platform.platformdelivery.presentation.view_models.AuthViewModel
@@ -182,6 +183,23 @@ fun PlatformDeliveryApp(
                     com.platform.platformdelivery.presentation.pages.failed_delivery.FailedDeliveryScreen(
                         routeId = routeId,
                         waypointId = waypointId,
+                        navController = navController
+                    )
+                }
+                composable("successDelivery/{routeId}/{waypointId}/{deliveryOptionText}") { backStackEntry ->
+                    val routeId = backStackEntry.arguments?.getString("routeId") ?: ""
+                    val waypointId = backStackEntry.arguments?.getString("waypointId") ?: ""
+                    val encodedText = backStackEntry.arguments?.getString("deliveryOptionText") ?: ""
+                    // URL decode the delivery option text
+                    val deliveryOptionText = try {
+                        java.net.URLDecoder.decode(encodedText, "UTF-8")
+                    } catch (e: Exception) {
+                        encodedText
+                    }
+                    SuccessDeliveryScreen(
+                        routeId = routeId,
+                        waypointId = waypointId,
+                        deliveryOptionText = deliveryOptionText,
                         navController = navController
                     )
                 }

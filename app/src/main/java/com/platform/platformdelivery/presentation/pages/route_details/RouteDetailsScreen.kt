@@ -717,14 +717,24 @@ fun RouteStopsList(
             },
             onOptionSelected = { deliveryType ->
                 if (routeId.isNotEmpty() && selectedWaypointId != null) {
-                    routesViewModel.updateWaypointDelivery(
-                        routeId,
-                        selectedWaypointId!!,
-                        "delivered",
-                        deliveryType
-                    ) {
-                        // Success handled in LaunchedEffect
+                    // Get the delivery option text from the delivery type
+                    val deliveryOptionText = when (deliveryType) {
+                        "recipient" -> "Deliver to recipient"
+                        "third_party" -> "Deliver to third party"
+                        "mailbox" -> "Left in mailbox"
+                        "safe_place" -> "Left in safe place"
+                        "other" -> "Other"
+                        else -> "Other"
                     }
+                    
+                    // URL encode the delivery option text to handle spaces
+                    val encodedText = java.net.URLEncoder.encode(deliveryOptionText, "UTF-8")
+                    
+                    // Navigate to success delivery screen
+                    navController?.navigate("successDelivery/$routeId/${selectedWaypointId}/$encodedText") {
+                        popUpTo("routeDetails/$routeId") { inclusive = false }
+                    }
+                    
                     showDeliveryOptionsBottomSheet = false
                     selectedWaypointId = null
                 }
