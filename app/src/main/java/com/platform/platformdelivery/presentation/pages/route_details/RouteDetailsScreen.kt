@@ -135,7 +135,8 @@ fun RouteDetailsScreen(
 
     LaunchedEffect(routeId) {
         if (!routeId.isNullOrEmpty()) {
-            routesViewModel.getRouteDetails(RequestRouteDetails(routeId = routeId))
+            // Stream route details from Firestore instead of API
+            routesViewModel.startStreamingRouteDetails(routeId)
         }
     }
 

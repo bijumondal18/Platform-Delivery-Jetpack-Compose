@@ -1,9 +1,11 @@
 package com.platform.platformdelivery.presentation.view_models
 
+import android.util.Log
 import androidx.compose.ui.text.intl.Locale
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.platform.platformdelivery.core.network.Result
+import com.platform.platformdelivery.core.utils.FirestoreHelper
 import com.platform.platformdelivery.data.models.RequestRouteDetails
 import com.platform.platformdelivery.data.models.Route
 import com.platform.platformdelivery.data.models.RouteDetailsResponse
@@ -12,6 +14,7 @@ import com.platform.platformdelivery.data.repositories.AuthRepository
 import com.platform.platformdelivery.data.repositories.RouteRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -19,6 +22,10 @@ import java.util.Date
 class RoutesViewModel(
     private val routeRepository: RouteRepository = RouteRepository(),
 ) : ViewModel() {
+    
+    private companion object {
+        const val TAG = "RoutesViewModel"
+    }
 
 
     private val _routes = MutableStateFlow<List<Route>>(emptyList())
@@ -278,6 +285,88 @@ class RoutesViewModel(
         }
     }
 
+    /**
+     * Ensures a Firestore document exists for the route.
+     * If it doesn't exist, creates it from the Route object.
+     * If it exists, fetches full route details and updates the document.
+     */
+    suspend fun ensureRouteDocumentInFirestore(route: Route): Boolean {
+        return try {
+            val routeId = route.id?.toString() ?: return false
+            
+            // Check if document exists
+            val exists = FirestoreHelper.routeDocumentExists(routeId)
+            
+            if (!exists) {
+                Log.d(TAG, "Route document $routeId does not exist in Firestore. Creating from Route object.")
+                // Create document from Route object
+                FirestoreHelper.createRouteDocumentFromRoute(routeId, route)
+                
+                // Then fetch full details and update
+                val detailsResult = routeRepository.getRouteDetails(RequestRouteDetails(routeId = routeId))
+                if (detailsResult is Result.Success) {
+                    val routeDetails = detailsResult.data
+                    FirestoreHelper.saveAcceptedRoute(routeId, routeDetails)
+                    Log.d(TAG, "Route document $routeId created and updated with full details in Firestore")
+                } else {
+                    Log.d(TAG, "Route document $routeId created in Firestore, but could not fetch full details")
+                }
+            } else {
+                Log.d(TAG, "Route document $routeId already exists in Firestore")
+                // Optionally update with latest data
+                val detailsResult = routeRepository.getRouteDetails(RequestRouteDetails(routeId = routeId))
+                if (detailsResult is Result.Success) {
+                    val routeDetails = detailsResult.data
+                    FirestoreHelper.saveAcceptedRoute(routeId, routeDetails)
+                    Log.d(TAG, "Route document $routeId updated with latest details in Firestore")
+                }
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception ensuring route document in Firestore", e)
+            false
+        }
+    }
+
+    private var currentRouteId: String? = null
+
+    /**
+     * Starts streaming route details from Firestore
+     */
+    fun startStreamingRouteDetails(routeId: String) {
+        // Stop previous stream if different route
+        if (currentRouteId != null && currentRouteId != routeId) {
+            // The previous stream will be cancelled automatically when new one starts
+        }
+        currentRouteId = routeId
+        
+        viewModelScope.launch {
+            _isRouteDetailsLoading.value = true
+            _routeDetailsError.value = null
+            
+            try {
+                FirestoreHelper.streamRouteDetails(routeId).collect { routeDetailsResponse ->
+                    _isRouteDetailsLoading.value = false
+                    if (routeDetailsResponse != null) {
+                        _routeDetails.value = routeDetailsResponse
+                        _routeDetailsError.value = null
+                        Log.d(TAG, "Route details updated from Firestore for route $routeId")
+                    } else {
+                        // If Firestore doesn't have the document, fallback to API
+                        Log.d(TAG, "Route $routeId not found in Firestore, falling back to API")
+                        getRouteDetails(RequestRouteDetails(routeId = routeId))
+                    }
+                }
+            } catch (e: Exception) {
+                _isRouteDetailsLoading.value = false
+                _routeDetailsError.value = e.message
+                Log.e(TAG, "Exception streaming route details from Firestore", e)
+                // Fallback to API on error
+                getRouteDetails(RequestRouteDetails(routeId = routeId))
+            }
+        }
+    }
+
     fun loadAcceptedTripsOnce(date: String? = null) {
         if (!hasLoadedAcceptedTrips) {
             getAcceptedTrips(1, date)
@@ -372,6 +461,7 @@ class RoutesViewModel(
                 val result = routeRepository.acceptRoute(routeId)
                 when (result) {
                     is Result.Success -> {
+                        Log.d(TAG, "Accept route API call successful for Route ID: $routeId")
                         _acceptRouteResult.value = Result.Success(Unit)
                         
                         // Refresh route details after accepting to get updated status
@@ -379,6 +469,9 @@ class RoutesViewModel(
                         if (refreshResult is Result.Success) {
                             val updatedRouteDetails = refreshResult.data
                             _routeDetails.value = updatedRouteDetails
+                            
+                            // Log: Creating Firebase document for route details
+                            Log.d(TAG, "Accept route API call successful. Creating Firebase document for route details - Route ID: $routeId")
                             
                             // Save to Firestore with updated route details
                             com.platform.platformdelivery.core.utils.FirestoreHelper.saveAcceptedRoute(
@@ -388,6 +481,9 @@ class RoutesViewModel(
                         } else {
                             // If refresh fails, save with current route details
                             routeDetails?.let {
+                                // Log: Creating Firebase document for route details
+                                Log.d(TAG, "Accept route API call successful. Creating Firebase document for route details (using cached data) - Route ID: $routeId")
+                                
                                 com.platform.platformdelivery.core.utils.FirestoreHelper.saveAcceptedRoute(
                                     routeId = routeId,
                                     routeDetails = it

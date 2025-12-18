@@ -419,6 +419,8 @@ fun AvailableRoutesScreen(
                                 route = route,
                                 onClick = { selectedRoute ->
                                     coroutineScope.launch {
+                                        // Ensure Firestore document exists before navigation
+                                        routesViewModel.ensureRouteDocumentInFirestore(selectedRoute)
                                         navController.navigate("routeDetails/${selectedRoute.id}")
                                     }
                                 }
