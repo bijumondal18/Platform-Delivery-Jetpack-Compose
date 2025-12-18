@@ -3,6 +3,9 @@ package com.platform.platformdelivery.presentation.pages.failed_delivery
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -68,6 +71,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.core.network.Result
 import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
+import com.platform.platformdelivery.presentation.pages.profile.ImagePickerBottomSheet
 import kotlinx.coroutines.launch
 
 data class FailedReason(
@@ -91,9 +95,27 @@ fun FailedDeliveryScreen(
     var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var notes by remember { mutableStateOf("") }
     var showError by remember { mutableStateOf(false) }
+    var showImagePickerSheet by remember { mutableStateOf(false) }
     
     val deliveryUpdateResult by routesViewModel.deliveryUpdateResult.collectAsState()
     val isUpdatingDelivery by routesViewModel.isUpdatingDelivery.collectAsState()
+    
+    // Create a temporary file for camera images
+    val tempImageFile = remember {
+        File(context.cacheDir, "temp_failed_image_${System.currentTimeMillis()}.jpg")
+    }
+    
+    val tempImageUri = remember {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                tempImageFile
+            )
+        } else {
+            Uri.fromFile(tempImageFile)
+        }
+    }
     
     val failedReasons = listOf(
         FailedReason("1", "Recipient unavailable/ No answer"),
@@ -111,12 +133,21 @@ fun FailedDeliveryScreen(
         FailedReason("13", "Other")
     )
     
-    // Image picker launcher
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            selectedImageUris = selectedImageUris + it
+    // Camera launcher
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            selectedImageUris = selectedImageUris + tempImageUri
+        }
+    }
+    
+    // Multi-select gallery launcher
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 10)
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
+            selectedImageUris = selectedImageUris + uris
         }
     }
     
@@ -204,7 +235,7 @@ fun FailedDeliveryScreen(
                     .fillMaxWidth()
                     .height(130.dp)
                     .clickable {
-                        imagePickerLauncher.launch("image/*")
+                        showImagePickerSheet = true
                     },
                 shape = MaterialTheme.shapes.medium,
                 colors = CardDefaults.cardColors(
@@ -433,6 +464,21 @@ fun FailedDeliveryScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+    
+    // Image Picker Bottom Sheet
+    if (showImagePickerSheet) {
+        ImagePickerBottomSheet(
+            onDismiss = { showImagePickerSheet = false },
+            onCameraClick = {
+                cameraLauncher.launch(tempImageUri)
+            },
+            onGalleryClick = {
+                galleryLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            }
+        )
     }
 }
 
