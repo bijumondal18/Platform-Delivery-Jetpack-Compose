@@ -35,6 +35,8 @@ import com.platform.platformdelivery.R
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.core.theme.SuccessGreen
 import com.platform.platformdelivery.data.models.Route
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun RouteItem(
@@ -156,7 +158,7 @@ fun RouteItem(
             DetailItem(
                 iconDrawable = R.drawable.ic_clock,
                 label = "START",
-                value = route.startTime ?: "--"
+                value = formatTimeToAmPm(route.startTime)
             )
 
             // DURATION
@@ -232,5 +234,56 @@ private fun DetailItem(
                 fontWeight = FontWeight.Medium
             )
         }
+    }
+}
+
+/**
+ * Converts time string to AM/PM format
+ * Supports common formats: "HH:mm", "HH:mm:ss", "HH:mm:ss.SSS"
+ */
+private fun formatTimeToAmPm(timeString: String?): String {
+    if (timeString.isNullOrEmpty() || timeString == "--") {
+        return "--"
+    }
+    
+    return try {
+        // Try parsing common 24-hour formats
+        val inputFormats = listOf(
+            "HH:mm:ss",
+            "HH:mm",
+            "HH:mm:ss.SSS",
+            "H:mm",
+            "H:mm:ss"
+        )
+        
+        var parsedTime: java.util.Date? = null
+        var usedFormat: String? = null
+        
+        for (format in inputFormats) {
+            try {
+                val sdf = SimpleDateFormat(format, Locale.getDefault())
+                sdf.isLenient = false
+                parsedTime = sdf.parse(timeString)
+                if (parsedTime != null) {
+                    usedFormat = format
+                    break
+                }
+            } catch (e: Exception) {
+                // Try next format
+                continue
+            }
+        }
+        
+        if (parsedTime != null) {
+            // Convert to AM/PM format
+            val outputFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
+            outputFormat.format(parsedTime)
+        } else {
+            // If parsing fails, return original string
+            timeString
+        }
+    } catch (e: Exception) {
+        // If any error occurs, return original string
+        timeString
     }
 }
