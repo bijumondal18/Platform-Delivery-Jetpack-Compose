@@ -2,37 +2,33 @@ package com.platform.platformdelivery.presentation.widgets
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
+import android.graphics.Color as AndroidColor
 import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.toArgb
 import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.*
 import com.google.maps.android.compose.*
 import com.platform.platformdelivery.R
 import com.platform.platformdelivery.data.models.Waypoint
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
-import java.net.URL
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
-
+import java.net.URL
+import java.net.URLEncoder
 
 @Composable
 fun RouteMapBox(
@@ -49,40 +45,34 @@ fun RouteMapBox(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    fun parse(value: Any?): Double? =
-        when (value) {
-            is Number -> value.toDouble()
-            is String -> value.toDoubleOrNull()
-            else -> null
-        }
+    fun parse(value: Any?): Double? = when (value) {
+        is Number -> value.toDouble()
+        is String -> value.trim().toDoubleOrNull()
+        else -> null
+    }
 
     val origin = remember(originLat, originLng) {
-        parse(originLat)?.let { lat ->
-            parse(originLng)?.let { lng ->
-                LatLng(lat, lng)
-            }
-        }
+        val lat = parse(originLat)
+        val lng = parse(originLng)
+        if (lat != null && lng != null) LatLng(lat, lng) else null
     }
 
     val destination = remember(destinationLat, destinationLng) {
-        if (destinationLat != null && destinationLng != null)
-            LatLng(destinationLat, destinationLng)
-        else null
+        if (destinationLat != null && destinationLng != null) LatLng(destinationLat, destinationLng) else null
     }
 
     data class WaypointLocation(val location: LatLng, val place: String?)
 
     val waypointLocations = remember(waypoints) {
-        waypoints?.mapNotNull {
-            val lat = parse(it.destinationLat)
-            val lng = parse(it.destinationLng)
-            if (lat != null && lng != null)
-                WaypointLocation(LatLng(lat, lng), it.place?.toString())
-            else null
+        waypoints?.mapNotNull { wp ->
+            val lat = parse(wp.destinationLat)
+            val lng = parse(wp.destinationLng)
+            if (lat != null && lng != null) WaypointLocation(LatLng(lat, lng), wp.place?.toString()) else null
         } ?: emptyList()
     }
 
-    val allLocations = remember(origin, waypointLocations, destination) {
+    // For initial camera fit (markers)
+    val allLocations = remember(origin, waypointLocations, destination, latitude, longitude) {
         buildList {
             origin?.let { add(it) }
             waypointLocations.forEach { add(it.location) }
@@ -92,7 +82,6 @@ fun RouteMapBox(
     }
 
     val cameraState = rememberCameraPositionState()
-    var cameraInitialized by remember(routeId) { mutableStateOf(false) }
 
     val isDark = isSystemInDarkTheme()
     val mapStyle = remember(isDark) {
@@ -124,52 +113,65 @@ fun RouteMapBox(
         )
     }
 
+    // Route polyline state
     var routePolyline by remember(routeId) { mutableStateOf<List<LatLng>>(emptyList()) }
     val polylineColor = MaterialTheme.colorScheme.primary
 
-    var mapRef by remember { mutableStateOf<GoogleMap?>(null) }
-    var routePolylineRef by remember { mutableStateOf<com.google.android.gms.maps.model.Polyline?>(null) }
+    // Marker icons
+    var originIcon by remember(routeId) { mutableStateOf<BitmapDescriptor?>(null) }
+    var destinationIcon by remember(routeId) { mutableStateOf<BitmapDescriptor?>(null) }
+    var waypointIcons by remember(routeId) { mutableStateOf<List<BitmapDescriptor>>(emptyList()) }
 
-
-
-    /** Load Directions */
-//    LaunchedEffect(origin, destination, waypointLocations) {
-//        if (origin != null && destination != null) {
-//            routePolyline = getDrivingRouteWithWaypoints(
-//                origin,
-//                waypointLocations.map { it.location },
-//                destination,
-//                context
-//            )
-//        }
-//    }
-
-    LaunchedEffect(routePolyline) {
-        val map = mapRef ?: return@LaunchedEffect
-        if (routePolyline.size < 2) return@LaunchedEffect
-
-        if (routePolylineRef == null) {
-            routePolylineRef = map.addPolyline(
-                PolylineOptions()
-                    .addAll(routePolyline)
-                    .color(polylineColor.toArgb())
-                    .width(12f)
-                    .jointType(JointType.ROUND)
-                    .startCap(RoundCap())
-                    .endCap(RoundCap())
-            )
-        } else {
-            routePolylineRef?.points = routePolyline
+    // Create icons once per route + waypoint count
+    LaunchedEffect(routeId, waypointLocations.size) {
+        originIcon = createNumberedMarkerIcon("O", AndroidColor.parseColor("#2196F3"))
+        destinationIcon = createNumberedMarkerIcon("D", AndroidColor.parseColor("#2196F3"))
+        waypointIcons = List(waypointLocations.size) { index ->
+            createNumberedMarkerIcon(String.format("%02d", index + 1), AndroidColor.parseColor("#2196F3"))
         }
     }
 
-    var originIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
-    var destinationIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
-    var waypointIcons by remember { mutableStateOf<List<BitmapDescriptor>>(emptyList()) }
+    /** Load Directions */
+    LaunchedEffect(origin, destination, waypointLocations) {
+        if (origin != null && destination != null) {
+            routePolyline = getDrivingRouteWithWaypoints(
+                origin = origin,
+                waypoints = waypointLocations.map { it.location },
+                destination = destination,
+                apiKey = context.getString(R.string.google_maps_key)
+            )
 
+            android.util.Log.d("RouteMapBox", "routePolyline.size=${routePolyline.size}")
+            if (routePolyline.isNotEmpty()) {
+                android.util.Log.d("RouteMapBox", "first=${routePolyline.first()} last=${routePolyline.last()}")
+            }
+        } else {
+            routePolyline = emptyList()
+            android.util.Log.d("RouteMapBox", "Skipping directions: origin=$origin destination=$destination")
+        }
+    }
+
+    // Fit camera to markers when map loads (initial)
+    var didFitMarkersOnce by remember(routeId) { mutableStateOf(false) }
+
+    // Fit camera to route when polyline arrives/updates (important!)
+    LaunchedEffect(routePolyline) {
+        if (routePolyline.size >= 2) {
+            val bounds = LatLngBounds.builder().apply {
+                routePolyline.forEach { include(it) }
+            }.build()
+
+            // If map isn't ready yet, animate can fail; wrap safely
+            runCatching {
+                cameraState.animate(
+                    CameraUpdateFactory.newLatLngBounds(bounds, 100),
+                    700
+                )
+            }
+        }
+    }
 
     Box(modifier = modifier.fillMaxWidth()) {
-
         GoogleMap(
             modifier = Modifier
                 .matchParentSize()
@@ -178,132 +180,89 @@ fun RouteMapBox(
             uiSettings = uiSettings,
             properties = properties,
             onMapLoaded = {
-                if (!cameraInitialized) {
-
-                    // SAFE: Maps SDK is ready
-                    originIcon = createNumberedMarkerIcon(context, "O", Color.parseColor("#2196F3"))
-                    destinationIcon = createNumberedMarkerIcon(context, "D", Color.parseColor("#2196F3"))
-
-                    waypointIcons = waypointLocations.mapIndexed { index, _ ->
-                        createNumberedMarkerIcon(
-                            context,
-                            String.format("%02d", index + 1),
-                            Color.parseColor("#2196F3")
-                        )
-                    }
-
+                if (!didFitMarkersOnce) {
+                    didFitMarkersOnce = true
                     coroutineScope.launch {
                         val bounds = LatLngBounds.builder().apply {
                             allLocations.forEach { include(it) }
                         }.build()
 
-                        cameraState.animate(
-                            CameraUpdateFactory.newLatLngBounds(bounds, 100),
-                            700
-                        )
-                        cameraInitialized = true
+                        runCatching {
+                            cameraState.animate(
+                                CameraUpdateFactory.newLatLngBounds(bounds, 100),
+                                700
+                            )
+                        }
                     }
                 }
             }
         ) {
+            // ✅ Draw polyline with Compose API (not MapEffect)
+            if (routePolyline.size >= 2) {
+                Polyline(
+                    points = routePolyline,
+                    color = polylineColor,
+                    width = 12f,
+                    jointType = JointType.ROUND,
+                    startCap = RoundCap(),
+                    endCap = RoundCap()
+                )
+            }
 
-            // ✅ MapEffect MUST be here
-            MapEffect(
-                routePolyline,
-                origin,
-                waypointLocations,
-                destination,
-                originIcon,
-                destinationIcon,
-                waypointIcons
-            ) { map ->
-                mapRef = map
+            // ✅ Markers as Compose API
+            origin?.let {
+                Marker(
+                    state = MarkerState(position = it),
+                    title = "Origin",
+                    icon = originIcon,
+                    anchor = Offset(0.5f, 1f)
+                )
+            }
 
-//                map.clear()
+            waypointLocations.forEachIndexed { index, wp ->
+                Marker(
+                    state = MarkerState(position = wp.location),
+                    title = "Stop ${index + 1}",
+                    snippet = wp.place ?: "",
+                    icon = waypointIcons.getOrNull(index),
+                    anchor = Offset(0.5f, 1f)
+                )
+            }
 
-                // Polyline
-                if (routePolyline.size >= 2) {
-                    map.addPolyline(
-                        PolylineOptions()
-                            .addAll(routePolyline)
-                            .color(polylineColor.toArgb())
-                            .width(12f)
-                            .jointType(JointType.ROUND)
-                            .startCap(RoundCap())
-                            .endCap(RoundCap())
-                    )
-                }
-
-                // Origin
-                origin?.let {
-                    originIcon?.let { icon ->
-                        map.addMarker(
-                            MarkerOptions()
-                                .position(it)
-                                .icon(icon)
-                                .anchor(0.5f, 1f)
-                                .title("Origin")
-                        )
-                    }
-                }
-
-                // Waypoints
-                waypointLocations.forEachIndexed { index, wp ->
-                    if (index < waypointIcons.size) {
-                        map.addMarker(
-                            MarkerOptions()
-                                .position(wp.location)
-                                .icon(waypointIcons[index])
-                                .anchor(0.5f, 1f)
-                                .title("Stop ${index + 1}")
-                                .snippet(wp.place ?: "")
-                        )
-                    }
-                }
-
-                // Destination
-                destination?.let {
-                    destinationIcon?.let { icon ->
-                        map.addMarker(
-                            MarkerOptions()
-                                .position(it)
-                                .icon(icon)
-                                .anchor(0.5f, 1f)
-                                .title("Destination")
-                        )
-                    }
-                }
+            destination?.let {
+                Marker(
+                    state = MarkerState(position = it),
+                    title = "Destination",
+                    icon = destinationIcon,
+                    anchor = Offset(0.5f, 1f)
+                )
             }
         }
-
-
     }
 }
 
-
 /**
- * Creates a custom marker icon with a number or letter
- * Modern pin-style marker with rounded badge
+ * Creates a custom marker icon with a number or letter (pin + badge)
  */
-fun createNumberedMarkerIcon(context: android.content.Context, text: String, color: Int): BitmapDescriptor {
+fun createNumberedMarkerIcon(text: String, color: Int): BitmapDescriptor {
     val width = 80
-    val height = 100 // Pin shape: taller than wide
+    val height = 100
     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
-    
+
     val centerX = width / 2f
     val badgeRadius = 28f
-    val badgeY = badgeRadius + 8f // Position badge near top
-    
-    // Draw pin shadow (subtle)
+    val badgeY = badgeRadius + 8f
+
+    // Shadow
     val shadowPaint = Paint().apply {
         isAntiAlias = true
-        this.color = Color.parseColor("#40000000")
+        this.color = AndroidColor.parseColor("#40000000")
         style = Paint.Style.FILL
     }
     canvas.drawCircle(centerX, badgeY + 2f, badgeRadius + 2f, shadowPaint)
-    
-    // Draw pin point (bottom triangle)
+
+    // Pin triangle
     val pinPath = android.graphics.Path().apply {
         moveTo(centerX, height.toFloat() - 4f)
         lineTo(centerX - 12f, badgeY + badgeRadius + 8f)
@@ -316,29 +275,28 @@ fun createNumberedMarkerIcon(context: android.content.Context, text: String, col
         style = Paint.Style.FILL
     }
     canvas.drawPath(pinPath, pinPaint)
-    
-    // Draw badge circle background
+
+    // Badge circle
     val badgePaint = Paint().apply {
         isAntiAlias = true
         this.color = color
         style = Paint.Style.FILL
     }
     canvas.drawCircle(centerX, badgeY, badgeRadius, badgePaint)
-    
-    // Draw white border around badge
+
+    // Border
     val borderPaint = Paint().apply {
         isAntiAlias = true
-        this.color = Color.WHITE
+        this.color = AndroidColor.WHITE
         style = Paint.Style.STROKE
         strokeWidth = 4f
     }
     canvas.drawCircle(centerX, badgeY, badgeRadius, borderPaint)
-    
-    // Draw text (white, bold, centered)
+
+    // Text
     val textPaint = Paint().apply {
         isAntiAlias = true
-        this.color = Color.WHITE
-        // Adjust text size based on length
+        this.color = AndroidColor.WHITE
         textSize = when {
             text.length <= 1 -> 32f
             text.length == 2 -> 24f
@@ -347,179 +305,84 @@ fun createNumberedMarkerIcon(context: android.content.Context, text: String, col
         typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD)
         textAlign = Paint.Align.CENTER
     }
-    
     val textY = badgeY + (textPaint.descent() + textPaint.ascent()) / 2f
     canvas.drawText(text, centerX, textY, textPaint)
-    
-    // Set anchor point to bottom center of pin
-    return BitmapDescriptorFactory.fromBitmap(bitmap).apply {
-        // Anchor at bottom center of pin
-    }
+
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
 }
 
 /**
- * Fetches driving route from Google Directions API with waypoints
- * Route order: origin -> waypoint 1 -> waypoint 2 -> ... -> destination
- * Returns a single continuous polyline following actual roads
+ * Fetch driving route from Directions API (origin -> waypoints -> destination).
+ * IMPORTANT: doing this directly from the client is not ideal for key security, but kept as per your current approach.
  */
 suspend fun getDrivingRouteWithWaypoints(
     origin: LatLng,
     waypoints: List<LatLng>,
     destination: LatLng,
-    context: android.content.Context
+    apiKey: String
 ): List<LatLng> = withContext(Dispatchers.IO) {
     try {
-        // Get API key from resources
-        val apiKey = context.getString(R.string.google_maps_key)
-        if (apiKey.isEmpty()) {
+        if (apiKey.isBlank()) {
             android.util.Log.e("RouteMapBox", "Google Maps API key is empty")
             return@withContext emptyList()
         }
-        
-        // Build waypoints parameter - Google Directions API will route through them in order
-        val waypointsParam = if (waypoints.isNotEmpty()) {
-            "&waypoints=" + waypoints.joinToString("|") { "${it.latitude},${it.longitude}" }
-        } else {
-            ""
-        }
-        
-        // Request driving directions with waypoints
-        // URL encode the parameters properly
+
         val originStr = "${origin.latitude},${origin.longitude}"
         val destStr = "${destination.latitude},${destination.longitude}"
-        val encodedOrigin = java.net.URLEncoder.encode(originStr, "UTF-8")
-        val encodedDest = java.net.URLEncoder.encode(destStr, "UTF-8")
-        
+
+        val encodedOrigin = URLEncoder.encode(originStr, "UTF-8")
+        val encodedDest = URLEncoder.encode(destStr, "UTF-8")
+
+        val waypointsParam = if (waypoints.isNotEmpty()) {
+            val raw = waypoints.joinToString("|") { "${it.latitude},${it.longitude}" }
+            "&waypoints=" + URLEncoder.encode(raw, "UTF-8")
+        } else ""
+
         val url = "https://maps.googleapis.com/maps/api/directions/json?" +
                 "origin=$encodedOrigin" +
                 "&destination=$encodedDest" +
                 waypointsParam +
                 "&mode=driving" +
                 "&key=$apiKey"
-        
-        android.util.Log.d("RouteMapBox", "Fetching directions. Origin: $originStr, Dest: $destStr, Waypoints: ${waypoints.size}")
-        
+
+        android.util.Log.d("RouteMapBox", "Fetching directions url=$url")
+
         val response = URL(url).readText()
         val json = JSONObject(response)
-        
-        val status = json.getString("status")
+
+        val status = json.optString("status")
         android.util.Log.d("RouteMapBox", "Directions API status: $status")
-        
-        if (status == "OK") {
-            val routes = json.getJSONArray("routes")
-            if (routes.length() > 0) {
-                val route = routes.getJSONObject(0)
-                
-                // Use overview_polyline - it's simpler and more reliable
-                // It contains the complete route through all waypoints
-                if (route.has("overview_polyline")) {
-                    val overviewPolyline = route.getJSONObject("overview_polyline")
-                    val encodedPolyline = overviewPolyline.getString("points")
-                    val decodedPoints = decodePolyline(encodedPolyline)
-                    android.util.Log.d("RouteMapBox", "Decoded ${decodedPoints.size} points from overview_polyline")
-                    return@withContext decodedPoints
-                } else {
-                    android.util.Log.w("RouteMapBox", "No overview_polyline in route response")
-                    // Fallback: extract from legs
-                    val legs = route.getJSONArray("legs")
-                    val allPolylinePoints = mutableListOf<LatLng>()
-                    
-                    for (i in 0 until legs.length()) {
-                        val leg = legs.getJSONObject(i)
-                        val steps = leg.getJSONArray("steps")
-                        
-                        for (j in 0 until steps.length()) {
-                            val step = steps.getJSONObject(j)
-                            val polyline = step.getJSONObject("polyline")
-                            val encodedPolyline = polyline.getString("points")
-                            val decodedPoints = decodePolyline(encodedPolyline)
-                            
-                            if (allPolylinePoints.isEmpty()) {
-                                allPolylinePoints.addAll(decodedPoints)
-                            } else {
-                                val startIndex = if (decodedPoints.isNotEmpty() && 
-                                    decodedPoints.first() == allPolylinePoints.last()) {
-                                    1
-                                } else {
-                                    0
-                                }
-                                if (startIndex < decodedPoints.size) {
-                                    allPolylinePoints.addAll(decodedPoints.subList(startIndex, decodedPoints.size))
-                                }
-                            }
-                        }
-                    }
-                    
-                    android.util.Log.d("RouteMapBox", "Extracted ${allPolylinePoints.size} points from legs")
-                    return@withContext allPolylinePoints
-                }
-            } else {
-                android.util.Log.w("RouteMapBox", "No routes in response")
-                return@withContext emptyList()
-            }
-        } else {
-            // Log error status for debugging
-            val errorMessage = if (json.has("error_message")) {
-                json.getString("error_message")
-            } else {
-                "Unknown error"
-            }
-            android.util.Log.e("RouteMapBox", "Directions API error: $status - $errorMessage")
+
+        if (status != "OK") {
+            val error = json.optString("error_message", "Unknown error")
+            android.util.Log.e("RouteMapBox", "Directions API error: $status - $error")
+            android.util.Log.e("RouteMapBox", "Directions raw: ${response.take(500)}")
             return@withContext emptyList()
         }
-    } catch (e: Exception) {
-        // Log exception for debugging
-        android.util.Log.e("RouteMapBox", "Exception fetching driving route: ${e.message}", e)
-        return@withContext emptyList()
-    }
-}
 
-/**
- * Fetches actual road route from Google Directions API (legacy method for single segment)
- * Returns list of LatLng points following actual roads
- */
-suspend fun getDirectionsRoute(
-    origin: LatLng,
-    destination: LatLng,
-    context: android.content.Context
-): List<LatLng> = withContext(Dispatchers.IO) {
-    try {
-        // Get API key from resources
-        val apiKey = context.getString(R.string.google_maps_key)
-            .takeIf { it.isNotEmpty() } 
-            ?: return@withContext listOf(origin, destination) // Fallback if no API key
-        
-        val url = "https://maps.googleapis.com/maps/api/directions/json?" +
-                "origin=${origin.latitude},${origin.longitude}" +
-                "&destination=${destination.latitude},${destination.longitude}" +
-                "&key=$apiKey"
-        
-        val response = URL(url).readText()
-        val json = JSONObject(response)
-        
-        if (json.getString("status") == "OK") {
-            val routes = json.getJSONArray("routes")
-            if (routes.length() > 0) {
-                val route = routes.getJSONObject(0)
-                val overviewPolyline = route.getJSONObject("overview_polyline")
-                val encodedPolyline = overviewPolyline.getString("points")
-                
-                // Decode the polyline string to list of LatLng
-                decodePolyline(encodedPolyline)
-            } else {
-                listOf(origin, destination)
-            }
-        } else {
-            listOf(origin, destination)
+        val routes = json.getJSONArray("routes")
+        if (routes.length() == 0) return@withContext emptyList()
+
+        val route = routes.getJSONObject(0)
+        val overview = route.optJSONObject("overview_polyline")
+        val encoded = overview?.optString("points").orEmpty()
+
+        if (encoded.isBlank()) {
+            android.util.Log.w("RouteMapBox", "No overview_polyline points")
+            return@withContext emptyList()
         }
+
+        val decoded = decodePolyline(encoded)
+        android.util.Log.d("RouteMapBox", "Decoded ${decoded.size} points from overview_polyline")
+        decoded
     } catch (e: Exception) {
-        // Fallback to straight line on error
-        listOf(origin, destination)
+        android.util.Log.e("RouteMapBox", "Exception fetching driving route: ${e.message}", e)
+        emptyList()
     }
 }
 
 /**
- * Decodes Google Maps encoded polyline string to list of LatLng points
+ * Correct polyline decoder (fixed precedence bug).
  */
 fun decodePolyline(encoded: String): List<LatLng> {
     val poly = mutableListOf<LatLng>()
@@ -527,31 +390,31 @@ fun decodePolyline(encoded: String): List<LatLng> {
     val len = encoded.length
     var lat = 0
     var lng = 0
-    
+
     while (index < len) {
         var b: Int
         var shift = 0
         var result = 0
         do {
             b = encoded[index++].code - 63
-            result = result or (b and 0x1f shl shift)
+            result = result or ((b and 0x1f) shl shift)
             shift += 5
         } while (b >= 0x20)
-        val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+        val dlat = if ((result and 1) != 0) (result shr 1).inv() else (result shr 1)
         lat += dlat
-        
+
         shift = 0
         result = 0
         do {
             b = encoded[index++].code - 63
-            result = result or (b and 0x1f shl shift)
+            result = result or ((b and 0x1f) shl shift)
             shift += 5
         } while (b >= 0x20)
-        val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+        val dlng = if ((result and 1) != 0) (result shr 1).inv() else (result shr 1)
         lng += dlng
-        
+
         poly.add(LatLng(lat / 1e5, lng / 1e5))
     }
-    
+
     return poly
 }

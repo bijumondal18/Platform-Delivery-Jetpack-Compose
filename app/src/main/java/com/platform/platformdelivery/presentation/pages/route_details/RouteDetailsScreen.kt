@@ -832,7 +832,10 @@ fun RouteStopsList(
                     onFailedClick = {
                         if (routeId.isNotEmpty() && stopInfo.waypointId != null) {
                             // Navigate to failed delivery screen
-                            navController?.navigate("failedDelivery/$routeId/${stopInfo.waypointId}")
+                            navController?.navigate("failedDelivery/$routeId/${stopInfo.waypointId}") {
+                                // Keep route details in the back stack
+                                popUpTo("routeDetails/$routeId") { inclusive = false }
+                            }
                         }
                     }
                 )

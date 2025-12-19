@@ -58,6 +58,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -172,6 +173,21 @@ fun FailedDeliveryScreen(
         }
     }
     
+    // Handle system back button - navigate back to route details
+    BackHandler(enabled = true) {
+        navController?.let { controller ->
+            // Try to pop back stack first (normal back behavior)
+            val popped = controller.popBackStack()
+            if (!popped) {
+                // If nothing to pop (would close app), navigate to route details
+                val routeDetailsRoute = "routeDetails/$routeId"
+                controller.navigate(routeDetailsRoute) {
+                    launchSingleTop = true
+                }
+            }
+        }
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -188,7 +204,17 @@ fun FailedDeliveryScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        navController?.popBackStack()
+                        navController?.let { controller ->
+                            // Try to pop back stack first (normal back behavior)
+                            val popped = controller.popBackStack()
+                            if (!popped) {
+                                // If nothing to pop (would close app), navigate to route details
+                                val routeDetailsRoute = "routeDetails/$routeId"
+                                controller.navigate(routeDetailsRoute) {
+                                    launchSingleTop = true
+                                }
+                            }
+                        }
                     }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
