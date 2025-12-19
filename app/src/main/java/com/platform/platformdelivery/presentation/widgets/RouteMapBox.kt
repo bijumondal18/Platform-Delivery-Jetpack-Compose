@@ -211,7 +211,6 @@ fun RouteMapBox(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
     ) {
         // GoogleMap Composable inside Box
         // Use remember to prevent recomposition during scroll - stable references
