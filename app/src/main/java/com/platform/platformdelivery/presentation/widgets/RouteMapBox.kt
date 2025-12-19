@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.*
 import com.google.maps.android.compose.*
 import com.platform.platformdelivery.R
@@ -126,36 +127,41 @@ fun RouteMapBox(
     var routePolyline by remember(routeId) { mutableStateOf<List<LatLng>>(emptyList()) }
     val polylineColor = MaterialTheme.colorScheme.primary
 
-    /** Load Directions */
-    LaunchedEffect(origin, destination, waypointLocations) {
-        if (origin != null && destination != null) {
-            routePolyline = getDrivingRouteWithWaypoints(
-                origin,
-                waypointLocations.map { it.location },
-                destination,
-                context
-            )
-        }
-    }
+    var mapRef by remember { mutableStateOf<GoogleMap?>(null) }
+    var routePolylineRef by remember { mutableStateOf<com.google.android.gms.maps.model.Polyline?>(null) }
 
-    /** Marker icons (created once) */
-//    val originIcon = remember(routeId) {
-//        createNumberedMarkerIcon(context, "O", Color.parseColor("#2196F3"))
-//    }
-//
-//    val destinationIcon = remember(routeId) {
-//        createNumberedMarkerIcon(context, "D", Color.parseColor("#2196F3"))
-//    }
-//
-//    val waypointIcons = remember(routeId, waypointLocations.size) {
-//        waypointLocations.mapIndexed { index, _ ->
-//            createNumberedMarkerIcon(
-//                context,
-//                String.format("%02d", index + 1),
-//                Color.parseColor("#2196F3")
+
+
+    /** Load Directions */
+//    LaunchedEffect(origin, destination, waypointLocations) {
+//        if (origin != null && destination != null) {
+//            routePolyline = getDrivingRouteWithWaypoints(
+//                origin,
+//                waypointLocations.map { it.location },
+//                destination,
+//                context
 //            )
 //        }
 //    }
+
+    LaunchedEffect(routePolyline) {
+        val map = mapRef ?: return@LaunchedEffect
+        if (routePolyline.size < 2) return@LaunchedEffect
+
+        if (routePolylineRef == null) {
+            routePolylineRef = map.addPolyline(
+                PolylineOptions()
+                    .addAll(routePolyline)
+                    .color(polylineColor.toArgb())
+                    .width(12f)
+                    .jointType(JointType.ROUND)
+                    .startCap(RoundCap())
+                    .endCap(RoundCap())
+            )
+        } else {
+            routePolylineRef?.points = routePolyline
+        }
+    }
 
     var originIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
     var destinationIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
@@ -211,8 +217,9 @@ fun RouteMapBox(
                 destinationIcon,
                 waypointIcons
             ) { map ->
+                mapRef = map
 
-                map.clear()
+//                map.clear()
 
                 // Polyline
                 if (routePolyline.size >= 2) {
