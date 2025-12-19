@@ -119,8 +119,20 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.Date
 import java.util.Locale
+
+// Data class to hold map parameters for stable recomposition
+private data class MapParams(
+    val latitude: Double,
+    val longitude: Double,
+    val originLat: String?,
+    val originLng: String?,
+    val destinationLat: Double?,
+    val destinationLng: Double?,
+    val waypoints: List<Waypoint>?
+)
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -161,10 +173,11 @@ fun RouteDetailsScreen(
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState()
     val coroutineScope = rememberCoroutineScope()
 
-    // Calculate 40% of screen height for minimum bottom sheet height
+    // Calculate bottom sheet heights
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
-    val minSheetHeight = screenHeight * 0.45f
+    val minSheetHeight = screenHeight * 0.45f // 45% minimum (peek height)
+    val maxSheetHeight = screenHeight * 0.8f // 80% maximum
 
     // Get bottom sheet offset to sync map movement
     // When bottom sheet is dragged up beyond peek height, map should slide up to reveal markers
@@ -172,12 +185,13 @@ fun RouteDetailsScreen(
     val bottomSheetState = bottomSheetScaffoldState.bottomSheetState
     val density = LocalDensity.current
     
-    // Calculate the offset when sheet is at peek position (maximum offset)
+    // Calculate the offset when sheet is at peek position (maximum offset) - memoized
     val peekOffsetPx = remember(density, minSheetHeight, screenHeight) {
         with(density) { (screenHeight - minSheetHeight).toPx() }
     }
     
-    val mapOffset = remember(density) { 
+    // Optimize map offset calculation - use snapshotFlow to reduce recompositions
+    val mapOffset = remember(density, peekOffsetPx) { 
         derivedStateOf { 
             // Get the current offset from the bottom sheet state
             // This is the Y position from the top of the screen
@@ -190,7 +204,7 @@ fun RouteDetailsScreen(
             
             // Only move map up if bottom sheet is expanded (expansion > 0)
             // Apply as negative offset to move map up
-            if (expansionPx > 0) {
+            if (expansionPx > 0f) {
                 // Limit the map movement to a reasonable amount (e.g., 30% of expansion)
                 val mapMovementPx = expansionPx * 0.3f
                 with(density) { -mapMovementPx.toDp() }
@@ -216,7 +230,7 @@ fun RouteDetailsScreen(
         }
     }
 
-    // Create shape with medium top radius and no bottom radius
+    // Create shape with medium top radius and no bottom radius - memoized
     val sheetShape = remember {
         RoundedCornerShape(
             topStart = 16.dp, // Medium radius
@@ -225,20 +239,40 @@ fun RouteDetailsScreen(
             bottomEnd = 0.dp
         )
     }
+    
+    // Memoize colors to prevent recomposition
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val onBackgroundColor = MaterialTheme.colorScheme.onBackground
+    val dividerColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
 
+
+    // Calculate max offset in pixels - memoized
+    val maxOffsetPx = remember(density, screenHeight, maxSheetHeight) {
+        with(density) { (screenHeight - maxSheetHeight).toPx() }
+    }
+
+    // Track if bottom sheet is fully expanded (at max height)
+    val isFullyExpanded = remember {
+        derivedStateOf {
+            val currentOffsetPx = bottomSheetState.requireOffset()
+            // Consider fully expanded if within 5px of max position
+            currentOffsetPx <= maxOffsetPx + 5f
+        }
+    }
+    
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
         sheetContainerColor = MaterialTheme.colorScheme.background,
         sheetShape = sheetShape,
         sheetPeekHeight = minSheetHeight,
-        sheetContent = {
+        sheetContent = @androidx.compose.runtime.Composable {
             // Bottom sheet content with route details
             when {
                 isLoading -> {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(color = MaterialTheme.colorScheme.background)
+                            .background(color = backgroundColor)
                             .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -250,7 +284,7 @@ fun RouteDetailsScreen(
                             Text(
                                 "Loading route details...",
                                 style = AppTypography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                                color = onBackgroundColor.copy(alpha = 0.7f)
                             )
                         }
                     }
@@ -260,7 +294,7 @@ fun RouteDetailsScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(color = MaterialTheme.colorScheme.background)
+                            .background(color = backgroundColor)
                             .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -274,202 +308,226 @@ fun RouteDetailsScreen(
                 }
 
                 routeDetails != null && route != null -> {
-                    LazyColumn(
+                    // Memoize route data to prevent unnecessary recompositions
+                    val routeSummary = remember(route) {
+                        val totalStops = (1 + (route.waypoints?.size ?: 0) +
+                                if (route.destinationPlace.isNullOrEmpty()) 0 else 1)
+                        val dateText = route.startDate?.let { formatRouteDate(it) }
+                            ?: route.startTime?.let {
+                                val currentDate = LocalDate.now()
+                                val formatter = DateTimeFormatter.ofPattern(
+                                    "EEE MMM dd",
+                                    Locale.ENGLISH
+                                )
+                                currentDate.format(formatter)
+                            } ?: ""
+                        val summaryText = route.distance?.let { distance ->
+                            route.estimatedTotalTime?.let { totalTime ->
+                                "$totalStops stops • $distance • $totalTime"
+                            }
+                        } ?: ""
+                        Triple(dateText, summaryText, totalStops)
+                    }
+
+                    val routeStatus = remember(route.status) { route.status ?: "" }
+                    val isCompleted = remember(routeStatus) {
+                        routeStatus.equals("completed", ignoreCase = true) ||
+                                routeStatus.equals("compleated", ignoreCase = true)
+                    }
+
+                    // Constrain bottom sheet content to max height and enable scrolling only when fully expanded
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(color = MaterialTheme.colorScheme.background),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                            .height(maxSheetHeight)
                     ) {
-                        // Route Summary Section
-                        item {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // Date row
-                                route.startDate?.let { startDate ->
-                                    Text(
-                                        text = formatRouteDate(startDate),
-                                        style = AppTypography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                        color = MaterialTheme.colorScheme.onBackground
-                                    )
-                                } ?: route.startTime?.let { startTime ->
-                                    val currentDate = java.time.LocalDate.now()
-                                    val formatter = java.time.format.DateTimeFormatter.ofPattern(
-                                        "EEE MMM dd",
-                                        java.util.Locale.ENGLISH
-                                    )
-                                    Text(
-                                        text = currentDate.format(formatter),
-                                        style = AppTypography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                        color = MaterialTheme.colorScheme.onBackground
-                                    )
-                                }
-
-                                // Summary row: "X stops • X km • Xh Xm"
-                                Row(
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(color = backgroundColor),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            // Only enable scrolling when bottom sheet is fully expanded
+                            userScrollEnabled = isFullyExpanded.value
+                        ) {
+                            // Route Summary Section - use stable key
+                            item(key = "route_summary_${route.id}") {
+                                Column(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        val totalStops = (1 + (route.waypoints?.size ?: 0) +
-                                                if (route.destinationPlace.isNullOrEmpty()) 0 else 1)
-                                        route.distance?.let { distance ->
-                                            route.estimatedTotalTime?.let { totalTime ->
+                                    // Date row
+                                    if (routeSummary.first.isNotEmpty()) {
+                                        Text(
+                                            text = routeSummary.first,
+                                            style = AppTypography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                            color = onBackgroundColor
+                                        )
+                                    }
+
+                                    // Summary row: "X stops • X km • Xh Xm"
+                                    if (routeSummary.second.isNotEmpty()) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
                                                 Text(
-                                                    text = "$totalStops stops • $distance • $totalTime",
+                                                    text = routeSummary.second,
                                                     style = AppTypography.bodyMedium,
-                                                    color = MaterialTheme.colorScheme.onBackground
+                                                    color = onBackgroundColor
                                                 )
                                             }
                                         }
                                     }
                                 }
+
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 12.dp),
+                                    color = dividerColor
+                                )
                             }
 
-                            HorizontalDivider(
-                                modifier = Modifier.padding(vertical = 12.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                            )
-                        }
-
-                        // Route Stops List
-                        item {
-                            val routeStatus = route.status ?: ""
-                            val isCompleted = routeStatus.equals("completed", ignoreCase = true) ||
-                                    routeStatus.equals("compleated", ignoreCase = true)
-                            RouteStopsList(
-                                originPlace = route.originPlace ?: "",
-                                destinationPlace = route.destinationPlace ?: "",
-                                waypoints = route.waypoints,
-                                routeStartTime = route.startTime,
-                                originLat = route.originLat,
-                                originLng = route.originLng,
-                                routeStatus = routeStatus,
-                                routeId = route.id?.toString() ?: "",
-                                routesViewModel = routesViewModel,
-                                navController = navController,
-                                shouldShowActionButtons = !isCompleted,
-                                onRouteAccepted = {
-                                    routeId?.let { id ->
-                                        routesViewModel.getRouteDetails(RequestRouteDetails(routeId = id))
+                            // Route Stops List - use stable key
+                            item(key = "route_stops_${route.id}") {
+                                RouteStopsList(
+                                    originPlace = route.originPlace ?: "",
+                                    destinationPlace = route.destinationPlace ?: "",
+                                    waypoints = route.waypoints,
+                                    routeStartTime = route.startTime,
+                                    originLat = route.originLat,
+                                    originLng = route.originLng,
+                                    routeStatus = routeStatus,
+                                    routeId = route.id?.toString() ?: "",
+                                    routesViewModel = routesViewModel,
+                                    navController = navController,
+                                    shouldShowActionButtons = !isCompleted,
+                                    onRouteAccepted = {
+                                        routeId?.let { id ->
+                                            routesViewModel.getRouteDetails(
+                                                RequestRouteDetails(
+                                                    routeId = id
+                                                )
+                                            )
+                                        }
                                     }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
-                }
 
-                else -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "Something went wrong...",
-                            style = AppTypography.bodyLarge,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                        )
-                    }
+
+//                    else -> {
+//                        Box(
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .padding(32.dp),
+//                            contentAlignment = Alignment.Center
+//                        ) {
+//                            Text(
+//                                "Something went wrong...",
+//                                style = AppTypography.bodyLarge,
+//                                textAlign = TextAlign.Center,
+//                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+//                            )
+//                        }
+//                    }
                 }
             }
         },
-        sheetDragHandle = {
+//        sheetDragHandle = {
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .background(color = MaterialTheme.colorScheme.background)
+//                    .padding(vertical = 12.dp),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                Box(
+//                    modifier = Modifier
+//                        .width(40.dp)
+//                        .height(4.dp)
+//                        .clip(RoundedCornerShape(2.dp))
+//                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+//                )
+//            }
+//        },
+        content = { paddingValues ->
+            // Main content - Full screen map
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .background(color = MaterialTheme.colorScheme.background)
-                    .padding(vertical = 12.dp),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .padding(paddingValues)
             ) {
-                Box(
-                    modifier = Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                )
-            }
-        }
-    ) { paddingValues ->
-        // Main content - Full screen map
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            if (mapParams != null) {
-                RouteMapBox(
-                    latitude = mapParams.latitude,
-                    longitude = mapParams.longitude,
-                    routeId = routeId,
-                    originLat = mapParams.originLat,
-                    originLng = mapParams.originLng,
-                    destinationLat = mapParams.destinationLat,
-                    destinationLng = mapParams.destinationLng,
-                    waypoints = mapParams.waypoints,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .offset(y = mapOffset.value)
-                )
-            } else {
-                // Loading or error state for map
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator()
-                    } else if (error != null) {
-                        Text(
-                            text = "Unable to load map",
-                            style = AppTypography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-            }
-
-            // Floating circular back button over the map
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(16.dp)
-                    .statusBarsPadding()
-            ) {
-                Card(
-                    modifier = Modifier.size(48.dp),
-                    shape = CircleShape,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    IconButton(
-                        onClick = {
-                            navController?.popBackStack()
-                        },
-                        modifier = Modifier.fillMaxSize()
+                if (mapParams != null) {
+                    RouteMapBox(
+                        latitude = mapParams.latitude,
+                        longitude = mapParams.longitude,
+                        routeId = routeId,
+                        originLat = mapParams.originLat,
+                        originLng = mapParams.originLng,
+                        destinationLat = mapParams.destinationLat,
+                        destinationLng = mapParams.destinationLng,
+                        waypoints = mapParams.waypoints,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .offset(y = mapOffset.value)
+                    )
+                } else {
+                    // Loading or error state for map
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator()
+                        } else if (error != null) {
+                            Text(
+                                text = "Unable to load map",
+                                style = AppTypography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+
+                // Floating circular back button over the map
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp)
+                        .statusBarsPadding()
+                ) {
+                    Card(
+                        modifier = Modifier.size(48.dp),
+                        shape = CircleShape,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        IconButton(
+                            onClick = {
+                                navController?.popBackStack()
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }
         }
-    }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -881,17 +939,6 @@ fun RouteStopsList(
         )
     }
 }
-
-// Data class to hold map parameters for stable recomposition
-private data class MapParams(
-    val latitude: Double,
-    val longitude: Double,
-    val originLat: String?,
-    val originLng: String?,
-    val destinationLat: Double?,
-    val destinationLng: Double?,
-    val waypoints: List<Waypoint>?
-)
 
 // Helper function to parse coordinates
 fun parseCoordinate(value: Any?): Double? {
