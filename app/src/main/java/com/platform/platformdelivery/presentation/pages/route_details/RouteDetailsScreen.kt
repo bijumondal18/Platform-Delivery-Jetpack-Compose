@@ -77,6 +77,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -87,6 +88,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -163,6 +165,40 @@ fun RouteDetailsScreen(
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
     val minSheetHeight = screenHeight * 0.45f
+
+    // Get bottom sheet offset to sync map movement
+    // When bottom sheet is dragged up beyond peek height, map should slide up to reveal markers
+    // When bottom sheet is at or below peek height, map stays in original position
+    val bottomSheetState = bottomSheetScaffoldState.bottomSheetState
+    val density = LocalDensity.current
+    
+    // Calculate the offset when sheet is at peek position (maximum offset)
+    val peekOffsetPx = remember(density, minSheetHeight, screenHeight) {
+        with(density) { (screenHeight - minSheetHeight).toPx() }
+    }
+    
+    val mapOffset = remember(density) { 
+        derivedStateOf { 
+            // Get the current offset from the bottom sheet state
+            // This is the Y position from the top of the screen
+            val currentOffsetPx = bottomSheetState.requireOffset()
+            
+            // Calculate how much the sheet has expanded beyond peek
+            // When sheet is at peek: currentOffsetPx = peekOffsetPx
+            // When sheet expands: currentOffsetPx < peekOffsetPx
+            val expansionPx = peekOffsetPx - currentOffsetPx
+            
+            // Only move map up if bottom sheet is expanded (expansion > 0)
+            // Apply as negative offset to move map up
+            if (expansionPx > 0) {
+                // Limit the map movement to a reasonable amount (e.g., 30% of expansion)
+                val mapMovementPx = expansionPx * 0.3f
+                with(density) { -mapMovementPx.toDp() }
+            } else {
+                0.dp // Map stays in original position
+            }
+        } 
+    }
 
     // Map parameters
     val route = routeDetails?.routeDetailsData?.routeData
@@ -380,7 +416,9 @@ fun RouteDetailsScreen(
                     destinationLat = mapParams.destinationLat,
                     destinationLng = mapParams.destinationLng,
                     waypoints = mapParams.waypoints,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .offset(y = mapOffset.value)
                 )
             } else {
                 // Loading or error state for map
