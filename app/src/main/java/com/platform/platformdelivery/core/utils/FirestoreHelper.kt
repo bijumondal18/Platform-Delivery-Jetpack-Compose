@@ -197,40 +197,49 @@ object FirestoreHelper {
     }
 
     /**
-     * Updates a specific waypoint's status in Firestore
+     * Updates a specific waypoint's status (and optionally delivered_type) in Firestore.
+     * Call after API successfully marks delivery as "delivered" or "failed".
      */
-    suspend fun updateWaypointStatus(routeId: String, waypointId: String, status: String) {
+    suspend fun updateWaypointStatus(
+        routeId: String,
+        waypointId: String,
+        status: String,
+        deliveredType: String? = null
+    ) {
         try {
             val docRef = db.collection(COLLECTION_NAME).document(routeId)
             
-            // Get the current document
             val document = docRef.get().await()
             if (!document.exists()) {
                 Log.w(TAG, "Route document $routeId does not exist in Firestore")
                 return
             }
             
-            // Get current waypoints array
             val waypoints = document.get("waypoints") as? List<Map<String, Any>> ?: return
             
-            // Find and update the waypoint with matching ID
             val updatedWaypoints = waypoints.map { waypoint ->
-                val wpId = waypoint["id"]?.toString() ?: ""
+                val wpId = waypoint["id"]?.let { id ->
+                    when (id) {
+                        is Number -> id.toInt().toString()
+                        else -> id.toString()
+                    }
+                } ?: ""
                 if (wpId == waypointId) {
-                    // Update status for matching waypoint
                     waypoint.toMutableMap().apply {
                         put("status", status)
                         put("updated_at", SimpleDateFormat(
                             "yyyy-MM-dd HH:mm:ss",
                             java.util.Locale.getDefault()
                         ).format(Date()))
+                        if (!deliveredType.isNullOrBlank()) {
+                            put("delivered_type", deliveredType)
+                        }
                     }
                 } else {
                     waypoint
                 }
             }
             
-            // Update the waypoints array in Firestore
             docRef.update("waypoints", updatedWaypoints)
                 .addOnSuccessListener {
                     Log.d(TAG, "Waypoint $waypointId status updated to '$status' in Firestore for route $routeId")

@@ -618,6 +618,16 @@ fun RouteStopsList(
         } ?: emptyList()
     }
 
+    // Active waypoint = first waypoint (in order) that is not completed/delivered/failed.
+    // When a waypoint status becomes "delivered", "failed", "completed" or "compleated", the next one becomes active.
+    val completedWaypointStatuses = setOf("delivered", "failed", "completed", "compleated")
+    val firstIncompleteWaypointId = remember(sortedWaypoints) {
+        sortedWaypoints.firstOrNull { wp ->
+            val s = wp.status?.toString()?.lowercase() ?: ""
+            s !in completedWaypointStatuses
+        }?.let { (it.id as? Number)?.toInt() }
+    }
+
     // Track if we've handled load vehicle result for this routeId
     var hasHandledLoadVehicle by remember(routeId) { mutableStateOf(false) }
 
@@ -742,21 +752,13 @@ fun RouteStopsList(
                 val isLast = index == allStops.size - 1
                 val isWaypoint = !isFirst && !isLast
 
-                // Check if this waypoint is the active/current waypoint
-                // currentWaypoint might be an index (0-based) or a waypoint ID
-                // Only show waypoint buttons if vehicle is loaded (isloaded == 1)
-                // Button visibility is controlled by shouldShowWaypointButtons which is based on Firestore isloaded
+                // Check if this waypoint is the active one: first waypoint (in order) that is not yet completed/delivered/failed.
+                // When a waypoint is marked delivered/failed/compleated, Firestore updates its status and the next becomes active.
                 val waypointIndex =
                     if (isWaypoint) index - 1 else null // Subtract 1 because index 0 is origin
                 val isActiveWaypoint =
-                    if (isWaypoint && currentWaypointId != null && shouldShowWaypointButtons) {
-                        // Try matching by waypoint ID first
-                        val matchesById =
-                            stopInfo.waypointId != null && stopInfo.waypointId == currentWaypointId
-                        // Or match by index (currentWaypoint might be 0-based index)
-                        val matchesByIndex =
-                            waypointIndex != null && waypointIndex == currentWaypointId
-                        matchesById || matchesByIndex
+                    if (isWaypoint && shouldShowWaypointButtons) {
+                        stopInfo.waypointId != null && stopInfo.waypointId == firstIncompleteWaypointId
                     } else {
                         false
                     }

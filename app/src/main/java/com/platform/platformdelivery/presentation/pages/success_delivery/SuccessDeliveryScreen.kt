@@ -539,7 +539,7 @@ fun SuccessDeliveryScreen(
                                 routesViewModel.updateWaypointDelivery(
                                     routeId = routeId,
                                     waypointId = waypointId,
-                                    deliveryStatus = "delivered",
+                                    deliveryStatus = "compleated",
                                     deliveredType = deliveryType,
                                     lat = location.latitude.toString(),
                                     lng = location.longitude.toString(),

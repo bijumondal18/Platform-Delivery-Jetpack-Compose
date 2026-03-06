@@ -687,18 +687,20 @@ class RoutesViewModel(
                     is Result.Success -> {
                         _deliveryUpdateResult.value = Result.Success(Unit)
                         
-                        // Update Firestore with waypoint status
-                        // Map deliveryStatus to waypoint status: "delivered" -> "delivered", "failed" -> "failed"
+                        // Update Firestore: waypoint status to "delivered" or "failed"
                         val waypointStatus = when (deliveryStatus.lowercase()) {
                             "delivered" -> "delivered"
                             "failed" -> "failed"
                             else -> deliveryStatus.lowercase()
                         }
+                        FirestoreHelper.updateWaypointStatus(
+                            routeId = routeId,
+                            waypointId = waypointId,
+                            status = waypointStatus,
+                            deliveredType = deliveredType
+                        )
                         
-                        // Update the specific waypoint's status in Firestore
-                        FirestoreHelper.updateWaypointStatus(routeId, waypointId, waypointStatus)
-                        
-                        // Also update route's updated_at timestamp
+                        // Update route's updated_at timestamp
                         val updates = hashMapOf<String, Any>(
                             "updated_at" to SimpleDateFormat(
                                 "yyyy-MM-dd HH:mm:ss",
@@ -706,9 +708,8 @@ class RoutesViewModel(
                             ).format(Date())
                         )
                         FirestoreHelper.updateAcceptedRoute(routeId, updates)
-                        Log.d(TAG, "Delivery update successful. Waypoint $waypointId status updated to '$waypointStatus' in Firestore.")
+                        Log.d(TAG, "Delivery update successful. Waypoint $waypointId status set to '$waypointStatus' in Firestore.")
                         
-                        // Don't call route details API - data is streaming from Firestore
                         onSuccess()
                     }
                     is Result.Error -> {

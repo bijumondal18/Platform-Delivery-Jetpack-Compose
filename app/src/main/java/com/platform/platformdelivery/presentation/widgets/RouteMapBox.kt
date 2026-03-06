@@ -165,7 +165,7 @@ fun RouteMapBox(
             runCatching {
                 cameraState.animate(
                     CameraUpdateFactory.newLatLngBounds(bounds, 100),
-                    700
+                    500
                 )
             }
         }
@@ -190,7 +190,7 @@ fun RouteMapBox(
                         runCatching {
                             cameraState.animate(
                                 CameraUpdateFactory.newLatLngBounds(bounds, 100),
-                                700
+                                500
                             )
                         }
                     }
