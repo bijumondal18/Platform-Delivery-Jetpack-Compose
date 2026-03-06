@@ -80,6 +80,7 @@ import com.platform.platformdelivery.core.network.Result
 import com.platform.platformdelivery.core.theme.AppTypography
 import com.platform.platformdelivery.presentation.pages.profile.ImagePickerBottomSheet
 import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
+import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -108,6 +109,8 @@ fun SuccessDeliveryScreen(
     
     val deliveryUpdateResult by routesViewModel.deliveryUpdateResult.collectAsState()
     val isUpdatingDelivery by routesViewModel.isUpdatingDelivery.collectAsState()
+    
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     
     // Create a temporary file for camera images
     val tempImageFile = remember {
@@ -164,7 +167,7 @@ fun SuccessDeliveryScreen(
                 // Navigate back to route details after a short delay
                 kotlinx.coroutines.delay(1000)
                 navController?.let { controller ->
-                    val routeDetailsRoute = "routeDetails/$routeId"
+                    val routeDetailsRoute = "routeDetails/$routeId?initialStatus="
                     // Try regular pop first (should go back to route details)
                     val popped = controller.popBackStack()
                     if (!popped) {
@@ -191,7 +194,7 @@ fun SuccessDeliveryScreen(
             val popped = controller.popBackStack()
             if (!popped) {
                 // If nothing to pop (would close app), navigate to route details
-                val routeDetailsRoute = "routeDetails/$routeId"
+                val routeDetailsRoute = "routeDetails/$routeId?initialStatus="
                 controller.navigate(routeDetailsRoute) {
                     launchSingleTop = true
                 }
@@ -220,7 +223,7 @@ fun SuccessDeliveryScreen(
                             val popped = controller.popBackStack()
                             if (!popped) {
                                 // If nothing to pop (would close app), navigate to route details
-                                val routeDetailsRoute = "routeDetails/$routeId"
+                                val routeDetailsRoute = "routeDetails/$routeId?initialStatus="
                                 controller.navigate(routeDetailsRoute) {
                                     launchSingleTop = true
                                 }
@@ -531,15 +534,25 @@ fun SuccessDeliveryScreen(
             Button(
                 onClick = {
                     if (routeId.isNotEmpty() && waypointId.isNotEmpty()) {
-                        routesViewModel.updateWaypointDelivery(
-                            routeId = routeId,
-                            waypointId = waypointId,
-                            deliveryStatus = "delivered",
-                            deliveryType = deliveryType,
-                            onSuccess = {
-                                // Success handled in LaunchedEffect
+                        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                            if (location != null) {
+                                routesViewModel.updateWaypointDelivery(
+                                    routeId = routeId,
+                                    waypointId = waypointId,
+                                    deliveryStatus = "delivered",
+                                    deliveredType = deliveryType,
+                                    lat = location.latitude.toString(),
+                                    lng = location.longitude.toString(),
+                                    onSuccess = {
+                                        // Success handled in LaunchedEffect
+                                    }
+                                )
+                            } else {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Unable to get location. Please ensure location is enabled.")
+                                }
                             }
-                        )
+                        }
                     }
                 },
                 modifier = Modifier

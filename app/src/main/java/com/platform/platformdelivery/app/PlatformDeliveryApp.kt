@@ -17,6 +17,8 @@ import android.view.WindowInsetsController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.platform.platformdelivery.core.theme.AppTheme
 import com.platform.platformdelivery.core.utils.PermissionUtils
 import com.platform.platformdelivery.data.local.TokenManager
@@ -170,10 +172,21 @@ fun PlatformDeliveryApp(
                         onThemeChange = updateTheme
                     )
                 }
-                composable("routeDetails/{routeId}") { backStackEntry ->
+                composable(
+                    "routeDetails/{routeId}?initialStatus={initialStatus}",
+                    arguments = listOf(
+                        navArgument("routeId") { type = NavType.StringType },
+                        navArgument("initialStatus") {
+                            type = NavType.StringType
+                            defaultValue = ""
+                        }
+                    )
+                ) { backStackEntry ->
                     val routeId = backStackEntry.arguments?.getString("routeId")
+                    val initialStatus = backStackEntry.arguments?.getString("initialStatus") ?: ""
                     RouteDetailsScreen(
                         routeId = routeId,
+                        initialStatus = initialStatus,
                         navController = navController
                     )
                 }

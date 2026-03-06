@@ -85,7 +85,7 @@ fun MyAcceptedRoutesScreen(
 
     LaunchedEffect(Unit) {
         // Reset flag and reload when screen is navigated to
-        routesViewModel.resetAcceptedTripsFlag()
+//        routesViewModel.resetAcceptedTripsFlag()
         routesViewModel.getAcceptedTrips(
             1,
             date = pickedDate ?: LocalDate.now()
@@ -226,7 +226,7 @@ fun MyAcceptedRoutesScreen(
                                     coroutineScope.launch {
                                         // Ensure Firestore document exists before navigation
                                         routesViewModel.ensureRouteDocumentInFirestore(selectedRoute)
-                                        navController.navigate("routeDetails/${selectedRoute.id}")
+                                        navController.navigate("routeDetails/${selectedRoute.id}?initialStatus=")
                                     }
                                 },
                                 showCancelButton = true,

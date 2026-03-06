@@ -141,6 +141,7 @@ fun RouteDetailsScreen(
     modifier: Modifier = Modifier,
     routesViewModel: RoutesViewModel = viewModel(),
     routeId: String?,
+    initialStatus: String = "",
     onTitleChange: (String) -> Unit = {},
     navController: NavController? = null
 ) {
@@ -191,12 +192,14 @@ fun RouteDetailsScreen(
     }
     
     // Optimize map offset calculation - use snapshotFlow to reduce recompositions
+    // Guard: requireOffset() throws if read before layout (e.g. when navigating back after delivery).
     val mapOffset = remember(density, peekOffsetPx) { 
         derivedStateOf { 
-            // Get the current offset from the bottom sheet state
-            // This is the Y position from the top of the screen
-            val currentOffsetPx = bottomSheetState.requireOffset()
-            
+            val currentOffsetPx = try {
+                bottomSheetState.requireOffset()
+            } catch (e: IllegalStateException) {
+                peekOffsetPx // Not laid out yet; use peek so map doesn't move
+            }
             // Calculate how much the sheet has expanded beyond peek
             // When sheet is at peek: currentOffsetPx = peekOffsetPx
             // When sheet expands: currentOffsetPx < peekOffsetPx
@@ -252,11 +255,16 @@ fun RouteDetailsScreen(
     }
 
     // Track if bottom sheet is fully expanded (at max height)
+    // Guard: requireOffset() throws if read before layout (e.g. when navigating back after delivery).
     val isFullyExpanded = remember {
         derivedStateOf {
-            val currentOffsetPx = bottomSheetState.requireOffset()
-            // Consider fully expanded if within 5px of max position
-            currentOffsetPx <= maxOffsetPx + 5f
+            try {
+                val currentOffsetPx = bottomSheetState.requireOffset()
+                // Consider fully expanded if within 5px of max position
+                currentOffsetPx <= maxOffsetPx + 5f
+            } catch (e: IllegalStateException) {
+                false // Not laid out yet
+            }
         }
     }
     
@@ -290,23 +298,6 @@ fun RouteDetailsScreen(
                     }
                 }
 
-                error != null -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(color = backgroundColor)
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "$error",
-                            style = AppTypography.bodyLarge,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-
                 routeDetails != null && route != null -> {
                     // Memoize route data to prevent unnecessary recompositions
                     val routeSummary = remember(route) {
@@ -329,7 +320,9 @@ fun RouteDetailsScreen(
                         Triple(dateText, summaryText, totalStops)
                     }
 
-                    val routeStatus = remember(route.status) { route.status ?: "" }
+                    val routeStatus = remember(route.status, initialStatus) {
+                        route.status?.takeIf { it.isNotEmpty() } ?: initialStatus.takeIf { it.isNotEmpty() } ?: ""
+                    }
                     val isCompleted = remember(routeStatus) {
                         routeStatus.equals("completed", ignoreCase = true) ||
                                 routeStatus.equals("compleated", ignoreCase = true)

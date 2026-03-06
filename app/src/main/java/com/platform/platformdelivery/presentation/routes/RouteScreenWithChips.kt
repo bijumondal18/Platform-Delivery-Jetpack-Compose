@@ -2,19 +2,27 @@ package com.platform.platformdelivery.presentation.routes
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +33,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -35,95 +45,98 @@ import com.platform.platformdelivery.presentation.view_models.RoutesViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun RoutesScreenWithChips(
+fun RoutesScreenWithTabs(
     modifier: Modifier = Modifier,
     routesViewModel: RoutesViewModel = viewModel(),
     navController: NavController
 ) {
-    val coroutineScope = rememberCoroutineScope()
 
-    // Chip state - get from ViewModel to persist across navigation
-    val selectedChipState by routesViewModel.selectedChip.collectAsState()
-    var selectedChip by remember { mutableStateOf(selectedChipState) }
-    
-    // Update local state when ViewModel state changes
-    LaunchedEffect(selectedChipState) {
-        selectedChip = selectedChipState
+    val selectedTabState by routesViewModel.selectedChip.collectAsState()
+    var selectedTab by remember { mutableStateOf(selectedTabState) }
+
+    val tabs = listOf("Available", "Accepted", "Route History")
+
+    LaunchedEffect(selectedTabState) {
+        selectedTab = selectedTabState
     }
-    
-    val chipOptions = listOf("Available", "Accepted", "Route History")
 
-    // Reload data when switching tabs to ensure correct data is shown
-    LaunchedEffect(selectedChip) {
-        when (selectedChip) {
+    LaunchedEffect(selectedTab) {
+
+        when (selectedTab) {
+
             "Available" -> {
-                routesViewModel.resetRouteHistoryFlag()
-                routesViewModel.resetAcceptedTripsFlag()
-                routesViewModel.getAvailableRoutes(1)
+                if (!routesViewModel.hasLoadedAvailableRoutes) {
+                    routesViewModel.getAvailableRoutes()
+                    routesViewModel.hasLoadedAvailableRoutes = true
+                }
             }
+
             "Accepted" -> {
-                routesViewModel.resetAvailableRoutesFlag()
-                routesViewModel.resetRouteHistoryFlag()
-                routesViewModel.getAcceptedTrips(1)
+                if (!routesViewModel.hasLoadedAcceptedTrips) {
+                    routesViewModel.getAcceptedTrips()
+                    routesViewModel.hasLoadedAcceptedTrips = true
+                }
             }
+
             "Route History" -> {
-                routesViewModel.resetAvailableRoutesFlag()
-                routesViewModel.resetAcceptedTripsFlag()
-                routesViewModel.getRouteHistory(1)
+                if (!routesViewModel.hasLoadedRouteHistory) {
+                    routesViewModel.getRouteHistory()
+                    routesViewModel.hasLoadedRouteHistory = true
+                }
             }
         }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
 
-        // --- Chips Row ---
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            chipOptions.forEach { chip ->
-                val selected = chip == selectedChip
-                FilterChip(
-                    selected = selected,
-                    onClick = { 
-                        selectedChip = chip
-                        routesViewModel.setSelectedChip(chip)
-                    },
-                    label = {
-                        Text(
-                            chip,
-                            color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    },
-                    shape = MaterialTheme.shapes.extraExtraLarge,
-                    colors = FilterChipDefaults.filterChipColors(
-                        containerColor = if (selected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(
-                            alpha = 0.1f
-                        ),
-                        selectedContainerColor = if (selected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(
-                            alpha = 0.1f
-                        ),
-                        selectedLabelColor = MaterialTheme.colorScheme.onBackground,
-                        labelColor = MaterialTheme.colorScheme.onBackground.copy(
-                            alpha = 0.5f
-                        )
-                    )
+        TabRow(
+            selectedTabIndex = tabs.indexOf(selectedTab),
+            containerColor = MaterialTheme.colorScheme.background,
+            indicator = @androidx.compose.runtime.Composable { tabPositions ->
 
+                val index = tabs.indexOf(selectedTab)
+
+                TabRowDefaults.Indicator(
+                    modifier = Modifier
+                        .tabIndicatorOffset(tabPositions[index])
+                        .padding(horizontal = 6.dp, vertical = 6.dp)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(50)),
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            },
+            divider = {}
+        ) {
+
+            tabs.forEach {  title ->
+
+                val selected = selectedTab == title
+
+                Tab(
+                    selected = selected,
+                    selectedContentColor = MaterialTheme.colorScheme.onSecondary,
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                    onClick = {
+                        selectedTab = title
+                        routesViewModel.setSelectedChip(title)
+                    },
+                    text = {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
                 )
             }
         }
 
-        // --- Divider ---
         Spacer(modifier = Modifier.height(8.dp))
 
-        // --- Content Below Chips ---
-        when (selectedChip) {
+        when (selectedTab) {
             "Available" -> AvailableRoutesScreen(navController = navController)
             "Accepted" -> MyAcceptedRoutesScreen(navController = navController)
             "Route History" -> MyRouteHistory(navController = navController)

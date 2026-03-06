@@ -144,9 +144,11 @@ interface ApiService {
     suspend fun routeDeliveryWithOptions(
         @Field("route_id") routeId: String,
         @Field("waypoint_id") waypointId: String,
-        @Field("delivery_status") deliveryStatus: String, // "delivered" or "failed"
-        @Field("current_time") currentTime: String,
-        @Field("delivery_type") deliveryType: String? = null
+        @Field("delivery_status") deliveryStatus: String,
+        @Field("lat") lat: String,
+        @Field("lng") lng: String,
+        @Field("datetime") datetime: String,
+        @Field("delivered_type") deliveredType: String
     ): Response<BaseResponse>
 
     @GET(EarningsEndpoints.totalEarnings)

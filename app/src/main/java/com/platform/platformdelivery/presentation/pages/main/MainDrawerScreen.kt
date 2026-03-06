@@ -65,7 +65,7 @@ import com.platform.platformdelivery.presentation.pages.profile.DeleteAccountDia
 import com.platform.platformdelivery.presentation.pages.profile.EditProfileScreen
 import com.platform.platformdelivery.presentation.pages.profile.ProfileScreen
 import com.platform.platformdelivery.data.local.TokenManager
-import com.platform.platformdelivery.presentation.routes.RoutesScreenWithChips
+import com.platform.platformdelivery.presentation.routes.RoutesScreenWithTabs
 import com.platform.platformdelivery.presentation.widgets.ModernExitDialog
 import com.platform.platformdelivery.presentation.widgets.ModernLogoutDialog
 import kotlinx.coroutines.delay
@@ -211,7 +211,8 @@ fun MainBottomNavScreen(
         },
         bottomBar = {
             NavigationBar(
-                containerColor = Color.Transparent,
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                tonalElevation = 8.dp
             ) {
                 bottomNavItems.forEach { item ->
                     NavigationBarItem(
@@ -250,7 +251,7 @@ fun MainBottomNavScreen(
                         }
                     ) 
                 }
-                composable(DrawerDestinations.RouteScreenWithChips) { RoutesScreenWithChips(navController = rootNavController) }
+                composable(DrawerDestinations.RouteScreenWithChips) { RoutesScreenWithTabs(navController = rootNavController) }
                 composable(DrawerDestinations.AvailableRoutes) { AvailableRoutesScreen(navController = rootNavController) }
                 composable(DrawerDestinations.RouteHistory) { MyRouteHistory(navController = rootNavController) }
                 composable(DrawerDestinations.MyAcceptedRoutes) { MyAcceptedRoutesScreen(navController = rootNavController) }

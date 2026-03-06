@@ -2,11 +2,13 @@ package com.platform.platformdelivery.presentation.pages.notifications
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -42,6 +45,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -117,15 +123,12 @@ fun NotificationScreen(
     LaunchedEffect(selectedChip) {
         when (selectedChip) {
             "All" -> {
-                notificationViewModel.resetUnreadNotificationsFlag()
-                // Only load if not already loaded
                 if (!notificationViewModel.hasLoadedAllNotifications) {
                     notificationViewModel.loadAllNotificationsOnce()
                 }
             }
+
             "Unread" -> {
-                notificationViewModel.resetAllNotificationsFlag()
-                // Only load if not already loaded
                 if (!notificationViewModel.hasLoadedUnreadNotifications) {
                     notificationViewModel.loadUnreadNotificationsOnce()
                 }
@@ -252,37 +255,42 @@ fun NotificationScreen(
                 .padding(innerPadding)
         ) {
             // Chips Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            val selectedIndex = chipOptions.indexOf(selectedChip)
+
+            TabRow(
+                selectedTabIndex = selectedIndex,
+                containerColor = MaterialTheme.colorScheme.surface,
+                divider = {},
+                indicator = { tabPositions ->
+                    Box(
+                        Modifier
+                            .tabIndicatorOffset(tabPositions[selectedIndex])
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                            .fillMaxHeight()
+                            .background(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                RoundedCornerShape(50)
+                            )
+                    )
+                }
             ) {
-                chipOptions.forEach { chip ->
-                    val selected = chip == selectedChip
-                    FilterChip(
+
+                chipOptions.forEachIndexed { index, title ->
+
+                    val selected = selectedChip == title
+
+                    Tab(
                         selected = selected,
-                        onClick = { selectedChip = chip },
-                        label = {
+                        onClick = { selectedChip = title },
+                        selectedContentColor = MaterialTheme.colorScheme.onBackground,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        text = {
                             Text(
-                                chip,
-                                color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
-                                style = MaterialTheme.typography.labelLarge
+                                text = title,
+                                style = MaterialTheme.typography.titleMedium
                             )
                         },
-                        shape = MaterialTheme.shapes.extraExtraLarge,
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = if (selected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(
-                                alpha = 0.1f
-                            ),
-                            selectedContainerColor = if (selected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(
-                                alpha = 0.1f
-                            ),
-                            selectedLabelColor = MaterialTheme.colorScheme.onBackground,
-                            labelColor = MaterialTheme.colorScheme.onBackground.copy(
-                                alpha = 0.5f
-                            )
-                        )
+                        interactionSource = remember { MutableInteractionSource() }
                     )
                 }
             }
@@ -385,7 +393,7 @@ fun NotificationScreen(
                                                         // Navigate to route details using notifiableId as route ID
                                                         val routeId = item.notification.id.toString()
                                                         if (!routeId.isNullOrEmpty()) {
-                                                            navController.navigate("routeDetails/$routeId")
+                                                            navController.navigate("routeDetails/$routeId?initialStatus=")
                                                         }
                                                     }
                                                 )
@@ -477,7 +485,7 @@ fun NotificationScreen(
                                                         // Navigate to route details using notifiableId as route ID
                                                         val routeId = item.notification.notifiableId?.toString()
                                                         if (!routeId.isNullOrEmpty()) {
-                                                            navController.navigate("routeDetails/$routeId")
+                                                            navController.navigate("routeDetails/$routeId?initialStatus=")
                                                         }
                                                     }
                                                 )

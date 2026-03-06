@@ -21,10 +21,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -45,138 +47,137 @@ fun RouteItem(
     showCancelButton: Boolean = false,
     onCancelClick: ((Route) -> Unit)? = null
 ) {
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(shape = MaterialTheme.shapes.medium)
             .clickable { onClick(route) },
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        tonalElevation = 8.dp,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 12.dp, horizontal = 16.dp)
         ) {
-        // Route name row with status badge
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            // Route name
-            if (!route.name.isNullOrEmpty()) {
-                Text(
-                    text = route.name,
-                    style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            // Route name row with status badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                // Route name
+                if (!route.name.isNullOrEmpty()) {
+                    Text(
+                        text = route.name,
+                        style = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
-            // Status badge on the right
-            if (!route.status.isNullOrEmpty()) {
-                val statusColor = if (route.status.lowercase() == "completed" ||
-                    route.status.lowercase() == "compleated"
-                )
-                    SuccessGreen
-                else
-                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                // Status badge on the right
+                if (!route.status.isNullOrEmpty()) {
+                    val statusColor = if (route.status.lowercase() == "completed" ||
+                        route.status.lowercase() == "compleated"
+                    )
+                        SuccessGreen
+                    else
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
 
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = statusColor.copy(alpha = 0.1f),
-                            shape = MaterialTheme.shapes.small
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        color = statusColor.copy(alpha = 0.1f),
+                        shape = MaterialTheme.shapes.small
+
                     ) {
-                        Text(
-                            text = "•",
-                            style = AppTypography.labelSmall,
-                            color = statusColor
-                        )
-                        Text(
-                            text = route.status.replaceFirstChar { it.uppercaseChar() },
-                            style = AppTypography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = statusColor
-                        )
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "•",
+                                style = AppTypography.labelSmall,
+                                color = statusColor
+                            )
+                            Text(
+                                text = route.status.replaceFirstChar { it.uppercaseChar() },
+                                style = AppTypography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = statusColor
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        // Location row with pin icon
-        val locationText = route.originPlace ?: route.destinationPlace ?: ""
-        if (locationText.isNotEmpty()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                            shape = MaterialTheme.shapes.medium
-                        ).padding(6.dp)
+            // Location row with pin icon
+            val locationText = route.originPlace ?: route.destinationPlace ?: ""
+            if (locationText.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Location",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                                shape = MaterialTheme.shapes.medium
+                            )
+                            .padding(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Location",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                        )
+                    }
+                    Text(
+                        text = locationText,
+                        style = AppTypography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
                 }
-                Text(
-                    text = locationText,
-                    style = AppTypography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Details row: START, DURATION, STOPS
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // START
+                DetailItem(
+                    iconDrawable = R.drawable.ic_clock,
+                    label = "START",
+                    value = formatTimeToAmPm(route.startTime)
+                )
+
+                // DURATION
+                DetailItem(
+                    icon = Icons.Default.Refresh,
+                    label = "DURATION",
+                    value = route.estimatedTotalTime ?: "0h 0m"
+                )
+
+                // STOPS
+                val totalStops = (route.waypoints?.size ?: 0) +
+                        if (route.destinationPlace.isNullOrEmpty()) 0 else 1
+                DetailItem(
+                    icon = Icons.Default.AltRoute,
+                    label = "STOPS",
+                    value = totalStops.toString()
                 )
             }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Details row: START, DURATION, STOPS
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // START
-            DetailItem(
-                iconDrawable = R.drawable.ic_clock,
-                label = "START",
-                value = formatTimeToAmPm(route.startTime)
-            )
-
-            // DURATION
-            DetailItem(
-                icon = Icons.Default.Refresh,
-                label = "DURATION",
-                value = route.estimatedTotalTime ?: "0h 0m"
-            )
-
-            // STOPS
-            val totalStops = (route.waypoints?.size ?: 0) +
-                    if (route.destinationPlace.isNullOrEmpty()) 0 else 1
-            DetailItem(
-                icon = Icons.Default.AltRoute,
-                label = "STOPS",
-                value = totalStops.toString()
-            )
-        }
         }
     }
 }
@@ -188,15 +189,13 @@ private fun DetailItem(
     label: String,
     value: String
 ) {
-    Box(
-        modifier = Modifier
-            .background(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                shape = MaterialTheme.shapes.medium
-            )
-            .padding(8.dp)
+    Surface(
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+        shape = MaterialTheme.shapes.medium
     ) {
         Column(
+            modifier = Modifier
+                .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Row(
@@ -245,7 +244,7 @@ private fun formatTimeToAmPm(timeString: String?): String {
     if (timeString.isNullOrEmpty() || timeString == "--") {
         return "--"
     }
-    
+
     return try {
         // Try parsing common 24-hour formats
         val inputFormats = listOf(
@@ -255,10 +254,10 @@ private fun formatTimeToAmPm(timeString: String?): String {
             "H:mm",
             "H:mm:ss"
         )
-        
+
         var parsedTime: java.util.Date? = null
         var usedFormat: String? = null
-        
+
         for (format in inputFormats) {
             try {
                 val sdf = SimpleDateFormat(format, Locale.getDefault())
@@ -273,7 +272,7 @@ private fun formatTimeToAmPm(timeString: String?): String {
                 continue
             }
         }
-        
+
         if (parsedTime != null) {
             // Convert to AM/PM format
             val outputFormat = SimpleDateFormat("h:mm a", Locale.getDefault())

@@ -105,17 +105,17 @@ class RoutesViewModel(
         }
     }
 
-    fun resetAvailableRoutesFlag() {
-        hasLoadedAvailableRoutes = false
-    }
-
-    fun resetRouteHistoryFlag() {
-        hasLoadedRouteHistory = false
-    }
-
-    fun resetAcceptedTripsFlag() {
-        hasLoadedAcceptedTrips = false
-    }
+//    fun resetAvailableRoutesFlag() {
+//        hasLoadedAvailableRoutes = false
+//    }
+//
+//    fun resetRouteHistoryFlag() {
+//        hasLoadedRouteHistory = false
+//    }
+//
+//    fun resetAcceptedTripsFlag() {
+//        hasLoadedAcceptedTrips = false
+//    }
 
 
     fun getAvailableRoutes(
@@ -337,6 +337,9 @@ class RoutesViewModel(
         viewModelScope.launch {
             _isRouteDetailsLoading.value = true
             _routeDetailsError.value = null
+            // Clear previous route details so we don't show another route's data (e.g. accepted route)
+            // when opening an available route. Ensures Accept button shows correctly for available routes.
+            _routeDetails.value = null
             
             try {
                 FirestoreHelper.streamRouteDetails(routeId).collect { routeDetailsResponse ->
@@ -655,7 +658,9 @@ class RoutesViewModel(
         routeId: String,
         waypointId: String,
         deliveryStatus: String, // "delivered" or "failed"
-        deliveryType: String? = null,
+        deliveredType: String, // required by API e.g. "recipient", "third_party", "mailbox", "safe_place", "other" or failed reason
+        lat: String,
+        lng: String,
         onSuccess: () -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -663,13 +668,21 @@ class RoutesViewModel(
             _deliveryUpdateResult.value = null
             
             try {
-                // Format current time as HH:mm:ss
-                val currentTime = SimpleDateFormat(
-                    "HH:mm:ss",
+                // API requires datetime in full format (e.g. yyyy-MM-dd HH:mm:ss)
+                val datetime = SimpleDateFormat(
+                    "yyyy-MM-dd HH:mm:ss",
                     java.util.Locale.getDefault()
                 ).format(Date())
                 
-                val result = routeRepository.routeDeliveryWithOptions(routeId, waypointId, deliveryStatus, currentTime, deliveryType)
+                val result = routeRepository.routeDeliveryWithOptions(
+                    routeId = routeId,
+                    waypointId = waypointId,
+                    deliveryStatus = deliveryStatus,
+                    lat = lat,
+                    lng = lng,
+                    datetime = datetime,
+                    deliveredType = deliveredType
+                )
                 when (result) {
                     is Result.Success -> {
                         _deliveryUpdateResult.value = Result.Success(Unit)

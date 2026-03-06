@@ -187,11 +187,17 @@ class RouteRepository {
         routeId: String,
         waypointId: String,
         deliveryStatus: String,
-        currentTime: String,
-        deliveryType: String? = null
+        lat: String,
+        lng: String,
+        datetime: String,
+        deliveredType: String
     ): Result<BaseResponse> {
         return try {
-            val response = apiService.routeDeliveryWithOptions(routeId, waypointId, deliveryStatus, currentTime, deliveryType)
+            val formattedLat = LocationUtils.formatCoordinate(lat) ?: lat
+            val formattedLng = LocationUtils.formatCoordinate(lng) ?: lng
+            val response = apiService.routeDeliveryWithOptions(
+                routeId, waypointId, deliveryStatus, formattedLat, formattedLng, datetime, deliveredType
+            )
             if (response.isSuccessful && response.body() != null) {
                 Result.Success(response.body()!!)
             } else {

@@ -18,7 +18,7 @@ import java.util.Date
 
 object FirestoreHelper {
     private const val TAG = "FirestoreHelper"
-    private const val COLLECTION_NAME = "routes"
+    private const val COLLECTION_NAME = "test-routes"
     private val db = FirebaseFirestore.getInstance()
 
     /**
