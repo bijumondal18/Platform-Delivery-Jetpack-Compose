@@ -159,9 +159,19 @@ fun FailedDeliveryScreen(
                 scope.launch {
                     snackbarHostState.showSnackbar("Failed delivery submitted successfully")
                 }
-                // Navigate back after a short delay
+                // Navigate back to route details after a short delay
                 kotlinx.coroutines.delay(1000)
-                navController?.popBackStack()
+                navController?.let { controller ->
+                    val routeDetailsRoute = "routeDetails/$routeId"
+                    // Try regular pop first (should go back to route details)
+                    val popped = controller.popBackStack()
+                    if (!popped) {
+                        // If nothing to pop, navigate to route details
+                        controller.navigate(routeDetailsRoute) {
+                            launchSingleTop = true
+                        }
+                    }
+                }
             }
             is Result.Error -> {
                 scope.launch {

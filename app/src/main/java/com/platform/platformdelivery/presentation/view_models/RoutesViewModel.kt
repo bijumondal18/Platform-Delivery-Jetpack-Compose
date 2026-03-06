@@ -674,9 +674,18 @@ class RoutesViewModel(
                     is Result.Success -> {
                         _deliveryUpdateResult.value = Result.Success(Unit)
                         
-                        // Update Firestore with delivery status
-                        // Note: We update the waypoint status in the waypoints array
-                        // This is a simplified update - in production you might want to update the specific waypoint
+                        // Update Firestore with waypoint status
+                        // Map deliveryStatus to waypoint status: "delivered" -> "delivered", "failed" -> "failed"
+                        val waypointStatus = when (deliveryStatus.lowercase()) {
+                            "delivered" -> "delivered"
+                            "failed" -> "failed"
+                            else -> deliveryStatus.lowercase()
+                        }
+                        
+                        // Update the specific waypoint's status in Firestore
+                        FirestoreHelper.updateWaypointStatus(routeId, waypointId, waypointStatus)
+                        
+                        // Also update route's updated_at timestamp
                         val updates = hashMapOf<String, Any>(
                             "updated_at" to SimpleDateFormat(
                                 "yyyy-MM-dd HH:mm:ss",
@@ -684,7 +693,7 @@ class RoutesViewModel(
                             ).format(Date())
                         )
                         FirestoreHelper.updateAcceptedRoute(routeId, updates)
-                        Log.d(TAG, "Delivery update successful. Firestore will update automatically.")
+                        Log.d(TAG, "Delivery update successful. Waypoint $waypointId status updated to '$waypointStatus' in Firestore.")
                         
                         // Don't call route details API - data is streaming from Firestore
                         onSuccess()
